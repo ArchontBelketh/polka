@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  BUYER
+  DEVELOPER
+  MODERATOR
+  ADMIN
+}
+
+enum Category {
+  TELEGRAM
+  PARSER
+  EXCEL
+  AUTOMATION
+  WEB
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING
+  SCAN_FAILED
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  WARNING
+  BLOCKED
+}
+
+enum PurchaseStatus {
+  PENDING
+  PAID
+  DELIVERED
+  REFUNDED
+  DISPUTED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+}
+
+enum FileType {
+  SOURCE
+  BINARY
+  DECOMPILED
+}
+
+model User {
+  id             String     @id @default(cuid())
+  email          String?    @unique
+  emailVerified  DateTime?
+  name           String?
+  telegramId     String?    @unique
+  telegramHandle String?
+  phone          String?
+  role           Role       @default(BUYER)
+  inn            String?
+  agreedToTerms  Boolean    @default(false)
+  agreedAt       DateTime?
+  balance        Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  products       Product[]
+  purchases      Purchase[]
+  reviews        Review[]
+  payouts        Payout[]
+  accounts       Account[]
+  sessions       Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  access_token      String? @db.Text
+  refresh_token     String? @db.Text
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Product {
+  id                  String          @id @default(cuid())
+  title               String
+  slug                String          @unique
+  shortDesc           String
+  fullDesc            String          @db.Text
+  category            Category
+  price               Int
+  status              ProductStatus   @default(DRAFT)
+  authorId            String
+  features            String[]
+  screenshots         String[]
+  demoUrl             String?
+  videoUrl            String?
+  targetAudience      String?
+  techStack           String?
+  license             String          @default("personal")
+  telegramBotUsername String?
+  rating              Float           @default(0)
+  reviewCount         Int             @default(0)
+  salesCount          Int             @default(0)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  publishedAt         DateTime?
+  author              User            @relation(fields: [authorId], references: [id])
+  files               ProductFile[]
+  purchases           Purchase[]
+  reviews             Review[]
+  scanResult          ScanResult?
+  moderationLogs      ModerationLog[]
+
+  @@index([status])
+  @@index([category])
+  @@index([authorId])
+}
+
+model ProductFile {
+  id        String   @id @default(cuid())
+  productId String
+  s3Key     String
+  fileName  String
+  fileSize  Int
+  fileType  FileType
+  format    String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ScanResult {
+  id        String     @id @default(cuid())
+  productId String     @unique
+  status    ScanStatus @default(PENDING)
+  findings  Json       @default("[]")
+  scannedAt DateTime?
+  toolsRun  String[]
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ModerationLog {
+  id          String   @id @default(cuid())
+  productId   String
+  moderatorId String?
+  action      String
+  comment     String?
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Purchase {
+  id            String         @id @default(cuid())
+  buyerId       String
+  productId     String
+  amount        Int
+  status        PurchaseStatus @default(PENDING)
+  paymentId     String?
+  escrowUntil   DateTime?
+  downloadCount Int            @default(0)
+  createdAt     DateTime       @default(now())
+  paidAt        DateTime?
+  buyer         User           @relation(fields: [buyerId], references: [id])
+  product       Product        @relation(fields: [productId], references: [id])
+
+  @@index([buyerId])
+  @@index([productId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  authorId  String
+  rating    Int
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@unique([productId, authorId])
+}
+
+model Payout {
+  id          String       @id @default(cuid())
+  developerId String
+  amount      Int
+  status      PayoutStatus @default(PENDING)
+  requestedAt DateTime     @default(now())
+  paidAt      DateTime?
+  developer   User         @relation(fields: [developerId], references: [id])
+}

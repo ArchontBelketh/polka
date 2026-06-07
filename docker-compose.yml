@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: polka
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: polka_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file: .env.local
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
