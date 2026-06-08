@@ -32,7 +32,14 @@ export function LoginForm() {
       if (res?.error) {
         setError("Неверный email или пароль")
       } else {
-        router.push(callbackUrl)
+        const sessionRes = await fetch("/api/auth/session")
+        const sessionData = await sessionRes.json()
+        const role = sessionData?.user?.role
+        if (role === "ADMIN" || role === "MODERATOR") {
+          router.push("/admin")
+        } else {
+          router.push(callbackUrl)
+        }
         router.refresh()
       }
     } finally {
