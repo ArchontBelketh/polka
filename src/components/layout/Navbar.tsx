@@ -3,9 +3,11 @@ import { Search, Package, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { auth } from "@/lib/auth"
+import { UserMenu } from "@/components/layout/UserMenu"
 
 export async function Navbar() {
   const session = await auth()
+  const role = (session?.user as { role?: string } | undefined)?.role
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
@@ -29,14 +31,12 @@ export async function Navbar() {
         <nav className="ml-auto flex items-center gap-2">
           {session?.user ? (
             <>
-              {(session.user as { role?: string }).role === "DEVELOPER" && (
+              {role === "DEVELOPER" && (
                 <Button asChild size="sm" variant="outline">
                   <Link href="/submit">Загрузить продукт</Link>
                 </Button>
               )}
-              <Button asChild size="sm" variant="ghost">
-                <Link href="/dashboard">Кабинет</Link>
-              </Button>
+              <UserMenu role={role} />
             </>
           ) : (
             <Button asChild size="sm">
