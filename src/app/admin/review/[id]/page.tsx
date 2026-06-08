@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
+import { TechBadge } from "@/components/catalog/TechBadge"
 import { ModerationActions } from "./ModerationActions"
 import type { ScanFinding } from "@/types"
 
@@ -106,10 +107,14 @@ export default async function AdminReviewPage({ params }: RouteParams) {
               <p>{product.targetAudience}</p>
             </div>
           )}
-          {product.techStack && (
+          {product.techStack.length > 0 && (
             <div>
-              <p className="text-muted-foreground">Стек</p>
-              <p>{product.techStack}</p>
+              <p className="text-muted-foreground mb-1.5">Стек</p>
+              <div className="flex flex-wrap gap-1">
+                {product.techStack.map(tag => (
+                  <TechBadge key={tag} label={tag} />
+                ))}
+              </div>
             </div>
           )}
           <div>
