@@ -93,9 +93,14 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-semibold">Рабочий стол</h1>
         <div className="flex items-center gap-2">
           {user.role === "ADMIN" && (
-            <Button asChild variant="outline" size="sm">
-              <Link href="/admin/coupons">Купоны</Link>
-            </Button>
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/users">Пользователи</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/coupons">Купоны</Link>
+              </Button>
+            </>
           )}
           <Button asChild variant={queueTotal > 0 ? "default" : "outline"}>
             <Link href="/admin/queue">

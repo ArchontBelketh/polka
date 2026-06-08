@@ -30,7 +30,11 @@ export function LoginForm() {
         redirect: false,
       })
       if (res?.error) {
-        setError("Неверный email или пароль")
+        setError(
+          res.error === "AccessDenied"
+            ? "Ваш аккаунт заблокирован"
+            : "Неверный email или пароль"
+        )
       } else {
         const sessionRes = await fetch("/api/auth/session")
         const sessionData = await sessionRes.json()
