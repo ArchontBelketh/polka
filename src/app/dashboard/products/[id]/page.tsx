@@ -6,8 +6,23 @@ import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 import { TechBadge } from "@/components/catalog/TechBadge"
 import { ProductActions } from "./ProductActions"
+import { NewVersionForm } from "./NewVersionForm"
+import { VersionActions } from "./VersionActions"
 
 type RouteParams = { params: Promise<{ id: string }> }
+
+const VERSION_STATUS_LABELS: Record<string, string> = {
+  PENDING:   "На проверке",
+  APPROVED:  "Опубликована",
+  REJECTED:  "Отклонена",
+  SUSPENDED: "Снята",
+}
+const VERSION_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  PENDING:   "outline",
+  APPROVED:  "default",
+  REJECTED:  "destructive",
+  SUSPENDED: "secondary",
+}
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Черновик",
@@ -95,6 +110,7 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
     include: {
       files: true,
       moderationLogs: { orderBy: { createdAt: "desc" } },
+      versions: { orderBy: { createdAt: "desc" } },
       _count: { select: { purchases: true, reviews: true } },
     },
   })
@@ -182,6 +198,66 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {/* Version history — only for approved products */}
+      {product.status === "APPROVED" && (
+        <section className="rounded-lg border border-border bg-card p-5 space-y-4">
+          <h2 className="font-semibold">Версии</h2>
+
+          {product.versions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Дополнительных версий нет. Покупателям доступен исходный файл, загруженный при публикации.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {product.versions.map((v) => (
+                <li key={v.id} className="flex items-start gap-3 text-sm border-b border-border last:border-0 pb-3 last:pb-0">
+                  <div className="flex flex-col items-start gap-1 shrink-0 min-w-[90px]">
+                    <span className="font-mono font-semibold text-primary">v{v.version}</span>
+                    <Badge variant={VERSION_STATUS_VARIANTS[v.status] ?? "outline"} className="text-xs">
+                      {VERSION_STATUS_LABELS[v.status] ?? v.status}
+                    </Badge>
+                    <VersionActions
+                      productId={product.id}
+                      versionId={v.id}
+                      status={v.status}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-0.5 min-w-0">
+                    {v.changelog && (
+                      <p className="text-muted-foreground text-xs whitespace-pre-wrap break-words">{v.changelog}</p>
+                    )}
+                    {v.status === "REJECTED" && v.moderatorComment && (
+                      <p className="text-xs text-destructive">
+                        Причина отказа: {v.moderatorComment}
+                      </p>
+                    )}
+                    {v.status === "PENDING" && (
+                      <p className="text-xs text-muted-foreground">
+                        Ожидает проверки. Покупатели получат доступ после одобрения.
+                      </p>
+                    )}
+                    {v.status === "SUSPENDED" && (
+                      <p className="text-xs text-muted-foreground">
+                        Скрыта. Покупатели получают предыдущую версию или исходный файл.
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {v.createdAt.toLocaleDateString("ru-RU", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <NewVersionForm productId={product.id} />
         </section>
       )}
 

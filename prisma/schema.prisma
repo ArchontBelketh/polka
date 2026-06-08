@@ -72,6 +72,13 @@ enum FileType {
   DECOMPILED
 }
 
+enum ProductVersionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 model User {
   id             String     @id @default(cuid())
   email          String?    @unique
@@ -164,6 +171,7 @@ model Product {
   moderationLogs      ModerationLog[]
   wishlists           Wishlist[]
   supportTickets      SupportTicket[]
+  versions            ProductVersion[]
 
   @@index([status])
   @@index([category])
@@ -283,6 +291,23 @@ model TicketMessage {
   createdAt DateTime      @default(now())
   ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   author    User          @relation(fields: [authorId], references: [id])
+}
+
+model ProductVersion {
+  id               String               @id @default(cuid())
+  productId        String
+  version          String
+  changelog        String?              @db.Text
+  s3Key            String               @default("")
+  fileName         String               @default("")
+  fileSize         Int                  @default(0)
+  status           ProductVersionStatus @default(PENDING)
+  moderatorComment String?
+  createdAt        DateTime             @default(now())
+  product          Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([status])
 }
 
 model Coupon {

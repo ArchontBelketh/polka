@@ -17,7 +17,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     where: { id: purchaseId },
     include: {
       product: {
-        include: { files: { where: { fileType: "SOURCE" }, take: 1 } },
+        include: {
+          files: { where: { fileType: "SOURCE" }, orderBy: { createdAt: "asc" }, take: 1 },
+          versions: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 1 },
+        },
       },
     },
   })
@@ -37,20 +40,27 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: "Продукт недоступен для скачивания" }, { status: 403 })
   }
 
-  const file = purchase.product.files[0]
-  if (!file) {
+  // Prefer latest version file over original upload
+  const latestVersion = purchase.product.versions[0]
+  const originalFile = purchase.product.files[0]
+
+  const s3Key = latestVersion?.s3Key && latestVersion.s3Key !== ""
+    ? latestVersion.s3Key
+    : originalFile?.s3Key
+
+  if (!s3Key) {
     return Response.json({ error: "Файл не найден" }, { status: 404 })
   }
 
   const s3Configured = !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
-  if (!s3Configured || file.s3Key.startsWith("local/")) {
+  if (!s3Configured || s3Key.startsWith("local/")) {
     return Response.json(
       { error: "Хранилище файлов не настроено. В локальной среде скачивание недоступно." },
       { status: 503 },
     )
   }
 
-  const url = await getPresignedDownloadUrl(file.s3Key, 900)
+  const url = await getPresignedDownloadUrl(s3Key, 900)
 
   await db.purchase.update({
     where: { id: purchaseId },

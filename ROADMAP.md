@@ -659,16 +659,16 @@ npm run dev
 
 ---
 
-## Неделя 7 — Продуктовая зрелость
+## Неделя 7 — Продуктовая зрелость ✅
 
 **Цель:** доверие покупателей, повторные продажи, качество кода.
 
-- [ ] **Версионирование продуктов** — `ProductVersion` модель, форма загрузки новой версии, уведомление всем покупателям
-- [ ] **Telegram Login Widget** — кастомный NextAuth Credentials-провайдер, проверка `initData` hash
-- [ ] **Email-уведомления** — Resend или nodemailer; дублировать: продажа, одобрение, спор
-- [ ] **E2E-тесты** — Playwright: регистрация → загрузка → покупка → скачивание
-- [ ] **Мониторинг** — Sentry DSN в `.env`, `instrument.ts` в корне
-- [ ] **og-default.png** — заглушка в `public/` для OG-тегов каталога
+- [x] **Версионирование продуктов** — `ProductVersion` модель, `POST /api/products/[id]/versions`, форма загрузки новой версии в кабинете, уведомление всех покупателей (Telegram + email)
+- [x] **Telegram Login Widget** — кастомный NextAuth Credentials-провайдер (`id: "telegram"`), `verifyTelegramAuth` с HMAC-SHA256, `TelegramLoginButton` компонент
+- [x] **Email-уведомления** — nodemailer; дублируют: продажа, одобрение, отказ, спор, покупка, новая версия
+- [x] **E2E-тесты** — Playwright: auth, catalog, purchase-flow (API guards, settings, admin, download)
+- [x] **Мониторинг** — `@sentry/nextjs`, `sentry.*.config.ts`, `instrumentation.ts`, DSN в `.env.example`
+- [x] **og-default.svg** — заглушка в `public/` для OG-тегов каталога и главной
 
 ---
 

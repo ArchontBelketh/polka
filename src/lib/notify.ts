@@ -157,6 +157,65 @@ export async function notifyDisputeOpened(params: {
   ])
 }
 
+export async function notifyVersionRejected(params: {
+  developerTelegramId: string | null
+  developerEmail?: string | null
+  productTitle: string
+  version: string
+  comment?: string
+}): Promise<void> {
+  const tgText =
+    `❌ <b>Версия отклонена</b>\n\n` +
+    `Версия <b>${params.version}</b> продукта «${params.productTitle}» не прошла модерацию.\n` +
+    (params.comment ? `\nПричина: ${params.comment}` : "")
+
+  const emailHtml = `
+    <h2>❌ Версия отклонена</h2>
+    <p>Версия <b>${params.version}</b> продукта «${params.productTitle}» не прошла модерацию.</p>
+    ${params.comment ? `<p><b>Причина:</b> ${params.comment}</p>` : ""}
+    <p><a href="${APP_URL}/dashboard/products">Перейти к моим продуктам</a></p>
+  `
+
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail
+      ? sendEmail(params.developerEmail, `Версия отклонена: ${params.productTitle} v${params.version}`, emailHtml)
+      : Promise.resolve(),
+  ])
+}
+
+export async function notifyNewVersion(params: {
+  productTitle: string
+  productSlug: string
+  version: string
+  changelog?: string | null
+  buyers: Array<{ telegramId: string | null; email: string | null }>
+}): Promise<void> {
+  const url = `${APP_URL}/product/${params.productSlug}`
+
+  const tgText =
+    `🔄 <b>Обновление: ${params.productTitle}</b>\n\n` +
+    `Вышла версия <b>${params.version}</b>.\n` +
+    (params.changelog ? `\nЧто нового:\n${params.changelog}\n\n` : "\n") +
+    `Скачать: ${url}`
+
+  const emailHtml = `
+    <h2>🔄 Обновление продукта</h2>
+    <p>Вышла новая версия <b>${params.version}</b> продукта «${params.productTitle}».</p>
+    ${params.changelog ? `<p><b>Что нового:</b></p><p style="white-space:pre-wrap">${params.changelog}</p>` : ""}
+    <p><a href="${url}">Перейти к продукту и скачать обновление</a></p>
+  `
+
+  await Promise.all(
+    params.buyers.flatMap((buyer) => [
+      buyer.telegramId ? sendTelegram(buyer.telegramId, tgText) : Promise.resolve(),
+      buyer.email
+        ? sendEmail(buyer.email, `Обновление: ${params.productTitle} v${params.version}`, emailHtml)
+        : Promise.resolve(),
+    ]),
+  )
+}
+
 export async function notifyPurchaseConfirmed(params: {
   buyerEmail: string | null
   productTitle: string

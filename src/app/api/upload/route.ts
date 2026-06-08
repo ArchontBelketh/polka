@@ -18,7 +18,7 @@ const ALLOWED_SCREENSHOT_TYPES = new Set([
 
 const uploadSchema = z.object({
   productId: z.string(),
-  type: z.enum(["source", "screenshot"]),
+  type: z.enum(["source", "screenshot", "version"]),
   fileName: z.string().min(1).max(200),
   fileSize: z.number().int().positive().max(100 * 1024 * 1024), // 100 MB max
   contentType: z.string(),
@@ -93,6 +93,18 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    return Response.json({ url, key })
+  }
+
+  if (type === "version") {
+    if (!ALLOWED_SOURCE_TYPES.has(contentType) && !isAllowedByExtension(fileName)) {
+      return Response.json({ error: "Недопустимый тип файла" }, { status: 422 })
+    }
+    if (!s3Configured) {
+      return Response.json({ url: null, key: `local/${productId}/versions/${fileName}` })
+    }
+    const key = `products/${productId}/versions/${Date.now()}_${fileName}`
+    const url = await getPresignedUploadUrl(key, contentType)
     return Response.json({ url, key })
   }
 
