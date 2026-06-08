@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { z } from "zod"
+import { verifyTelegramAuth, type TelegramUser } from "@/lib/telegram-auth"
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -43,9 +44,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       },
     }),
-    // TODO: Telegram Login Widget provider
-    // Implement via custom credentials provider that verifies
-    // Telegram init data hash using TELEGRAM_BOT_TOKEN
+    Credentials({
+      id: "telegram",
+      credentials: {
+        id: {},
+        first_name: {},
+        last_name: {},
+        username: {},
+        photo_url: {},
+        auth_date: {},
+        hash: {},
+      },
+      async authorize(credentials) {
+        const tgUser = credentials as unknown as TelegramUser
+        if (!verifyTelegramAuth(tgUser)) return null
+
+        const telegramId = String(tgUser.id)
+        const name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ")
+
+        let user = await db.user.findUnique({ where: { telegramId } })
+        if (!user) {
+          user = await db.user.create({
+            data: {
+              telegramId,
+              telegramHandle: tgUser.username ?? null,
+              name,
+              role: "BUYER",
+              agreedToTerms: true,
+              agreedAt: new Date(),
+            },
+          })
+        }
+
+        return { id: user.id, name: user.name, email: user.email, role: user.role }
+      },
+    }),
   ],
   callbacks: {
     jwt({ token, user }) {

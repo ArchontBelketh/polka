@@ -4,19 +4,24 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS, type Product } from "@/types"
+import { WishlistButton } from "@/components/catalog/WishlistButton"
 
 interface ProductCardProps {
   product: Pick<
     Product,
-    "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots"
+    "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots"
   >
+  isWishlisted?: boolean
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, isWishlisted = false }: ProductCardProps) {
   return (
     <Link href={`/product/${product.slug}`}>
       <Card className="group h-full bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
-        <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+        <div className="relative aspect-video bg-muted rounded-t-lg overflow-hidden">
+          <div className="absolute top-2 right-2 z-10">
+            <WishlistButton productId={product.id} initialSaved={isWishlisted} />
+          </div>
           {product.screenshots[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -29,7 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
               Нет скриншота
             </div>
           )}
-        </div>
+          </div>
 
         <CardContent className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">

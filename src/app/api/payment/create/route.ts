@@ -7,6 +7,7 @@ import { escrowUntilDate } from "@/lib/escrow"
 
 const schema = z.object({
   productId: z.string().min(1),
+  couponCode: z.string().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 })
   }
 
-  const { productId } = parsed.data
+  const { productId, couponCode } = parsed.data
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 
   const product = await db.product.findUnique({ where: { id: productId } })
@@ -44,12 +45,27 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Вы уже приобрели этот продукт", purchaseId: existing.id }, { status: 409 })
   }
 
+  // Apply coupon if provided
+  let finalPrice = product.price
+  let appliedCoupon: { id: string; discountPct: number } | null = null
+  if (couponCode) {
+    const coupon = await db.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
+    const valid =
+      coupon &&
+      (!coupon.expiresAt || coupon.expiresAt > new Date()) &&
+      (coupon.maxUses === null || coupon.usedCount < coupon.maxUses)
+    if (valid && coupon) {
+      finalPrice = product.price - Math.floor((product.price * coupon.discountPct) / 100)
+      appliedCoupon = { id: coupon.id, discountPct: coupon.discountPct }
+    }
+  }
+
   // Create purchase record with PENDING status first
   const purchase = await db.purchase.create({
     data: {
       buyerId: session.user.id,
       productId,
-      amount: product.price,
+      amount: finalPrice,
       status: "PENDING",
     },
   })
@@ -59,7 +75,7 @@ export async function POST(req: NextRequest) {
   let yooPayment
   try {
     yooPayment = await createPayment({
-      amountKopecks: product.price,
+      amountKopecks: finalPrice,
       description: `Покупка: ${product.title}`,
       returnUrl: `${appUrl}/purchases?paid=${purchase.id}`,
       metadata: { purchaseId: purchase.id },
@@ -71,11 +87,23 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Ошибка платёжной системы" }, { status: 502 })
   }
 
-  await db.purchase.update({
-    where: { id: purchase.id },
-    data: { paymentId: yooPayment.id },
+  await db.$transaction(async (tx) => {
+    await tx.purchase.update({
+      where: { id: purchase.id },
+      data: { paymentId: yooPayment!.id },
+    })
+    if (appliedCoupon) {
+      await tx.coupon.update({
+        where: { id: appliedCoupon.id },
+        data: { usedCount: { increment: 1 } },
+      })
+    }
   })
 
   const confirmationUrl = yooPayment.confirmation?.confirmation_url
-  return Response.json({ purchaseId: purchase.id, confirmationUrl })
+  return Response.json({
+    purchaseId: purchase.id,
+    confirmationUrl,
+    ...(appliedCoupon ? { discountPct: appliedCoupon.discountPct, finalPrice } : {}),
+  })
 }

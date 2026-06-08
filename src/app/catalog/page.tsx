@@ -17,14 +17,14 @@ export const metadata = {
     title: "Каталог — ПОЛКА",
     description: "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация",
     url: `${APP_URL}/catalog`,
-    images: [{ url: `${APP_URL}/og-default.png`, width: 1200, height: 630 }],
+    images: [{ url: `${APP_URL}/og-default.svg`, width: 1200, height: 630 }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Каталог — ПОЛКА",
     description: "Готовые программные продукты для бизнеса",
-    images: [`${APP_URL}/og-default.png`],
+    images: [`${APP_URL}/og-default.svg`],
   },
 }
 

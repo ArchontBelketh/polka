@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton"
 
 export function LoginForm() {
   const router = useRouter()
@@ -79,6 +80,17 @@ export function LoginForm() {
           Зарегистрироваться
         </Link>
       </p>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-2 text-xs text-muted-foreground">или</span>
+        </div>
+      </div>
+
+      <TelegramLoginButton callbackUrl={callbackUrl} />
     </form>
   )
 }

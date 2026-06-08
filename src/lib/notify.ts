@@ -1,6 +1,40 @@
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+import nodemailer from "nodemailer"
 
-async function sendMessage(chatId: string, text: string): Promise<void> {
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+
+// ── Email transport ────────────────────────────────────────────────────────
+function getMailTransport() {
+  const host = process.env.SMTP_HOST
+  if (!host) return null
+  return nodemailer.createTransport({
+    host,
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  })
+}
+
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const transport = getMailTransport()
+  if (!transport || !to) return
+  try {
+    await transport.sendMail({
+      from: process.env.SMTP_FROM ?? `"ПОЛКА" <noreply@polka.app>`,
+      to,
+      subject,
+      html,
+    })
+  } catch {
+    // non-critical — don't throw
+  }
+}
+
+// ── Telegram ───────────────────────────────────────────────────────────────
+async function sendTelegram(chatId: string, text: string): Promise<void> {
   if (!BOT_TOKEN || !chatId) return
   try {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -13,76 +47,127 @@ async function sendMessage(chatId: string, text: string): Promise<void> {
   }
 }
 
+// ── Notifications ──────────────────────────────────────────────────────────
+
 export async function notifyNewSale(params: {
   developerTelegramId: string | null
+  developerEmail?: string | null
   productTitle: string
   amountKopecks: number
   buyerEmail?: string | null
 }): Promise<void> {
-  if (!params.developerTelegramId) return
-  const rubles = (params.amountKopecks / 100).toLocaleString("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    minimumFractionDigits: 0,
-  })
-  const commission = Math.round(
-    (params.amountKopecks * Number(process.env.COMMISSION_RATE ?? "0.2")) / 100
-  )
-  const payout = ((params.amountKopecks - commission * 100) / 100).toLocaleString("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    minimumFractionDigits: 0,
-  })
-  await sendMessage(
-    params.developerTelegramId,
+  const commission = Math.round(params.amountKopecks * Number(process.env.COMMISSION_RATE ?? "0.2"))
+  const payoutKopecks = params.amountKopecks - commission
+  const fmt = (k: number) =>
+    (k / 100).toLocaleString("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: 0 })
+
+  const tgText =
     `💰 <b>Новая продажа!</b>\n\n` +
-      `Продукт: ${params.productTitle}\n` +
-      `Сумма: ${rubles}\n` +
-      `Выплата (после удержания 7 дней): ${payout}\n` +
-      (params.buyerEmail ? `Покупатель: ${params.buyerEmail}` : "")
-  )
+    `Продукт: ${params.productTitle}\n` +
+    `Сумма: ${fmt(params.amountKopecks)}\n` +
+    `Выплата (после удержания 7 дней): ${fmt(payoutKopecks)}\n` +
+    (params.buyerEmail ? `Покупатель: ${params.buyerEmail}` : "")
+
+  const emailHtml = `
+    <h2>💰 Новая продажа!</h2>
+    <p><b>Продукт:</b> ${params.productTitle}</p>
+    <p><b>Сумма:</b> ${fmt(params.amountKopecks)}</p>
+    <p><b>Выплата</b> (после 7-дневного удержания): <b>${fmt(payoutKopecks)}</b></p>
+    ${params.buyerEmail ? `<p>Покупатель: ${params.buyerEmail}</p>` : ""}
+    <p><a href="${APP_URL}/dashboard">Открыть кабинет разработчика</a></p>
+  `
+
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail ? sendEmail(params.developerEmail, `Новая продажа: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
 }
 
 export async function notifyProductApproved(params: {
   developerTelegramId: string | null
+  developerEmail?: string | null
   productTitle: string
   productSlug: string
 }): Promise<void> {
-  if (!params.developerTelegramId) return
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
-  await sendMessage(
-    params.developerTelegramId,
+  const url = `${APP_URL}/product/${params.productSlug}`
+
+  const tgText =
     `✅ <b>Продукт одобрен!</b>\n\n` +
-      `«${params.productTitle}» прошёл модерацию и теперь доступен в каталоге.\n\n` +
-      `🔗 ${appUrl}/product/${params.productSlug}`
-  )
+    `«${params.productTitle}» прошёл модерацию и теперь доступен в каталоге.\n\n` +
+    `🔗 ${url}`
+
+  const emailHtml = `
+    <h2>✅ Продукт одобрен!</h2>
+    <p>«${params.productTitle}» прошёл модерацию и теперь доступен в каталоге.</p>
+    <p><a href="${url}">Открыть страницу продукта</a></p>
+  `
+
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail ? sendEmail(params.developerEmail, `Продукт одобрен: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
 }
 
 export async function notifyProductRejected(params: {
   developerTelegramId: string | null
+  developerEmail?: string | null
   productTitle: string
   comment?: string | null
 }): Promise<void> {
-  if (!params.developerTelegramId) return
-  await sendMessage(
-    params.developerTelegramId,
+  const tgText =
     `❌ <b>Продукт отклонён</b>\n\n` +
-      `«${params.productTitle}» не прошёл модерацию.\n` +
-      (params.comment ? `\nКомментарий модератора: ${params.comment}` : "")
-  )
+    `«${params.productTitle}» не прошёл модерацию.\n` +
+    (params.comment ? `\nКомментарий модератора: ${params.comment}` : "")
+
+  const emailHtml = `
+    <h2>❌ Продукт отклонён</h2>
+    <p>«${params.productTitle}» не прошёл модерацию.</p>
+    ${params.comment ? `<p><b>Комментарий модератора:</b> ${params.comment}</p>` : ""}
+    <p><a href="${APP_URL}/dashboard/products">Перейти к моим продуктам</a></p>
+  `
+
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail ? sendEmail(params.developerEmail, `Продукт отклонён: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
 }
 
 export async function notifyDisputeOpened(params: {
   developerTelegramId: string | null
+  developerEmail?: string | null
   productTitle: string
   reason: string
 }): Promise<void> {
-  if (!params.developerTelegramId) return
-  await sendMessage(
-    params.developerTelegramId,
+  const tgText =
     `⚠️ <b>Открыт спор</b>\n\n` +
-      `Покупатель открыл спор по продукту «${params.productTitle}».\n` +
-      `Причина: ${params.reason}\n\n` +
-      `Наша команда свяжется с вами в течение 24 часов.`
-  )
+    `Покупатель открыл спор по продукту «${params.productTitle}».\n` +
+    `Причина: ${params.reason}\n\n` +
+    `Наша команда свяжется с вами в течение 24 часов.`
+
+  const emailHtml = `
+    <h2>⚠️ Открыт спор</h2>
+    <p>Покупатель открыл спор по продукту «${params.productTitle}».</p>
+    <p><b>Причина:</b> ${params.reason}</p>
+    <p>Наша команда свяжется с вами в течение 24 часов.</p>
+  `
+
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail ? sendEmail(params.developerEmail, `Открыт спор: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
+}
+
+export async function notifyPurchaseConfirmed(params: {
+  buyerEmail: string | null
+  productTitle: string
+  purchaseId: string
+}): Promise<void> {
+  if (!params.buyerEmail) return
+  const emailHtml = `
+    <h2>✅ Покупка подтверждена!</h2>
+    <p>Ваша покупка «${params.productTitle}» успешно оплачена.</p>
+    <p><a href="${APP_URL}/purchases">Перейти к моим покупкам и скачать файл</a></p>
+    <p style="color:#888;font-size:12px;">ID покупки: ${params.purchaseId}</p>
+  `
+  await sendEmail(params.buyerEmail, `Покупка подтверждена: ${params.productTitle}`, emailHtml)
 }

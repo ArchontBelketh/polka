@@ -71,7 +71,7 @@ export async function BuyPanel({
           </Link>
         </Button>
       ) : session?.user ? (
-        <BuyButton productId={productId} />
+        <BuyButton productId={productId} price={price} />
       ) : (
         <Button className="w-full" size="lg" asChild>
           <Link href={`/login?callbackUrl=/product/${productId}`}>

@@ -7,6 +7,7 @@ import { CATEGORY_LABELS } from "@/types"
 import { BuyPanel } from "@/components/product/BuyPanel"
 import { ReviewList } from "@/components/product/ReviewList"
 import { ReviewForm } from "@/components/product/ReviewForm"
+import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
 import { getPresignedDownloadUrl } from "@/lib/s3"
 import { Check, Star } from "lucide-react"
 import type { Metadata } from "next"
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
   const ogImage = product.screenshots[0]
     ? `${appUrl}/api/og?key=${encodeURIComponent(product.screenshots[0])}`
-    : `${appUrl}/og-default.png`
+    : `${appUrl}/og-default.svg`
 
   return {
     title: `${product.title} — ПОЛКА`,
@@ -145,16 +146,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               )}
             </div>
 
-            {screenshotUrls.length > 0 && (
-              <div className="rounded-lg overflow-hidden bg-muted aspect-video">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={screenshotUrls[0]}
-                  alt={product.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+            <ScreenshotSlider urls={screenshotUrls} title={product.title} />
 
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-3">Описание</h2>
