@@ -64,6 +64,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         reviewCount: true,
         salesCount: true,
         screenshots: true,
+        techStack: true,
         status: true,
         author: { select: { id: true, name: true, telegramHandle: true } },
       },

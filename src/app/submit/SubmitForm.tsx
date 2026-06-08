@@ -17,7 +17,7 @@ interface FormState {
   shortDesc: string
   fullDesc: string
   targetAudience: string
-  techStack: string
+  techStack: string[]
   features: string[]
   productFile: File | null
   screenshots: File[]
@@ -31,7 +31,7 @@ interface FormState {
 const INITIAL: FormState = {
   category: "",
   title: "", shortDesc: "", fullDesc: "",
-  targetAudience: "", techStack: "",
+  targetAudience: "", techStack: [],
   features: [],
   productFile: null, screenshots: [], demoUrl: "", videoUrl: "",
   price: "", license: "personal", telegramBotUsername: "",
@@ -81,7 +81,7 @@ export function SubmitForm() {
           price: priceKopecks,
           features: form.features,
           targetAudience: form.targetAudience || undefined,
-          techStack: form.techStack || undefined,
+          techStack: form.techStack.length > 0 ? form.techStack : undefined,
           license: form.license,
           telegramBotUsername: form.telegramBotUsername || undefined,
           demoUrl: form.demoUrl || undefined,

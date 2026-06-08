@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
+import { TechBadge } from "@/components/catalog/TechBadge"
 import { ProductActions } from "./ProductActions"
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -132,7 +133,7 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
         <p className="text-sm text-muted-foreground">{product.shortDesc}</p>
         <p className="text-sm whitespace-pre-wrap">{product.fullDesc}</p>
 
-        {(product.targetAudience || product.techStack) && (
+        {(product.targetAudience || product.techStack.length > 0) && (
           <div className="grid grid-cols-2 gap-4 text-sm pt-2">
             {product.targetAudience && (
               <div>
@@ -140,10 +141,14 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
                 <p>{product.targetAudience}</p>
               </div>
             )}
-            {product.techStack && (
+            {product.techStack.length > 0 && (
               <div>
-                <p className="text-muted-foreground text-xs mb-0.5">Стек</p>
-                <p>{product.techStack}</p>
+                <p className="text-muted-foreground text-xs mb-1.5">Стек</p>
+                <div className="flex flex-wrap gap-1">
+                  {product.techStack.map(tag => (
+                    <TechBadge key={tag} label={tag} />
+                  ))}
+                </div>
               </div>
             )}
           </div>

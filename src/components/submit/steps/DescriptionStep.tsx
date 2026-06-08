@@ -1,13 +1,14 @@
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { TechStackPicker } from "@/components/submit/TechStackPicker"
 
 interface DescriptionData {
   title: string
   shortDesc: string
   fullDesc: string
   targetAudience: string
-  techStack: string
+  techStack: string[]
 }
 
 interface DescriptionStepProps {
@@ -72,25 +73,19 @@ export function DescriptionStep({ value, onChange }: DescriptionStepProps) {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="targetAudience">Целевая аудитория</Label>
-          <Input
-            id="targetAudience"
-            placeholder="Салоны красоты, малый бизнес..."
-            value={value.targetAudience}
-            onChange={(e) => set("targetAudience", e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="techStack">Стек технологий</Label>
-          <Input
-            id="techStack"
-            placeholder="Python, aiogram, PostgreSQL"
-            value={value.techStack}
-            onChange={(e) => set("techStack", e.target.value)}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="targetAudience">Целевая аудитория</Label>
+        <Input
+          id="targetAudience"
+          placeholder="Салоны красоты, малый бизнес..."
+          value={value.targetAudience}
+          onChange={(e) => set("targetAudience", e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Стек технологий</Label>
+        <TechStackPicker value={value.techStack} onChange={(v) => set("techStack", v)} />
       </div>
     </div>
   )

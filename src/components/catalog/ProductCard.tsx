@@ -5,11 +5,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS, type Product } from "@/types"
 import { WishlistButton } from "@/components/catalog/WishlistButton"
+import { TechBadge } from "@/components/catalog/TechBadge"
 
 interface ProductCardProps {
   product: Pick<
     Product,
-    "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots"
+    "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots" | "techStack"
   >
   isWishlisted?: boolean
 }
@@ -49,6 +50,19 @@ export function ProductCard({ product, isWishlisted = false }: ProductCardProps)
           <p className="text-xs text-muted-foreground line-clamp-2">
             {product.shortDesc}
           </p>
+
+          {product.techStack.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {product.techStack.slice(0, 3).map(tag => (
+                <TechBadge key={tag} label={tag} />
+              ))}
+              {product.techStack.length > 3 && (
+                <span className="inline-flex items-center text-[10px] text-muted-foreground">
+                  +{product.techStack.length - 3}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-1">
             <span className="font-semibold text-foreground">

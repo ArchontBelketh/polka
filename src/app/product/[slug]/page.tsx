@@ -10,6 +10,7 @@ import { ReviewForm } from "@/components/product/ReviewForm"
 import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
 import { getPresignedDownloadUrl } from "@/lib/s3"
 import { Check, Star } from "lucide-react"
+import { TechBadge } from "@/components/catalog/TechBadge"
 import type { Metadata } from "next"
 
 interface ProductPageProps {
@@ -167,18 +168,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </ul>
             </div>
 
-            {(product.targetAudience || product.techStack) && (
-              <div className="rounded-lg bg-muted p-4 space-y-2 text-sm">
+            {(product.targetAudience || product.techStack.length > 0) && (
+              <div className="rounded-lg bg-muted p-4 space-y-3 text-sm">
                 {product.targetAudience && (
                   <div>
                     <span className="text-muted-foreground">Целевая аудитория: </span>
                     <span>{product.targetAudience}</span>
                   </div>
                 )}
-                {product.techStack && (
-                  <div>
-                    <span className="text-muted-foreground">Стек: </span>
-                    <span>{product.techStack}</span>
+                {product.techStack.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-muted-foreground">Стек технологий:</span>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {product.techStack.map(tag => (
+                        <TechBadge key={tag} label={tag} />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

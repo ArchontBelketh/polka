@@ -47,6 +47,7 @@ export default async function DeveloperPage({ params }: PageProps) {
       reviewCount: true,
       salesCount: true,
       screenshots: true,
+      techStack: true,
       status: true,
       author: { select: { id: true, name: true, telegramHandle: true } },
     },

@@ -34,7 +34,7 @@ export interface Product {
   demoUrl?: string | null
   videoUrl?: string | null
   targetAudience?: string | null
-  techStack?: string | null
+  techStack: string[]
   license: string
   telegramBotUsername?: string | null
   rating: number

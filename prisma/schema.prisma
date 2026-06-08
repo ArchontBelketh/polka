@@ -143,7 +143,7 @@ model Product {
   demoUrl             String?
   videoUrl            String?
   targetAudience      String?
-  techStack           String?
+  techStack           String[]        @default([])
   license             String          @default("personal")
   telegramBotUsername String?
   rating              Float           @default(0)
