@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { db } from "@/lib/db"
+import { auth } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { CATEGORY_LABELS } from "@/types"
-import { Star, Package, ShoppingCart } from "lucide-react"
+import { Star, Package, ShoppingCart, Pencil } from "lucide-react"
 import type { Metadata } from "next"
 
 interface PageProps {
@@ -21,15 +22,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function DeveloperPage({ params }: PageProps) {
   const { id } = await params
 
-  const developer = await db.user.findUnique({
-    where: { id, role: { in: ["DEVELOPER", "ADMIN"] } },
-    select: {
-      id: true,
-      name: true,
-      telegramHandle: true,
-      createdAt: true,
-    },
-  })
+  const [session, developer] = await Promise.all([
+    auth(),
+    db.user.findUnique({
+      where: { id, role: { in: ["DEVELOPER", "ADMIN"] } },
+      select: {
+        id:             true,
+        name:           true,
+        telegramHandle: true,
+        bio:            true,
+        createdAt:      true,
+      },
+    }),
+  ])
+
+  const isOwn = session?.user?.id === id
 
   if (!developer) notFound()
 
@@ -71,14 +78,29 @@ export default async function DeveloperPage({ params }: PageProps) {
         <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground shrink-0">
           {(developer.name ?? "?")[0].toUpperCase()}
         </div>
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
+        <div className="flex-1 space-y-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
+            {isOwn && (
+              <Link
+                href="/settings"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Pencil className="h-3 w-3" /> Редактировать
+              </Link>
+            )}
+          </div>
           {developer.telegramHandle && (
             <p className="text-sm text-muted-foreground">@{developer.telegramHandle}</p>
           )}
           <p className="text-xs text-muted-foreground">
             На платформе с {new Date(developer.createdAt).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })}
           </p>
+          {developer.bio && (
+            <p className="text-sm text-muted-foreground mt-2 max-w-lg whitespace-pre-line">
+              {developer.bio}
+            </p>
+          )}
         </div>
       </div>
 

@@ -86,6 +86,7 @@ model User {
   agreedToTerms  Boolean    @default(false)
   agreedAt       DateTime?
   balance        Int        @default(0)
+  bio            String?    @db.Text
   isBanned       Boolean    @default(false)
   bannedAt       DateTime?
   banReason      String?

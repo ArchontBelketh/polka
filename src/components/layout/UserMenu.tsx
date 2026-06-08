@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
-import { LogOut, LayoutDashboard, ShieldCheck, ListChecks, Package, MessageCircle, Inbox } from "lucide-react"
+import { LogOut, LayoutDashboard, ShieldCheck, ListChecks, Package, MessageCircle, Inbox, Settings } from "lucide-react"
 
 interface UserMenuProps {
   role?: string
@@ -105,10 +105,19 @@ export function UserMenu({ role }: UserMenuProps) {
               </Link>
             )}
 
+            <Link
+              href="/settings"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              Настройки
+            </Link>
+
             <div className="my-1 border-t border-border" />
 
             <button
-              onClick={() => signOut({ callbackUrl: "/catalog" })}
+              onClick={() => signOut({ callbackUrl: "/login" })}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
             >
               <LogOut className="h-4 w-4" />

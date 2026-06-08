@@ -30,11 +30,11 @@ export function LoginForm() {
         redirect: false,
       })
       if (res?.error) {
-        setError(
-          res.error === "AccessDenied"
-            ? "Ваш аккаунт заблокирован"
-            : "Неверный email или пароль"
-        )
+        if (res.error === "AccessDenied") {
+          router.push("/banned")
+          return
+        }
+        setError("Неверный email или пароль")
       } else {
         const sessionRes = await fetch("/api/auth/session")
         const sessionData = await sessionRes.json()

@@ -22,7 +22,7 @@ export default function BannedPage() {
           <form
             action={async () => {
               "use server"
-              await signOut({ redirectTo: "/" })
+              await signOut({ redirectTo: "/login" })
             }}
           >
             <Button type="submit" variant="ghost" size="sm" className="w-full text-muted-foreground">
