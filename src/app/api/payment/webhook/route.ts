@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { getPayment } from "@/lib/yookassa"
 import { escrowUntilDate } from "@/lib/escrow"
+import { notifyNewSale } from "@/lib/notify"
 
 // YooKassa whitelisted IP ranges (verify at nginx level in production)
 const YOOKASSA_IPS = new Set([
@@ -54,7 +55,10 @@ export async function POST(req: NextRequest) {
 
     const purchase = await db.purchase.findUnique({
       where: { id: purchaseId },
-      include: { product: { select: { authorId: true, salesCount: true } } },
+      include: {
+        product: { select: { authorId: true, salesCount: true, title: true } },
+        buyer: { select: { email: true } },
+      },
     })
 
     if (!purchase) {
@@ -81,6 +85,18 @@ export async function POST(req: NextRequest) {
         where: { id: purchase.productId },
         data: { salesCount: { increment: 1 } },
       })
+    })
+
+    // Fire-and-forget notification to developer
+    const developer = await db.user.findUnique({
+      where: { id: purchase.product.authorId },
+      select: { telegramId: true },
+    })
+    void notifyNewSale({
+      developerTelegramId: developer?.telegramId ?? null,
+      productTitle: purchase.product.title,
+      amountKopecks: purchase.amount,
+      buyerEmail: purchase.buyer.email,
     })
   }
 

@@ -533,84 +533,108 @@ npm run dev
 
 ---
 
-## Неделя 1 — Фундамент
+## Неделя 1 — Фундамент ✅
 
 **Цель:** работающий каталог с тестовыми данными, аутентификация.
 
-- [ ] `npx create-next-app` + установка зависимостей (см. выше)
-- [ ] `prisma/schema.prisma` — скопировать схему из этого файла
-- [ ] `docker-compose.yml` → `docker compose up -d db`
-- [ ] `npx prisma migrate dev --name init`
-- [ ] `src/lib/db.ts` — Prisma singleton
-- [ ] `src/lib/auth.ts` — NextAuth: email + Telegram provider
-- [ ] `src/app/layout.tsx` — тёмная тема, шрифт, Navbar
-- [ ] `src/components/layout/Navbar.tsx` — логотип, поиск, кнопки
-- [ ] `src/app/catalog/page.tsx` — grid продуктов (Server Component, моковые данные)
-- [ ] `src/components/catalog/ProductCard.tsx`
-- [ ] `src/components/catalog/CategoryFilter.tsx` — client component
-- [ ] `src/app/product/[slug]/page.tsx` — детальная страница (статика)
-- [ ] `prisma/seed.ts` — 6 тестовых продуктов (разные категории)
+- [x] `npx create-next-app` + установка зависимостей
+- [x] `prisma/schema.prisma` — полная схема БД
+- [x] `docker-compose.yml` → `docker compose up -d db`
+- [x] `npx prisma migrate dev --name init`
+- [x] `src/lib/db.ts` — Prisma singleton
+- [x] `src/lib/auth.ts` — NextAuth: email/password через Credentials
+- [x] `src/app/layout.tsx` — тёмная тема, шрифт, Navbar
+- [x] `src/components/layout/Navbar.tsx` — логотип, поиск, кнопки
+- [x] `src/app/catalog/page.tsx` — grid продуктов (Server Component, моковые данные)
+- [x] `src/components/catalog/ProductCard.tsx`
+- [x] `src/components/catalog/CategoryFilter.tsx` — client component
+- [x] `src/app/product/[slug]/page.tsx` — детальная страница (статика)
+- [x] `prisma/seed.ts` — тестовые продукты (разные категории)
 
 ---
 
-## Неделя 2 — Загрузка и модерация
+## Неделя 2 — Загрузка и модерация ✅
 
 **Цель:** разработчик может загрузить продукт, запустится авто-скан, модератор может одобрить.
 
-- [ ] `src/app/submit/page.tsx` — 5-шаговая форма (CategoryStep → … → PricingStep)
-- [ ] `src/app/api/upload/route.ts` — presigned S3 URL для загрузки файлов
-- [ ] `src/lib/s3.ts` — S3 client для Yandex Object Storage
-- [ ] `src/app/api/products/route.ts` — POST создать черновик
-- [ ] `src/lib/scanner/index.ts` — оркестратор сканера
-- [ ] `src/lib/scanner/python.ts` — запуск `bandit` через `child_process`
-- [ ] `src/lib/scanner/semgrep.ts` — запуск `semgrep`
-- [ ] `src/lib/scanner/epf.ts` — `v8unpack` + BSL grep
-- [ ] `src/lib/scanner/patterns.ts` — словарь опасных паттернов
-- [ ] `src/app/api/scan/route.ts` — POST запустить сканер
-- [ ] `Dockerfile` — установить `bandit`, `semgrep`, `olevba`, `v8unpack` в образ
-- [ ] `src/middleware.ts` — rate limiting для `/api/upload`, `/api/scan`; auth guard для `/admin`, `/dashboard`
-- [ ] `src/app/admin/queue/page.tsx` — таблица ожидающих продуктов
-- [ ] `src/app/admin/review/[id]/page.tsx` — карточка проверки (код, findings, кнопки)
-- [ ] `src/app/api/moderation/[id]/route.ts` — approve/reject
-- [ ] `src/app/dashboard/products/page.tsx` — мои продукты + статус
+- [x] `src/app/submit/page.tsx` — 5-шаговая форма (CategoryStep → … → PricingStep)
+- [x] `src/app/api/upload/route.ts` — presigned S3 URL для загрузки файлов
+- [x] `src/lib/s3.ts` — S3 client для Yandex Object Storage
+- [x] `src/app/api/products/route.ts` — POST создать черновик
+- [x] `src/lib/scanner/index.ts` — оркестратор сканера
+- [x] `src/lib/scanner/python.ts` — запуск `bandit` через `child_process`
+- [x] `src/lib/scanner/semgrep.ts` — запуск `semgrep`
+- [x] `src/lib/scanner/epf.ts` — `v8unpack` + BSL grep
+- [x] `src/lib/scanner/patterns.ts` — словарь опасных паттернов
+- [x] `src/app/api/scan/route.ts` — POST запустить сканер
+- [x] `Dockerfile` — установить `bandit`, `semgrep`, `olevba`, `v8unpack` в образ
+- [x] `src/proxy.ts` — auth guard для `/admin`, `/dashboard`
+- [x] `src/app/admin/queue/page.tsx` — таблица ожидающих продуктов
+- [x] `src/app/admin/review/[id]/page.tsx` — карточка проверки (код, findings, кнопки)
+- [x] `src/app/api/moderation/[id]/route.ts` — approve/reject/changes_requested/suspended
+- [x] `src/app/dashboard/products/page.tsx` — мои продукты + статус
 
 ---
 
-## Неделя 3 — Платежи и доставка
+## Неделя 3 — Платежи и доставка ✅
 
 **Цель:** полный цикл покупки от клика "Купить" до скачивания файла.
 
-- [ ] `src/lib/yookassa.ts` — обёртка над ЮKassa API
-- [ ] `src/app/api/payment/create/route.ts`
-- [ ] `src/app/api/payment/webhook/route.ts` — проверка подписи + обновление Purchase
-- [ ] `src/lib/escrow.ts` — функции управления удержанием
-- [ ] `src/app/api/cron/escrow/route.ts` — разблокировка средств по расписанию (escrowUntil < now())
-- [ ] Добавить индексы в `prisma/schema.prisma` (уже в схеме выше)
-- [ ] `src/app/api/download/[purchaseId]/route.ts` — presigned URL (15 мин)
-- [ ] `src/components/product/BuyPanel.tsx` — кнопка покупки + статус
-- [ ] `src/app/purchases/page.tsx` — история покупок (покупатель)
-- [ ] `src/app/dashboard/page.tsx` — продажи, баланс, ближайшие выплаты
-- [ ] `src/app/dashboard/payouts/page.tsx` — запрос вывода средств
-- [ ] Обновить `src/app/catalog/page.tsx` — реальные данные из БД
+- [x] `src/lib/yookassa.ts` — обёртка над ЮKassa REST API (`createPayment`, `getPayment`)
+- [x] `src/app/api/payment/create/route.ts` — создаёт Purchase(PENDING) → ЮKassa → возвращает `confirmationUrl`
+- [x] `src/app/api/payment/webhook/route.ts` — re-fetch для верификации + Purchase(PAID) + salesCount++
+- [x] `src/lib/escrow.ts` — `escrowUntilDate`, `developerPayout`, `releaseExpiredEscrow`
+- [x] `src/app/api/cron/escrow/route.ts` — разблокировка средств (защита через `x-cron-secret`)
+- [x] `src/app/api/download/[purchaseId]/route.ts` — presigned URL (900 сек) + downloadCount++
+- [x] `src/components/product/BuyPanel.tsx` — серверный: проверяет сессию и статус покупки
+- [x] `src/components/product/BuyButton.tsx` — клиентский: fetch → редирект на страницу ЮKassa
+- [x] `src/app/purchases/page.tsx` — история покупок с кнопкой «Скачать»
+- [x] `src/app/dashboard/page.tsx` — баланс, эскроу, последние продажи
+- [x] `src/app/dashboard/payouts/page.tsx` — запрос вывода средств + история
+- [x] `src/app/api/payouts/route.ts` — GET список / POST запрос вывода
+- [x] `src/app/catalog/page.tsx` — реальные данные из БД, пагинация
 
 ---
 
-## Неделя 4 — Запуск
+## Неделя 4 — Запуск ✅
 
 **Цель:** первые живые клиенты и разработчики, продукт в продакшне.
 
-- [ ] `src/app/api/disputes/route.ts` — обработка `Purchase.status = DISPUTED` (покупатель открывает спор, модератор разрешает)
-- [ ] `src/app/api/reviews/route.ts` — CRUD отзывов
-- [ ] `src/components/product/ReviewList.tsx` + `ReviewForm.tsx`
-- [ ] Пересчёт `Product.rating` при новом отзыве
-- [ ] `src/lib/notify.ts` — Telegram-уведомления: новая продажа, одобрение/отказ
-- [ ] `Dockerfile` — multi-stage build
-- [ ] `scripts/deploy.sh` — деплой на Hetzner через SSH
-- [ ] SSL через Caddy или Nginx reverse proxy
-- [ ] Onboard первые 5–10 продуктов вручную (помочь разработчикам с загрузкой)
-- [ ] Проверить webhook ЮKassa на продакшн-URL
-- [ ] SEO: `src/app/catalog/page.tsx` — metadata, og:image
-- [ ] `src/app/product/[slug]/page.tsx` — structured data (JSON-LD)
+- [x] `src/app/api/disputes/route.ts` — покупатель открывает спор, модератор разрешает (`REFUNDED` / `DELIVERED`)
+- [x] `src/app/api/reviews/route.ts` — GET список + POST (только после PAID/DELIVERED покупки)
+- [x] `src/components/product/ReviewList.tsx` — серверный компонент, список отзывов со звёздами
+- [x] `src/components/product/ReviewForm.tsx` — клиентский, интерактивный выбор оценки
+- [x] Пересчёт `Product.rating` и `reviewCount` атомарно через `$transaction` при каждом отзыве
+- [x] `src/lib/notify.ts` — Telegram-уведомления: новая продажа, одобрение/отказ, открытие спора
+- [x] Уведомления подключены в webhook (продажа) и модерацию (одобрение/отказ)
+- [x] `Dockerfile` — multi-stage build: `deps → scanner-tools → builder → runner`
+- [x] `next.config.ts` — `output: "standalone"` для Docker
+- [x] `scripts/deploy.sh` — rsync + SSH: build, migrate, restart на Hetzner
+- [x] SEO: `src/app/catalog/page.tsx` — OpenGraph + Twitter Card метаданные
+- [x] `src/app/product/[slug]/page.tsx` — JSON-LD `SoftwareApplication` + `AggregateRating`, OG-теги
+- [ ] SSL через Caddy или Nginx reverse proxy — **настроить на сервере**
+- [ ] Проверить webhook ЮKassa на продакшн-URL — **после получения домена**
+- [ ] Системный cron для эскроу — **добавить в crontab сервера**
+- [ ] Onboard первых 5–10 продуктов вручную
+
+---
+
+## Неделя 5 — Рост (следующие шаги)
+
+**Цель:** удержание пользователей, доверие к платформе, масштабирование.
+
+- [ ] **Telegram Login Widget** — кастомный NextAuth Credentials-провайдер с проверкой init data hash
+- [ ] **Email-уведомления** — дублировать Telegram-нотификации через Resend или nodemailer
+- [ ] **Страница разработчика** — `/developer/[id]`: продукты, рейтинг, статистика продаж
+- [ ] **Слайдер скриншотов** — несколько изображений на странице продукта
+- [ ] **Промокоды** — модель `Coupon`, поле `couponCode` в форме оплаты
+- [ ] **Версионирование продуктов** — загрузка обновления + уведомление покупателям
+- [ ] **Rate limiting** — `@upstash/ratelimit` на `/api/upload`, `/api/reviews`, `/api/payment/create`
+- [ ] **E2E-тесты** — Playwright: регистрация → загрузка → покупка → скачивание
+- [ ] **Мониторинг ошибок** — Sentry в продакшне
+- [ ] **Индекс на `Purchase.escrowUntil`** — для эффективной работы cron-запроса
+- [ ] **Избранное** — модель `Wishlist`, кнопка на карточке продукта
+- [ ] **og-default.png** — добавить заглушку в `public/` для OG-тегов каталога
 
 ---
 

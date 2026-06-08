@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { notifyProductApproved, notifyProductRejected } from "@/lib/notify"
 
 const actionSchema = z.object({
   action: z.enum(["APPROVED", "REJECTED", "CHANGES_REQUESTED", "SUSPENDED"]),
@@ -58,6 +59,25 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       },
     }),
   ])
+
+  // Fire-and-forget notification to developer
+  const developer = await db.user.findUnique({
+    where: { id: product.authorId },
+    select: { telegramId: true },
+  })
+  if (action === "APPROVED") {
+    void notifyProductApproved({
+      developerTelegramId: developer?.telegramId ?? null,
+      productTitle: product.title,
+      productSlug: product.slug,
+    })
+  } else if (action === "REJECTED") {
+    void notifyProductRejected({
+      developerTelegramId: developer?.telegramId ?? null,
+      productTitle: product.title,
+      comment,
+    })
+  }
 
   return Response.json({ success: true, status: newStatus })
 }

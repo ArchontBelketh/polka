@@ -8,7 +8,25 @@ interface CatalogPageProps {
   searchParams: Promise<{ category?: string; q?: string; page?: string }>
 }
 
-export const metadata = { title: "Каталог — ПОЛКА" }
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+
+export const metadata = {
+  title: "Каталог — ПОЛКА",
+  description: "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация",
+  openGraph: {
+    title: "Каталог — ПОЛКА",
+    description: "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация",
+    url: `${APP_URL}/catalog`,
+    images: [{ url: `${APP_URL}/og-default.png`, width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Каталог — ПОЛКА",
+    description: "Готовые программные продукты для бизнеса",
+    images: [`${APP_URL}/og-default.png`],
+  },
+}
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const { category, q, page: pageParam } = await searchParams
