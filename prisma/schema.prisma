@@ -52,6 +52,20 @@ enum PayoutStatus {
   PAID
 }
 
+enum TicketCategory {
+  APPEAL
+  PURCHASE
+  BUG
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 enum FileType {
   SOURCE
   BINARY
@@ -74,13 +88,15 @@ model User {
   balance        Int        @default(0)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
-  products       Product[]
-  purchases      Purchase[]
-  reviews        Review[]
-  payouts        Payout[]
-  accounts       Account[]
-  sessions       Session[]
-  wishlists      Wishlist[]
+  products        Product[]
+  purchases       Purchase[]
+  reviews         Review[]
+  payouts         Payout[]
+  accounts        Account[]
+  sessions        Session[]
+  wishlists       Wishlist[]
+  supportTickets  SupportTicket[]
+  ticketMessages  TicketMessage[]
 }
 
 model Account {
@@ -143,6 +159,7 @@ model Product {
   scanResult          ScanResult?
   moderationLogs      ModerationLog[]
   wishlists           Wishlist[]
+  supportTickets      SupportTicket[]
 
   @@index([status])
   @@index([category])
@@ -234,6 +251,34 @@ model Wishlist {
 
   @@unique([userId, productId])
   @@index([userId])
+}
+
+model SupportTicket {
+  id        String         @id @default(cuid())
+  authorId  String
+  subject   String
+  category  TicketCategory
+  productId String?
+  status    TicketStatus   @default(OPEN)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  author    User           @relation(fields: [authorId], references: [id])
+  product   Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  messages  TicketMessage[]
+
+  @@index([authorId])
+  @@index([status])
+}
+
+model TicketMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  authorId  String
+  text      String        @db.Text
+  isStaff   Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User          @relation(fields: [authorId], references: [id])
 }
 
 model Coupon {

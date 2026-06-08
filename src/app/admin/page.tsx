@@ -29,10 +29,11 @@ export default async function AdminPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const [pendingCount, scanFailedCount, todayReviewed, recentLogs] = await Promise.all([
+  const [pendingCount, scanFailedCount, todayReviewed, openTickets, recentLogs] = await Promise.all([
     db.product.count({ where: { status: "PENDING" } }),
     db.product.count({ where: { status: "SCAN_FAILED" } }),
     db.moderationLog.count({ where: { createdAt: { gte: today } } }),
+    db.supportTicket.count({ where: { status: { in: ["OPEN", "IN_PROGRESS"] } } }),
     db.moderationLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -53,10 +54,16 @@ export default async function AdminPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="В очереди" value={String(pendingCount)} urgent={pendingCount > 0} />
         <StatCard label="Отклонено сканером" value={String(scanFailedCount)} urgent={scanFailedCount > 0} />
         <StatCard label="Проверено сегодня" value={String(todayReviewed)} />
+        <StatCard
+          label="Открытых обращений"
+          value={String(openTickets)}
+          urgent={openTickets > 0}
+          href="/admin/support"
+        />
       </div>
 
       {queueTotal === 0 && recentLogs.length === 0 && (
@@ -105,11 +112,13 @@ export default async function AdminPage() {
   )
 }
 
-function StatCard({ label, value, urgent }: { label: string; value: string; urgent?: boolean }) {
-  return (
-    <div className={`rounded-lg border bg-card p-4 space-y-1 ${urgent ? "border-primary/40" : "border-border"}`}>
+function StatCard({ label, value, urgent, href }: { label: string; value: string; urgent?: boolean; href?: string }) {
+  const inner = (
+    <div className={`rounded-lg border bg-card p-4 space-y-1 ${urgent ? "border-primary/40" : "border-border"} ${href ? "hover:bg-muted/30 transition-colors" : ""}`}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`text-xl font-semibold tabular-nums ${urgent ? "text-primary" : ""}`}>{value}</p>
     </div>
   )
+  if (href) return <a href={href}>{inner}</a>
+  return inner
 }

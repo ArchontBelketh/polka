@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
-import { LogOut, LayoutDashboard, ShieldCheck, ListChecks, Package } from "lucide-react"
+import { LogOut, LayoutDashboard, ShieldCheck, ListChecks, Package, MessageCircle, Inbox } from "lucide-react"
 
 interface UserMenuProps {
   role?: string
@@ -72,6 +72,17 @@ export function UserMenu({ role }: UserMenuProps) {
               </Link>
             )}
 
+            {isMod(role) && (
+              <Link
+                href="/admin/support"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <Inbox className="h-4 w-4 text-muted-foreground" />
+                Обращения
+              </Link>
+            )}
+
             {role === "DEVELOPER" && (
               <Link
                 href="/dashboard/products"
@@ -80,6 +91,17 @@ export function UserMenu({ role }: UserMenuProps) {
               >
                 <Package className="h-4 w-4 text-muted-foreground" />
                 Мои продукты
+              </Link>
+            )}
+
+            {!isMod(role) && (
+              <Link
+                href="/support"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                Мои обращения
               </Link>
             )}
 

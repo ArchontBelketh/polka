@@ -209,6 +209,7 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
       {/* Actions */}
       <ProductActions
         productId={product.id}
+        productTitle={product.title}
         productStatus={product.status}
         productSlug={product.slug}
       />
