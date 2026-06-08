@@ -1,71 +1,64 @@
 import { Suspense } from "react"
+import { db } from "@/lib/db"
 import { CategoryFilter } from "@/components/catalog/CategoryFilter"
 import { ProductCard } from "@/components/catalog/ProductCard"
-import type { Category, Product } from "@/types"
-
-// Моковые данные — заменить на реальные из БД в неделю 3
-const MOCK_PRODUCTS: Pick<
-  Product,
-  "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots" | "status"
->[] = [
-  {
-    id: "1", slug: "telegram-bot-zapis-klientov",
-    title: "Telegram-бот записи клиентов",
-    shortDesc: "Автоматизирует запись клиентов через Telegram. Поддержка расписания, напоминаний и оплаты.",
-    category: "TELEGRAM", price: 490000, rating: 4.8, reviewCount: 24, salesCount: 87, screenshots: [], status: "APPROVED",
-  },
-  {
-    id: "2", slug: "parser-avito-nedvizhimost",
-    title: "Парсер Авито — недвижимость",
-    shortDesc: "Собирает объявления с Авито по заданным фильтрам. Выгрузка в Excel, обновление по расписанию.",
-    category: "PARSER", price: 290000, rating: 4.5, reviewCount: 11, salesCount: 43, screenshots: [], status: "APPROVED",
-  },
-  {
-    id: "3", slug: "excel-uchet-sklada",
-    title: "Excel: учёт склада",
-    shortDesc: "Полноценная система учёта товаров на складе в Excel. Приход, расход, остатки, отчёты.",
-    category: "EXCEL", price: 190000, rating: 4.9, reviewCount: 36, salesCount: 152, screenshots: [], status: "APPROVED",
-  },
-  {
-    id: "4", slug: "avtomatizatsiya-1c-zayavki",
-    title: "Автоматизация 1С: обработка заявок",
-    shortDesc: "Внешняя обработка для 1С: Предприятие 8. Автоматически создаёт заказы из входящих заявок по email.",
-    category: "AUTOMATION", price: 790000, rating: 4.7, reviewCount: 8, salesCount: 19, screenshots: [], status: "APPROVED",
-  },
-  {
-    id: "5", slug: "telegram-bot-magazin",
-    title: "Telegram-магазин с оплатой",
-    shortDesc: "Готовый интернет-магазин в Telegram с каталогом, корзиной и оплатой через ЮKassa.",
-    category: "TELEGRAM", price: 890000, rating: 4.6, reviewCount: 17, salesCount: 34, screenshots: [], status: "APPROVED",
-  },
-  {
-    id: "6", slug: "parser-wildberries-tseny",
-    title: "Мониторинг цен Wildberries",
-    shortDesc: "Отслеживает изменения цен конкурентов на Wildberries. Уведомления в Telegram при снижении.",
-    category: "PARSER", price: 350000, rating: 4.4, reviewCount: 9, salesCount: 28, screenshots: [], status: "APPROVED",
-  },
-]
+import type { Category } from "@/types"
 
 interface CatalogPageProps {
   searchParams: Promise<{ category?: string; q?: string; page?: string }>
 }
 
-export default async function CatalogPage({ searchParams }: CatalogPageProps) {
-  const { category, q } = await searchParams
+export const metadata = { title: "Каталог — ПОЛКА" }
 
-  const filtered = MOCK_PRODUCTS.filter((p) => {
-    if (category && p.category !== category) return false
-    if (q && !p.title.toLowerCase().includes(q.toLowerCase()) &&
-        !p.shortDesc.toLowerCase().includes(q.toLowerCase())) return false
-    return true
-  })
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const { category, q, page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10))
+  const limit = 20
+  const skip = (page - 1) * limit
+
+  const where = {
+    status: "APPROVED" as const,
+    ...(category ? { category: category as Category } : {}),
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: "insensitive" as const } },
+            { shortDesc: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  }
+
+  const [products, total] = await Promise.all([
+    db.product.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { salesCount: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        shortDesc: true,
+        category: true,
+        price: true,
+        rating: true,
+        reviewCount: true,
+        salesCount: true,
+        screenshots: true,
+        status: true,
+        author: { select: { id: true, name: true, telegramHandle: true } },
+      },
+    }),
+    db.product.count({ where }),
+  ])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">Каталог</h1>
         <span className="text-sm text-muted-foreground">
-          {filtered.length} {plural(filtered.length, "продукт", "продукта", "продуктов")}
+          {total} {plural(total, "продукт", "продукта", "продуктов")}
         </span>
       </div>
 
@@ -73,15 +66,36 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <CategoryFilter />
       </Suspense>
 
-      {filtered.length === 0 ? (
+      {products.length === 0 ? (
         <div className="py-20 text-center text-muted-foreground">
-          Ничего не найдено
+          {q || category ? "По вашему запросу ничего не найдено" : "Продуктов пока нет"}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((product) => (
+          {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
+        </div>
+      )}
+
+      {total > limit && (
+        <div className="flex justify-center gap-2 pt-4">
+          {page > 1 && (
+            <a
+              href={`/catalog?${new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}), page: String(page - 1) })}`}
+              className="px-4 py-2 rounded-md border border-border text-sm hover:bg-muted"
+            >
+              ← Назад
+            </a>
+          )}
+          {page * limit < total && (
+            <a
+              href={`/catalog?${new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}), page: String(page + 1) })}`}
+              className="px-4 py-2 rounded-md border border-border text-sm hover:bg-muted"
+            >
+              Вперёд →
+            </a>
+          )}
         </div>
       )}
     </div>

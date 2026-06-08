@@ -1,0 +1,81 @@
+import { NextRequest } from "next/server"
+import { z } from "zod"
+import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { createPayment } from "@/lib/yookassa"
+import { escrowUntilDate } from "@/lib/escrow"
+
+const schema = z.object({
+  productId: z.string().min(1),
+})
+
+export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return Response.json({ error: "Необходима авторизация" }, { status: 401 })
+  }
+
+  const body = await req.json()
+  const parsed = schema.safeParse(body)
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.flatten() }, { status: 422 })
+  }
+
+  const { productId } = parsed.data
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+
+  const product = await db.product.findUnique({ where: { id: productId } })
+  if (!product || product.status !== "APPROVED") {
+    return Response.json({ error: "Продукт недоступен для покупки" }, { status: 404 })
+  }
+
+  if (product.authorId === session.user.id) {
+    return Response.json({ error: "Нельзя купить собственный продукт" }, { status: 400 })
+  }
+
+  const existing = await db.purchase.findFirst({
+    where: {
+      buyerId: session.user.id,
+      productId,
+      status: { in: ["PAID", "DELIVERED"] },
+    },
+  })
+  if (existing) {
+    return Response.json({ error: "Вы уже приобрели этот продукт", purchaseId: existing.id }, { status: 409 })
+  }
+
+  // Create purchase record with PENDING status first
+  const purchase = await db.purchase.create({
+    data: {
+      buyerId: session.user.id,
+      productId,
+      amount: product.price,
+      status: "PENDING",
+    },
+  })
+
+  const idempotencyKey = crypto.randomUUID()
+
+  let yooPayment
+  try {
+    yooPayment = await createPayment({
+      amountKopecks: product.price,
+      description: `Покупка: ${product.title}`,
+      returnUrl: `${appUrl}/purchases?paid=${purchase.id}`,
+      metadata: { purchaseId: purchase.id },
+      idempotencyKey,
+    })
+  } catch (err) {
+    await db.purchase.delete({ where: { id: purchase.id } })
+    console.error("YooKassa create payment error:", err)
+    return Response.json({ error: "Ошибка платёжной системы" }, { status: 502 })
+  }
+
+  await db.purchase.update({
+    where: { id: purchase.id },
+    data: { paymentId: yooPayment.id },
+  })
+
+  const confirmationUrl = yooPayment.confirmation?.confirmation_url
+  return Response.json({ purchaseId: purchase.id, confirmationUrl })
+}
