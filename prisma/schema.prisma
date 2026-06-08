@@ -68,6 +68,7 @@ model User {
   phone          String?
   role           Role       @default(BUYER)
   inn            String?
+  passwordHash   String?
   agreedToTerms  Boolean    @default(false)
   agreedAt       DateTime?
   balance        Int        @default(0)

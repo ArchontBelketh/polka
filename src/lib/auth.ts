@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import Credentials from "next-auth/providers/credentials"
+import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { z } from "zod"
 
@@ -29,8 +30,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email: parsed.data.email },
         })
 
-        // TODO: replace with bcrypt check when password field is added to schema
-        if (!user) return null
+        if (!user?.passwordHash) return null
+
+        const valid = await bcrypt.compare(parsed.data.password, user.passwordHash)
+        if (!valid) return null
 
         return {
           id: user.id,
