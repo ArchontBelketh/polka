@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { limits } from "@/lib/ratelimit"
 
 const createSchema = z.object({
   productId: z.string().min(1),
@@ -31,6 +32,10 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
+  }
+
+  if (!limits.reviews(session.user.id)) {
+    return Response.json({ error: "Слишком много запросов" }, { status: 429 })
   }
 
   const body = await req.json()

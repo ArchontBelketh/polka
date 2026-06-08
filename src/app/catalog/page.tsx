@@ -1,11 +1,19 @@
 import { Suspense } from "react"
+import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { CategoryFilter } from "@/components/catalog/CategoryFilter"
+import { CatalogFilters } from "@/components/catalog/CatalogFilters"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import type { Category } from "@/types"
 
 interface CatalogPageProps {
-  searchParams: Promise<{ category?: string; q?: string; page?: string }>
+  searchParams: Promise<{
+    category?: string
+    q?: string
+    page?: string
+    sort?: string
+    minPrice?: string
+    maxPrice?: string
+  }>
 }
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
@@ -28,11 +36,27 @@ export const metadata = {
   },
 }
 
+const ORDER_BY_MAP: Record<string, object> = {
+  popular:    { salesCount: "desc" },
+  newest:     { publishedAt: "desc" },
+  rating:     { rating: "desc" },
+  price_asc:  { price: "asc" },
+  price_desc: { price: "desc" },
+}
+
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
-  const { category, q, page: pageParam } = await searchParams
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10))
+  const { category, q, page: pageParam, sort, minPrice, maxPrice } = await searchParams
+  const page  = Math.max(1, parseInt(pageParam ?? "1", 10))
   const limit = 20
-  const skip = (page - 1) * limit
+  const skip  = (page - 1) * limit
+
+  const minKop = minPrice ? Math.max(0, Math.round(parseFloat(minPrice) * 100)) : undefined
+  const maxKop = maxPrice ? Math.max(0, Math.round(parseFloat(maxPrice) * 100)) : undefined
+
+  const priceFilter =
+    minKop !== undefined || maxKop !== undefined
+      ? { price: { ...(minKop !== undefined ? { gte: minKop } : {}), ...(maxKop !== undefined ? { lte: maxKop } : {}) } }
+      : {}
 
   const where = {
     status: "APPROVED" as const,
@@ -45,14 +69,17 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           ],
         }
       : {}),
+    ...priceFilter,
   }
 
-  const [products, total] = await Promise.all([
+  const orderBy = ORDER_BY_MAP[sort ?? ""] ?? { salesCount: "desc" }
+
+  const [products, total, session] = await Promise.all([
     db.product.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { salesCount: "desc" },
+      orderBy,
       select: {
         id: true,
         slug: true,
@@ -70,7 +97,31 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       },
     }),
     db.product.count({ where }),
+    auth(),
   ])
+
+  // Fetch wishlist for logged-in user
+  const wishlistSet = new Set<string>()
+  if (session?.user?.id) {
+    const items = await db.wishlist.findMany({
+      where: { userId: session.user.id },
+      select: { productId: true },
+    })
+    for (const item of items) wishlistSet.add(item.productId)
+  }
+
+  // Build URL helper for pagination (preserves all active filters)
+  function pageUrl(p: number) {
+    const ps = new URLSearchParams()
+    if (category) ps.set("category", category)
+    if (q) ps.set("q", q)
+    if (sort) ps.set("sort", sort)
+    if (minPrice) ps.set("minPrice", minPrice)
+    if (maxPrice) ps.set("maxPrice", maxPrice)
+    if (p > 1) ps.set("page", String(p))
+    const qs = ps.toString()
+    return `/catalog${qs ? `?${qs}` : ""}`
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
@@ -82,17 +133,23 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       </div>
 
       <Suspense>
-        <CategoryFilter />
+        <CatalogFilters />
       </Suspense>
 
       {products.length === 0 ? (
         <div className="py-20 text-center text-muted-foreground">
-          {q || category ? "По вашему запросу ничего не найдено" : "Продуктов пока нет"}
+          {q || category || minPrice || maxPrice
+            ? "По вашему запросу ничего не найдено"
+            : "Продуктов пока нет"}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              isWishlisted={wishlistSet.has(product.id)}
+            />
           ))}
         </div>
       )}
@@ -101,7 +158,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <div className="flex justify-center gap-2 pt-4">
           {page > 1 && (
             <a
-              href={`/catalog?${new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}), page: String(page - 1) })}`}
+              href={pageUrl(page - 1)}
               className="px-4 py-2 rounded-md border border-border text-sm hover:bg-muted"
             >
               ← Назад
@@ -109,7 +166,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           )}
           {page * limit < total && (
             <a
-              href={`/catalog?${new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}), page: String(page + 1) })}`}
+              href={pageUrl(page + 1)}
               className="px-4 py-2 rounded-md border border-border text-sm hover:bg-muted"
             >
               Вперёд →
@@ -122,7 +179,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 }
 
 function plural(n: number, one: string, few: string, many: string) {
-  const mod10 = n % 10
+  const mod10  = n % 10
   const mod100 = n % 100
   if (mod100 >= 11 && mod100 <= 14) return many
   if (mod10 === 1) return one

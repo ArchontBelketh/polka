@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { limits } from "@/lib/ratelimit"
 
 const schema = z.object({
   code: z.string().min(1),
@@ -8,6 +9,11 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
+  if (!limits.coupon(ip)) {
+    return Response.json({ error: "Слишком много запросов" }, { status: 429 })
+  }
+
   const body = await req.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) {

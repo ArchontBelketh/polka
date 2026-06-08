@@ -5,8 +5,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CATEGORY_LABELS } from "@/types"
+import { formatPrice } from "@/lib/utils"
 
-export const metadata = { title: "Рабочий стол модератора — ПОЛКА" }
+export const metadata = { title: "Рабочий стол — ПОЛКА" }
 
 const ACTION_LABELS: Record<string, string> = {
   APPROVED: "Одобрен",
@@ -29,6 +30,8 @@ export default async function AdminPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+
   const [pendingCount, scanFailedCount, todayReviewed, openTickets, recentLogs] = await Promise.all([
     db.product.count({ where: { status: "PENDING" } }),
     db.product.count({ where: { status: "SCAN_FAILED" } }),
@@ -43,15 +46,63 @@ export default async function AdminPage() {
 
   const queueTotal = pendingCount + scanFailedCount
 
+  // Business stats — only for ADMIN role
+  let adminStats: {
+    totalGmv: number
+    monthGmv: number
+    totalUsers: number
+    newUsers: number
+    activeProducts: number
+    topProducts: { id: string; title: string; salesCount: number; price: number }[]
+  } | null = null
+
+  if (user.role === "ADMIN") {
+    const [totalAgg, monthAgg, totalUsers, newUsers, activeProducts, topProducts] = await Promise.all([
+      db.purchase.aggregate({
+        where: { status: { in: ["PAID", "DELIVERED"] } },
+        _sum: { amount: true },
+      }),
+      db.purchase.aggregate({
+        where: { status: { in: ["PAID", "DELIVERED"] }, paidAt: { gte: monthStart } },
+        _sum: { amount: true },
+      }),
+      db.user.count(),
+      db.user.count({ where: { createdAt: { gte: monthStart } } }),
+      db.product.count({ where: { status: "APPROVED" } }),
+      db.product.findMany({
+        where: { status: "APPROVED" },
+        orderBy: { salesCount: "desc" },
+        take: 5,
+        select: { id: true, title: true, salesCount: true, price: true },
+      }),
+    ])
+
+    adminStats = {
+      totalGmv:       totalAgg._sum.amount ?? 0,
+      monthGmv:       monthAgg._sum.amount ?? 0,
+      totalUsers,
+      newUsers,
+      activeProducts,
+      topProducts,
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Рабочий стол модератора</h1>
-        <Button asChild variant={queueTotal > 0 ? "default" : "outline"}>
-          <Link href="/admin/queue">
-            Очередь{queueTotal > 0 ? ` (${queueTotal})` : ""}
-          </Link>
-        </Button>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Рабочий стол</h1>
+        <div className="flex items-center gap-2">
+          {user.role === "ADMIN" && (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/coupons">Купоны</Link>
+            </Button>
+          )}
+          <Button asChild variant={queueTotal > 0 ? "default" : "outline"}>
+            <Link href="/admin/queue">
+              Очередь{queueTotal > 0 ? ` (${queueTotal})` : ""}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -66,7 +117,45 @@ export default async function AdminPage() {
         />
       </div>
 
-      {queueTotal === 0 && recentLogs.length === 0 && (
+      {/* Business stats — ADMIN only */}
+      {adminStats && (
+        <section className="space-y-4">
+          <h2 className="font-semibold text-muted-foreground text-sm uppercase tracking-wide">
+            Аналитика платформы
+          </h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+            <StatCard label="GMV всего"     value={formatPrice(adminStats.totalGmv)} />
+            <StatCard label="GMV за месяц"  value={formatPrice(adminStats.monthGmv)} />
+            <StatCard label="Пользователей" value={String(adminStats.totalUsers)} />
+            <StatCard label="Новых за месяц" value={`+${adminStats.newUsers}`} />
+            <StatCard label="Продуктов"     value={String(adminStats.activeProducts)} />
+          </div>
+
+          {adminStats.topProducts.length > 0 && (
+            <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <p className="text-sm font-medium">Топ-5 продуктов по продажам</p>
+              <ol className="space-y-2">
+                {adminStats.topProducts.map((p, i) => (
+                  <li key={p.id} className="flex items-center gap-3 text-sm">
+                    <span className="text-muted-foreground tabular-nums w-4">{i + 1}.</span>
+                    <Link
+                      href={`/admin/review/${p.id}`}
+                      className="flex-1 truncate hover:underline underline-offset-4"
+                    >
+                      {p.title}
+                    </Link>
+                    <span className="text-muted-foreground shrink-0">
+                      {p.salesCount} продаж · {formatPrice(p.price)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </section>
+      )}
+
+      {queueTotal === 0 && recentLogs.length === 0 && !adminStats && (
         <div className="py-20 text-center text-muted-foreground">
           Очередь пуста и действий ещё не было.
         </div>

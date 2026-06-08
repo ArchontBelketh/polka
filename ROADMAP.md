@@ -7,8 +7,8 @@
 
 | Слой | Технология |
 |------|-----------|
-| Framework | Next.js 14 (App Router) + TypeScript |
-| База данных | PostgreSQL 15 + Prisma ORM |
+| Framework | Next.js 16 (App Router) + TypeScript |
+| База данных | PostgreSQL 15 + Prisma 7 (`@prisma/adapter-pg`) |
 | Аутентификация | NextAuth.js v5 (Telegram OAuth + email) |
 | Хранилище файлов | Yandex Object Storage (S3-совместимый) |
 | Платежи | ЮKassa SDK |
@@ -229,7 +229,7 @@ model Product {
   demoUrl        String?
   videoUrl       String?
   targetAudience String?
-  techStack      String?
+  techStack      String[]      @default([])
   license        String        @default("personal")
   telegramBotUsername String?
   rating         Float         @default(0)
@@ -619,22 +619,56 @@ npm run dev
 
 ---
 
-## Неделя 5 — Рост (следующие шаги)
+## Неделя 5 — Рост ✅ (частично)
 
 **Цель:** удержание пользователей, доверие к платформе, масштабирование.
 
+- [x] **Страница разработчика** — `/developer/[id]`: продукты, рейтинг, статистика продаж
+- [x] **Избранное** — модель `Wishlist` в схеме, API `/api/wishlist` (toggle + list)
+- [x] **Промокоды** — модель `Coupon` в схеме, API `/api/coupons/validate`, поле в форме оплаты
+- [x] **Rate limiting** — библиотека `src/lib/ratelimit.ts` с пре-настроенными лимитами
+- [x] **Бейджи стека технологий** — цветные `TechBadge` на карточках, странице продукта, дашборде, модерации
+- [x] **TechStackPicker** — 44 предустановленных тега по группам + кастомные; заменяет ручной ввод в форме
 - [ ] **Telegram Login Widget** — кастомный NextAuth Credentials-провайдер с проверкой init data hash
 - [ ] **Email-уведомления** — дублировать Telegram-нотификации через Resend или nodemailer
-- [ ] **Страница разработчика** — `/developer/[id]`: продукты, рейтинг, статистика продаж
-- [ ] **Слайдер скриншотов** — несколько изображений на странице продукта
-- [ ] **Промокоды** — модель `Coupon`, поле `couponCode` в форме оплаты
+- [ ] **Слайдер скриншотов** — карусель по массиву `screenshots` на странице продукта
 - [ ] **Версионирование продуктов** — загрузка обновления + уведомление покупателям
-- [ ] **Rate limiting** — `@upstash/ratelimit` на `/api/upload`, `/api/reviews`, `/api/payment/create`
 - [ ] **E2E-тесты** — Playwright: регистрация → загрузка → покупка → скачивание
 - [ ] **Мониторинг ошибок** — Sentry в продакшне
-- [ ] **Индекс на `Purchase.escrowUntil`** — для эффективной работы cron-запроса
-- [ ] **Избранное** — модель `Wishlist`, кнопка на карточке продукта
 - [ ] **og-default.png** — добавить заглушку в `public/` для OG-тегов каталога
+
+---
+
+## Неделя 6 — Каталог и завершение начатого ✅
+
+**Цель:** закрыть незавершённые задачи и улучшить обнаруживаемость продуктов.
+
+### Быстрые задачи
+- [x] **Кнопка «В избранное»** — `WishlistButton` в `ProductCard`; каталог передаёт `isWishlisted` из wishlist пользователя
+- [x] **Rate limiting** — `limits.*` из `src/lib/ratelimit.ts` применён в `/api/upload`, `/api/payment/create`, `/api/reviews`, `/api/coupons/validate`
+- [x] **Admin-панель промокодов** — `/admin/coupons`: список, создание, деактивация, удаление; API `/api/coupons` (GET/POST) + `/api/coupons/[id]` (PATCH/DELETE)
+
+### Каталог
+- [x] **Поиск** — инпут в `CatalogFilters`, параметр `q` в URL
+- [x] **Сортировка** — выпадающий список: популярные / новые / по рейтингу / дешевле / дороже; параметр `sort` в URL
+- [x] **Фильтр по цене** — диапазон `minPrice`/`maxPrice` (в рублях в URL, в копейках в БД)
+- [x] **Слайдер скриншотов** — `ScreenshotSlider` с превьюшками и стрелками на странице продукта
+
+### Аналитика
+- [x] **Admin дашборд** — блок «Аналитика платформы» для ADMIN: GMV всего, GMV за месяц, пользователи, новые за месяц, активные продукты, топ-5 по продажам
+
+---
+
+## Неделя 7 — Продуктовая зрелость
+
+**Цель:** доверие покупателей, повторные продажи, качество кода.
+
+- [ ] **Версионирование продуктов** — `ProductVersion` модель, форма загрузки новой версии, уведомление всем покупателям
+- [ ] **Telegram Login Widget** — кастомный NextAuth Credentials-провайдер, проверка `initData` hash
+- [ ] **Email-уведомления** — Resend или nodemailer; дублировать: продажа, одобрение, спор
+- [ ] **E2E-тесты** — Playwright: регистрация → загрузка → покупка → скачивание
+- [ ] **Мониторинг** — Sentry DSN в `.env`, `instrument.ts` в корне
+- [ ] **og-default.png** — заглушка в `public/` для OG-тегов каталога
 
 ---
 

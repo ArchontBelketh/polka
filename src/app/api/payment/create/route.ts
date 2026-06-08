@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { createPayment } from "@/lib/yookassa"
 import { escrowUntilDate } from "@/lib/escrow"
+import { limits } from "@/lib/ratelimit"
 
 const schema = z.object({
   productId: z.string().min(1),
@@ -14,6 +15,10 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
+  }
+
+  if (!limits.payment(session.user.id)) {
+    return Response.json({ error: "Слишком много запросов" }, { status: 429 })
   }
 
   const body = await req.json()

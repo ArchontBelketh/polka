@@ -113,6 +113,16 @@ DEPLOY_HOST=1.2.3.4 DEPLOY_USER=root ./scripts/deploy.sh
 - Multi-stage Dockerfile (builder → scanner-tools → runner) с `output: standalone`
 - `scripts/deploy.sh` — деплой на Hetzner через rsync + SSH
 
+### После запуска
+- Цветные бейджи стека технологий на карточках каталога и странице продукта
+- Визуальный TechStackPicker: 44 предустановленных тега по группам + кастомные теги
+- `techStack String[]` в схеме (заменил `String?`) — миграция через `prisma db push`
+- Страница профиля разработчика `/developer/[id]` со статистикой
+- Избранное: API готов (`/api/wishlist`), модель `Wishlist` в схеме
+- Промокоды: API валидации готов (`/api/coupons/validate`), модель `Coupon` в схеме
+- Rate limiting: библиотека готова (`src/lib/ratelimit.ts`), 5 пре-настроенных лимитов
+- Поддержка: тикеты (`/support`), admin-панель тикетов (`/admin/support`)
+
 ---
 
 ## API
@@ -136,24 +146,31 @@ DEPLOY_HOST=1.2.3.4 DEPLOY_USER=root ./scripts/deploy.sh
 
 ## Следующие шаги
 
-### Критические для запуска
-- [ ] **SSL + reverse proxy** — настроить Caddy или Nginx с автоматическим Let's Encrypt на сервере; пример конфига для Caddy: `polka.app { reverse_proxy localhost:3000 }`
-- [ ] **Webhook ЮKassa на продакшн-URL** — зарегистрировать `https://polka.app/api/payment/webhook` в личном кабинете ЮKassa; проверить что IP-фильтрация включена на nginx
-- [ ] **Системный cron для эскроу** — добавить в crontab сервера: `0 3 * * * curl -s -X POST https://polka.app/api/cron/escrow -H "x-cron-secret: $CRON_SECRET"`
-- [ ] **Telegram Login Widget** — реализовать кастомный NextAuth-провайдер через `Credentials` с проверкой init data hash по `TELEGRAM_BOT_TOKEN` (описано в `src/lib/auth.ts`)
-- [ ] **Регистрация разработчика** — добавить поля ИНН и реквизиты для выплат при регистрации с ролью DEVELOPER
+### Завершить начатое (API готов, нужен UI)
+- [ ] **Кнопка «В избранное»** — добавить на `ProductCard` и страницу продукта; `POST /api/wishlist` уже работает
+- [ ] **Подключить rate limiting** — `src/lib/ratelimit.ts` уже реализован; применить в `/api/upload`, `/api/payment/create`, `/api/reviews`, `/api/coupons/validate`
+- [ ] **Admin-панель промокодов** — CRUD-страница `/admin/coupons`; модель и API валидации уже есть
 
-### Продуктовые улучшения
-- [ ] **Email-уведомления** — дублировать Telegram-уведомления через `nodemailer` или Resend для пользователей без Telegram
-- [ ] **Страница профиля разработчика** — `/developer/[id]` со списком продуктов, рейтингом, количеством продаж
-- [ ] **Демо-превью** — встроенный просмотр скриншотов (слайдер) вместо одного изображения
-- [ ] **Промокоды и скидки** — модель `Coupon` в схеме, поле `couponCode` в форме оплаты
-- [ ] **Версионирование продуктов** — разработчик загружает обновление, покупатели получают уведомление и доступ к новой версии
-- [ ] **Избранное** — модель `Wishlist`, кнопка «В избранное» на карточке продукта
+### Каталог
+- [ ] **Полнотекстовый поиск** — `ILIKE` или `to_tsvector` по `title + shortDesc`; подключить к фильтрам каталога
+- [ ] **Сортировка** — по цене, рейтингу, дате выхода, числу продаж
+- [ ] **Фильтр по цене** — диапазон мин/макс
 
-### Технический долг
-- [ ] **og-default.png** — добавить файл-заглушку в `public/` для OG-тегов каталога
-- [ ] **Rate limiting** — добавить ограничение запросов на `/api/upload`, `/api/reviews`, `/api/payment/create` через middleware (например, `@upstash/ratelimit`)
-- [ ] **E2E-тесты** — покрыть Playwright'ом критический путь: регистрация → загрузка продукта → покупка → скачивание
-- [ ] **Мониторинг** — интегрировать Sentry для отслеживания ошибок в продакшне
-- [ ] **Индексы БД** — добавить индекс на `Purchase.escrowUntil` для эффективной работы cron-запроса
+### Страница продукта
+- [ ] **Слайдер скриншотов** — карусель по массиву `product.screenshots` вместо одного изображения
+
+### Аналитика и управление
+- [ ] **Admin дашборд** — GMV за период, число активных продуктов, новые пользователи, топ продукты
+- [ ] **Версионирование продуктов** — разработчик загружает новую версию файла; покупатели получают уведомление и ссылку на скачивание
+
+### Инфраструктура запуска
+- [ ] **SSL + reverse proxy** — Caddy: `polka.app { reverse_proxy localhost:3000 }`
+- [ ] **Webhook ЮKassa** — зарегистрировать `https://polka.app/api/payment/webhook` в личном кабинете
+- [ ] **Системный cron** — `0 3 * * * curl -X POST https://polka.app/api/cron/escrow -H "x-cron-secret: $CRON_SECRET"`
+- [ ] **Telegram Login Widget** — NextAuth Credentials-провайдер с проверкой init data hash
+
+### Качество
+- [ ] **Email-уведомления** — дублировать Telegram через Resend или nodemailer
+- [ ] **og-default.png** — заглушка в `public/` для OG-тегов каталога
+- [ ] **E2E-тесты** — Playwright: регистрация → загрузка → покупка → скачивание
+- [ ] **Мониторинг** — Sentry в продакшне

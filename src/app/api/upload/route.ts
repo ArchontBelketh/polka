@@ -3,6 +3,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getPresignedUploadUrl, productSourceKey, screenshotKey } from "@/lib/s3"
+import { limits } from "@/lib/ratelimit"
 
 const ALLOWED_SOURCE_TYPES = new Set([
   "application/zip", "application/x-zip-compressed",
@@ -28,6 +29,11 @@ const s3Configured =
   !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
+  if (!limits.upload(ip)) {
+    return Response.json({ error: "Слишком много запросов" }, { status: 429 })
+  }
+
   const session = await auth()
   if (!session?.user?.id) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
