@@ -12,7 +12,7 @@ export const metadata = { title: "Мои продукты — ПОЛКА" }
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Черновик",
   PENDING: "На проверке",
-  SCAN_FAILED: "Отклонён сканером",
+  SCAN_FAILED: "Не прошёл скан",
   APPROVED: "Опубликован",
   REJECTED: "Отклонён",
   SUSPENDED: "Приостановлен",
@@ -40,7 +40,6 @@ export default async function DashboardProductsPage({ searchParams }: PageProps)
     where: { authorId: session.user.id },
     orderBy: { createdAt: "desc" },
     include: {
-      scanResult: { select: { status: true } },
       _count: { select: { purchases: true, reviews: true } },
     },
   })
@@ -76,15 +75,15 @@ export default async function DashboardProductsPage({ searchParams }: PageProps)
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-medium truncate">{p.title}</p>
+                  <Link
+                    href={`/dashboard/products/${p.id}`}
+                    className="font-medium hover:underline underline-offset-4 truncate"
+                  >
+                    {p.title}
+                  </Link>
                   <Badge variant={STATUS_VARIANTS[p.status] ?? "outline"}>
                     {STATUS_LABELS[p.status] ?? p.status}
                   </Badge>
-                  {p.scanResult && p.scanResult.status !== "CLEAN" && (
-                    <Badge variant={p.scanResult.status === "BLOCKED" ? "destructive" : "secondary"}>
-                      Скан: {p.scanResult.status}
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {CATEGORY_LABELS[p.category as keyof typeof CATEGORY_LABELS]} ·{" "}
@@ -95,10 +94,13 @@ export default async function DashboardProductsPage({ searchParams }: PageProps)
 
               <div className="flex items-center gap-2 shrink-0">
                 {p.status === "APPROVED" && (
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/product/${p.slug}`}>Просмотр</Link>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/product/${p.slug}`}>В каталог</Link>
                   </Button>
                 )}
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/dashboard/products/${p.id}`}>Детали</Link>
+                </Button>
               </div>
             </div>
           ))}
