@@ -16,9 +16,8 @@ export default async function DashboardPage() {
   const user = await db.user.findUnique({ where: { id: session.user.id } })
   if (!user) redirect("/login")
 
-  if (!["DEVELOPER", "ADMIN"].includes(user.role)) {
-    redirect("/purchases")
-  }
+  if (user.role === "MODERATOR") redirect("/admin")
+  if (!["DEVELOPER", "ADMIN"].includes(user.role)) redirect("/purchases")
 
   const products = await db.product.findMany({
     where: { authorId: session.user.id },

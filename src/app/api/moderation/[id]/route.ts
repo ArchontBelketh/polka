@@ -4,10 +4,13 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { notifyProductApproved, notifyProductRejected } from "@/lib/notify"
 
-const actionSchema = z.object({
-  action: z.enum(["APPROVED", "REJECTED", "CHANGES_REQUESTED", "SUSPENDED"]),
-  comment: z.string().optional(),
-})
+const actionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("APPROVED"), comment: z.string().optional() }),
+  z.object({ action: z.literal("REJECTED"), comment: z.string().optional() }),
+  z.object({ action: z.literal("CHANGES_REQUESTED"), comment: z.string().optional() }),
+  z.object({ action: z.literal("SUSPENDED"), comment: z.string().min(1, "Укажите причину отзыва") }),
+  z.object({ action: z.literal("RESTORED"), comment: z.string().optional() }),
+])
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     action === "APPROVED" ? "APPROVED"
     : action === "REJECTED" ? "REJECTED"
     : action === "SUSPENDED" ? "SUSPENDED"
+    : action === "RESTORED" ? "APPROVED"
     : product.status // CHANGES_REQUESTED keeps current status
 
   await db.$transaction([
@@ -47,7 +51,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       where: { id: productId },
       data: {
         status: newStatus,
-        ...(action === "APPROVED" ? { publishedAt: new Date() } : {}),
+        ...(action === "APPROVED" || action === "RESTORED" ? { publishedAt: new Date() } : {}),
+        ...(action === "SUSPENDED" ? { publishedAt: null } : {}),
       },
     }),
     db.moderationLog.create({
@@ -60,18 +65,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }),
   ])
 
-  // Fire-and-forget notification to developer
   const developer = await db.user.findUnique({
     where: { id: product.authorId },
     select: { telegramId: true },
   })
-  if (action === "APPROVED") {
+
+  if (action === "APPROVED" || action === "RESTORED") {
     void notifyProductApproved({
       developerTelegramId: developer?.telegramId ?? null,
       productTitle: product.title,
       productSlug: product.slug,
     })
-  } else if (action === "REJECTED") {
+  } else if (action === "REJECTED" || action === "SUSPENDED") {
     void notifyProductRejected({
       developerTelegramId: developer?.telegramId ?? null,
       productTitle: product.title,

@@ -3,11 +3,13 @@
 import { useRef, useState } from "react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
-import { LogOut, LayoutDashboard } from "lucide-react"
+import { LogOut, LayoutDashboard, ShieldCheck, ListChecks, Package } from "lucide-react"
 
 interface UserMenuProps {
   role?: string
 }
+
+const isMod = (role?: string) => role === "MODERATOR" || role === "ADMIN"
 
 export function UserMenu({ role }: UserMenuProps) {
   const [open, setOpen] = useState(false)
@@ -22,6 +24,9 @@ export function UserMenu({ role }: UserMenuProps) {
     closeTimer.current = setTimeout(() => setOpen(false), 150)
   }
 
+  const homeHref = isMod(role) ? "/admin" : "/dashboard"
+  const homeLabel = isMod(role) ? "Рабочий стол" : "Кабинет"
+
   return (
     <div
       className="relative"
@@ -29,24 +34,43 @@ export function UserMenu({ role }: UserMenuProps) {
       onMouseLeave={handleMouseLeave}
     >
       <Link
-        href="/dashboard"
+        href={homeHref}
         className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
       >
-        <LayoutDashboard className="h-4 w-4" />
-        Кабинет
+        {isMod(role) ? (
+          <ShieldCheck className="h-4 w-4" />
+        ) : (
+          <LayoutDashboard className="h-4 w-4" />
+        )}
+        {homeLabel}
       </Link>
 
       {open && (
         <div className="absolute right-0 top-full pt-1 z-50">
-          <div className="min-w-[160px] rounded-md border border-border bg-popover shadow-lg py-1">
+          <div className="min-w-[180px] rounded-md border border-border bg-popover shadow-lg py-1">
             <Link
-              href="/dashboard"
+              href={homeHref}
               className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               onClick={() => setOpen(false)}
             >
-              <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-              Кабинет
+              {isMod(role) ? (
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+              )}
+              {homeLabel}
             </Link>
+
+            {isMod(role) && (
+              <Link
+                href="/admin/queue"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <ListChecks className="h-4 w-4 text-muted-foreground" />
+                Очередь модерации
+              </Link>
+            )}
 
             {role === "DEVELOPER" && (
               <Link
@@ -54,7 +78,7 @@ export function UserMenu({ role }: UserMenuProps) {
                 className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                 onClick={() => setOpen(false)}
               >
-                <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                <Package className="h-4 w-4 text-muted-foreground" />
                 Мои продукты
               </Link>
             )}
