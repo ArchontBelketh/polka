@@ -66,6 +66,10 @@ export function DescriptionStep({ value, onChange }: DescriptionStepProps) {
           rows={6}
           required
         />
+        <p className={`text-xs ${value.fullDesc.length >= 30 ? "text-muted-foreground" : "text-destructive"}`}>
+          {value.fullDesc.length} символов
+          {value.fullDesc.length < 30 && ` — нужно ещё ${30 - value.fullDesc.length}`}
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

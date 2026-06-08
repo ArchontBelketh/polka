@@ -52,6 +52,17 @@ export function SubmitForm() {
     return true
   }
 
+  function advanceHint(): string | null {
+    if (step === 1) {
+      if (form.title.length < 5) return `Название: нужно ещё ${5 - form.title.length} симв.`
+      if (form.shortDesc.length < 10) return `Краткое описание: нужно ещё ${10 - form.shortDesc.length} симв.`
+      if (form.fullDesc.length < 30) return `Полное описание: нужно ещё ${30 - form.fullDesc.length} симв.`
+    }
+    if (step === 2 && form.features.length === 0) return "Добавьте хотя бы одну функцию"
+    if (step === 3 && !form.productFile) return "Загрузите файл продукта"
+    return null
+  }
+
   async function handleSubmit() {
     if (!form.category) return
     setError(null)
@@ -186,13 +197,18 @@ export function SubmitForm() {
         </Button>
 
         {step < 4 ? (
-          <Button
-            type="button"
-            onClick={() => setStep(step + 1)}
-            disabled={!canAdvance()}
-          >
-            Далее
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            {advanceHint() && (
+              <p className="text-xs text-muted-foreground">{advanceHint()}</p>
+            )}
+            <Button
+              type="button"
+              onClick={() => setStep(step + 1)}
+              disabled={!canAdvance()}
+            >
+              Далее
+            </Button>
+          </div>
         ) : (
           <Button
             type="button"

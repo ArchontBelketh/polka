@@ -24,6 +24,9 @@ const uploadSchema = z.object({
   screenshotIndex: z.number().int().min(0).max(9).optional(),
 })
 
+const s3Configured =
+  !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -47,6 +50,24 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Нет доступа" }, { status: 403 })
   }
 
+  // S3 not configured in local dev — skip upload, return no URL
+  if (!s3Configured) {
+    if (type === "source") {
+      const ext = fileName.split(".").pop() ?? ""
+      await db.productFile.create({
+        data: {
+          productId,
+          s3Key: `local/${productId}/source/${fileName}`,
+          fileName,
+          fileSize,
+          fileType: "SOURCE",
+          format: `.${ext}`,
+        },
+      })
+    }
+    return Response.json({ url: null })
+  }
+
   if (type === "source") {
     if (!ALLOWED_SOURCE_TYPES.has(contentType) && !isAllowedByExtension(fileName)) {
       return Response.json({ error: "Недопустимый тип файла" }, { status: 422 })
@@ -54,7 +75,6 @@ export async function POST(req: NextRequest) {
     const key = productSourceKey(productId, fileName)
     const url = await getPresignedUploadUrl(key, contentType)
 
-    // Create ProductFile record
     const ext = fileName.split(".").pop() ?? ""
     await db.productFile.create({
       data: {
@@ -79,7 +99,6 @@ export async function POST(req: NextRequest) {
     const key = screenshotKey(productId, idx, ext)
     const url = await getPresignedUploadUrl(key, contentType)
 
-    // Append screenshot key to product
     const screenshots = [...product.screenshots, key]
     await db.product.update({ where: { id: productId }, data: { screenshots } })
 

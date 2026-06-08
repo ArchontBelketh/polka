@@ -42,6 +42,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: "Файл не найден" }, { status: 404 })
   }
 
+  const s3Configured = !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
+  if (!s3Configured || file.s3Key.startsWith("local/")) {
+    return Response.json(
+      { error: "Хранилище файлов не настроено. В локальной среде скачивание недоступно." },
+      { status: 503 },
+    )
+  }
+
   const url = await getPresignedDownloadUrl(file.s3Key, 900)
 
   await db.purchase.update({

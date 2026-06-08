@@ -13,6 +13,9 @@ import type { ScanFinding } from "@/types"
 
 const execAsync = promisify(exec)
 
+const s3Configured =
+  !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
+
 export async function runScan(productId: string): Promise<void> {
   // Mark as pending
   await db.scanResult.upsert({
@@ -31,6 +34,17 @@ export async function runScan(productId: string): Promise<void> {
       where: { productId },
       data: { status: "CLEAN", scannedAt: new Date(), toolsRun: ["no-files"] },
     })
+    await db.product.update({ where: { id: productId }, data: { status: "PENDING" } })
+    return
+  }
+
+  // S3 not configured — skip file scan, pass automatically
+  if (!s3Configured) {
+    await db.scanResult.update({
+      where: { productId },
+      data: { status: "CLEAN", scannedAt: new Date(), toolsRun: ["skipped-no-s3"] },
+    })
+    await db.product.update({ where: { id: productId }, data: { status: "PENDING" } })
     return
   }
 
@@ -40,6 +54,7 @@ export async function runScan(productId: string): Promise<void> {
 
   try {
     for (const file of product.files) {
+      if (file.s3Key.startsWith("local/")) continue
       const buffer = await getObjectBuffer(file.s3Key)
       const localPath = path.join(tmpDir, file.fileName)
       fs.writeFileSync(localPath, buffer)
