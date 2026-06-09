@@ -9,6 +9,7 @@ import { runBandit } from "./python"
 import { runSemgrep } from "./semgrep"
 import { scanEpf } from "./epf"
 import { scanExcel } from "./excel"
+import { runAutoModeration } from "@/lib/auto-moderation"
 import type { ScanFinding } from "@/types"
 
 const execAsync = promisify(exec)
@@ -34,17 +35,17 @@ export async function runScan(productId: string): Promise<void> {
       where: { productId },
       data: { status: "CLEAN", scannedAt: new Date(), toolsRun: ["no-files"] },
     })
-    await db.product.update({ where: { id: productId }, data: { status: "PENDING" } })
+    await runAutoModeration(productId)
     return
   }
 
-  // S3 not configured — skip file scan, pass automatically
+  // S3 not configured — skip file scan, run auto-moderation on metadata only
   if (!s3Configured) {
     await db.scanResult.update({
       where: { productId },
       data: { status: "CLEAN", scannedAt: new Date(), toolsRun: ["skipped-no-s3"] },
     })
-    await db.product.update({ where: { id: productId }, data: { status: "PENDING" } })
+    await runAutoModeration(productId)
     return
   }
 
@@ -109,18 +110,14 @@ export async function runScan(productId: string): Promise<void> {
       },
     })
 
-    // Update product status based on scan result
     if (status === "BLOCKED") {
       await db.product.update({
         where: { id: productId },
         data: { status: "SCAN_FAILED" },
       })
     } else {
-      // CLEAN or WARNING → goes to manual moderation
-      await db.product.update({
-        where: { id: productId },
-        data: { status: "PENDING" },
-      })
+      // CLEAN or WARNING → auto-moderation pipeline (AI review + risk score)
+      await runAutoModeration(productId)
     }
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true })

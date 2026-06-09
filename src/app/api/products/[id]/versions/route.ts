@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { runVersionAutoModeration } from "@/lib/auto-moderation"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -65,7 +66,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     },
   })
 
-  // Version goes to moderation queue — buyers notified only after approval
+  // Try auto-approval for verified developers; falls back silently to manual queue
+  void runVersionAutoModeration(productVersion.id)
 
   return Response.json(
     { id: productVersion.id, version: productVersion.version, status: productVersion.status },

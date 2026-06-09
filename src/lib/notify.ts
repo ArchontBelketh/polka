@@ -216,6 +216,55 @@ export async function notifyNewVersion(params: {
   )
 }
 
+export async function notifyProductAutoApproved(params: {
+  developerTelegramId: string | null
+  developerEmail?: string | null
+  productTitle: string
+  productSlug: string
+}): Promise<void> {
+  const url = `${APP_URL}/product/${params.productSlug}`
+  const tgText =
+    `✅ <b>Продукт опубликован!</b>\n\n` +
+    `«${params.productTitle}» прошёл автоматическую проверку и доступен в каталоге.\n\n` +
+    `🔗 ${url}`
+  const emailHtml = `
+    <h2>✅ Продукт опубликован!</h2>
+    <p>«${params.productTitle}» прошёл автоматическую проверку и теперь доступен в каталоге.</p>
+    <p><a href="${url}">Открыть страницу продукта</a></p>
+  `
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail ? sendEmail(params.developerEmail, `Продукт опубликован: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
+}
+
+export async function notifyProductAutoRejected(params: {
+  developerTelegramId: string | null
+  developerEmail?: string | null
+  productTitle: string
+  reasons: string[]
+}): Promise<void> {
+  const reasonsList = params.reasons.map((r) => `• ${r}`).join("\n")
+  const tgText =
+    `❌ <b>Автоматическая проверка не пройдена</b>\n\n` +
+    `«${params.productTitle}» содержит критические проблемы безопасности.` +
+    (reasonsList ? `\n\nПричины:\n${reasonsList}` : "") +
+    `\n\nЕсли считаете это ошибкой — обратитесь в поддержку.`
+  const reasonsHtml = params.reasons.length
+    ? `<p><b>Причины:</b></p><ul>${params.reasons.map((r) => `<li>${r}</li>`).join("")}</ul>`
+    : ""
+  const emailHtml = `
+    <h2>❌ Автоматическая проверка не пройдена</h2>
+    <p>«${params.productTitle}» содержит критические проблемы безопасности и не может быть опубликован.</p>
+    ${reasonsHtml}
+    <p>Если считаете это ошибкой — обратитесь в <a href="${APP_URL}/support">поддержку</a>.</p>
+  `
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail ? sendEmail(params.developerEmail, `Продукт не прошёл проверку: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
+}
+
 export async function notifyPurchaseConfirmed(params: {
   buyerEmail: string | null
   productTitle: string

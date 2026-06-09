@@ -163,6 +163,9 @@ model Product {
   rating              Float           @default(0)
   reviewCount         Int             @default(0)
   salesCount          Int             @default(0)
+  riskScore           Int?
+  autoDecision        String?
+  aiReviewFlags       Json?
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   publishedAt         DateTime?
@@ -307,6 +310,8 @@ model ProductVersion {
   fileSize         Int                  @default(0)
   status           ProductVersionStatus @default(PENDING)
   moderatorComment String?
+  autoApproved     Boolean              @default(false)
+  riskScore        Int?
   createdAt        DateTime             @default(now())
   product          Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
 

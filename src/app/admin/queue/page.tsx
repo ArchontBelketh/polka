@@ -31,7 +31,7 @@ export default async function AdminQueuePage() {
   const [products, pendingVersions] = await Promise.all([
     db.product.findMany({
       where: { status: { in: ["PENDING", "SCAN_FAILED"] } },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ riskScore: "desc" }, { createdAt: "asc" }],
       include: {
         author: { select: { name: true, email: true } },
         scanResult: { select: { status: true, findings: true, toolsRun: true } },
@@ -143,6 +143,7 @@ export default async function AdminQueuePage() {
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">Категория</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Автор</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Статус</th>
+                  <th className="px-4 py-3 text-center font-medium text-muted-foreground hidden sm:table-cell">Risk</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Цена</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -153,16 +154,25 @@ export default async function AdminQueuePage() {
                   const critCount = findings.filter((f) => f.severity === "critical").length
                   const warnCount = findings.filter((f) => f.severity === "warning").length
 
+                  const riskScore = (p as typeof p & { riskScore?: number | null }).riskScore
+                  const autoDecision = (p as typeof p & { autoDecision?: string | null }).autoDecision
+                  const riskColor =
+                    riskScore == null ? "text-muted-foreground" :
+                    riskScore > 60 ? "text-red-400 font-bold" :
+                    riskScore > 20 ? "text-yellow-400 font-semibold" :
+                    "text-green-400"
+
                   return (
                     <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
                         <p className="font-medium">{p.title}</p>
-                        {(critCount > 0 || warnCount > 0) && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {critCount > 0 && <span className="text-red-400">{critCount} критических </span>}
-                            {warnCount > 0 && <span className="text-yellow-400">{warnCount} предупреждений</span>}
-                          </p>
-                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {critCount > 0 && <span className="text-red-400">{critCount} критических </span>}
+                          {warnCount > 0 && <span className="text-yellow-400">{warnCount} предупреждений</span>}
+                          {autoDecision && (
+                            <span className="ml-1 opacity-60">· {autoDecision.replace("_", " ")}</span>
+                          )}
+                        </p>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">
                         {CATEGORY_LABELS[p.category as keyof typeof CATEGORY_LABELS]}
@@ -174,6 +184,9 @@ export default async function AdminQueuePage() {
                         <Badge variant={PRODUCT_STATUS_VARIANTS[p.status] ?? "outline"}>
                           {PRODUCT_STATUS_LABELS[p.status] ?? p.status}
                         </Badge>
+                      </td>
+                      <td className={`px-4 py-3 text-center hidden sm:table-cell tabular-nums text-sm ${riskColor}`}>
+                        {riskScore ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right">{formatPrice(p.price)}</td>
                       <td className="px-4 py-3 text-right">

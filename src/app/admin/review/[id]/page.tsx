@@ -42,10 +42,22 @@ const PRODUCT_STATUS_VARIANT: Record<string, "default" | "secondary" | "destruct
 
 const ACTION_LABELS: Record<string, string> = {
   APPROVED: "Одобрен",
+  AUTO_APPROVED: "Авто-одобрен",
+  AUTO_REJECTED: "Авто-отклонён",
+  QUEUED: "В очереди",
   REJECTED: "Отклонён",
   CHANGES_REQUESTED: "Запрошены правки",
   SUSPENDED: "Отозван",
   RESTORED: "Восстановлен",
+}
+
+const DECISION_LABELS: Record<string, string> = {
+  AUTO_APPROVE: "Авто-одобрение",
+  AUTO_APPROVE_MONITOR: "Авто-одобрение с мониторингом",
+  AUTO_REJECT: "Авто-отклонение",
+  QUEUE_LOW: "Очередь (низкий приоритет)",
+  QUEUE_HIGH: "Очередь (нормальный приоритет)",
+  QUEUE_URGENT: "Очередь (срочно)",
 }
 
 // Which statuses belong to the moderation queue
@@ -66,6 +78,7 @@ export default async function AdminReviewPage({ params }: RouteParams) {
       files: true,
       scanResult: true,
       moderationLogs: { orderBy: { createdAt: "desc" }, take: 20 },
+      _count: { select: { purchases: true } },
     },
   })
 
@@ -207,6 +220,58 @@ export default async function AdminReviewPage({ params }: RouteParams) {
           {findings.length === 0 && (
             <p className="text-sm text-muted-foreground">Угроз не обнаружено.</p>
           )}
+        </section>
+      )}
+
+      {/* Auto-moderation */}
+      {product.riskScore != null && (
+        <section className="rounded-lg border border-border bg-card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Автоматическая оценка</h2>
+            <div className="flex items-center gap-3">
+              <span className={`text-2xl font-bold tabular-nums ${
+                product.riskScore > 60 ? "text-red-400" :
+                product.riskScore > 20 ? "text-yellow-400" : "text-green-400"
+              }`}>{product.riskScore}</span>
+              {product.autoDecision && (
+                <Badge variant="outline">{DECISION_LABELS[product.autoDecision] ?? product.autoDecision}</Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Factors */}
+          {(() => {
+            const factors = (product as typeof product & { aiReviewFlags?: { reasons?: string[] } | null })
+            const flags = factors.aiReviewFlags
+            const factorRows = (product.moderationLogs.find((l) =>
+              l.action === "AUTO_APPROVED" || l.action === "AUTO_REJECTED" || l.action === "QUEUED"
+            )?.comment ?? "").match(/score=\d+[^.]*\.(.*)/)?.[1]?.trim()
+
+            return (
+              <div className="space-y-2 text-sm">
+                {factorRows && (
+                  <p className="text-xs text-muted-foreground font-mono">{factorRows}</p>
+                )}
+                {flags && typeof flags === "object" && "provider" in flags && (flags as { provider: string }).provider !== "skipped" && (
+                  <div className="rounded-md bg-muted/40 px-3 py-2 space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI-флаги</p>
+                    <div className="flex gap-3 text-sm">
+                      <span className={(flags as { mismatch?: boolean }).mismatch ? "text-red-400" : "text-green-400"}>
+                        {(flags as { mismatch?: boolean }).mismatch ? "⚠ Несоответствие" : "✓ Соответствие"}
+                      </span>
+                      <span className={(flags as { suspicious?: boolean }).suspicious ? "text-red-400" : "text-green-400"}>
+                        {(flags as { suspicious?: boolean }).suspicious ? "⚠ Подозрительный контент" : "✓ Контент ОК"}
+                      </span>
+                    </div>
+                    {(flags as { reasons?: string[] }).reasons?.length ? (
+                      <p className="text-xs text-muted-foreground">{(flags as { reasons: string[] }).reasons.join("; ")}</p>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground opacity-60">Провайдер: {(flags as { provider: string }).provider}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </section>
       )}
 
