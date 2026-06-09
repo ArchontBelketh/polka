@@ -672,6 +672,149 @@ npm run dev
 
 ---
 
+## Неделя 8 — Монетизация ✅
+
+### Тарифные слоты
+- [x] `src/lib/developer-plan.ts` — проверка лимита: `usedSlots` считается динамически через `db.product.count({ where: { authorId, status: { in: ["PENDING","APPROVED","SUSPENDED"] } } })`, поле `usedSlots` в модели не хранится
+- [x] `src/app/api/developer/slots/route.ts` — купить пакет слотов → создать платёж ЮKassa с `metadata: { type: "slots", userId, slotsAdded }`
+- [x] `src/app/api/developer/pro/route.ts` — Pro подписка → создать платёж ЮKassa с `metadata: { type: "pro", userId }`
+- [x] Обновить `src/app/api/payment/webhook/route.ts` — добавить ветку `metadata.type`: `"slots"` → `SlotPurchase` + `DeveloperPlan.totalSlots += slotsAdded`; `"pro"` → `DeveloperPlan.plan = "PRO"`, `proUntil = now() + 30 days`
+- [x] Обновить `src/app/submit/page.tsx` + `SlotGate.tsx` — блокер с кнопками покупки слотов и Pro
+
+### AI-ревью
+- [x] `src/lib/ai-review/provider.ts` — абстракция провайдера: `AI_REVIEW_PROVIDER=gemini|ollama|yandexgpt|disabled`
+- [x] `src/lib/ai-review/extract-snippets.ts` — скачать файл из S3, распаковать (zip/epf → tmpdir), нарезать фрагменты (~8k символов)
+- [x] `src/lib/ai-review/prompt.ts` — промпт + парсинг JSON-ответа; провайдер не захардкожен
+- [x] `src/app/api/ai-review/route.ts` — `POST`: создать `AiReview(PENDING)` → платёж ЮKassa; `GET`: список ревью текущего пользователя
+- [x] Обновить `src/app/api/payment/webhook/route.ts` — ветка `"ai_review"` → `AiReview.status = "PROCESSING"`
+- [x] `src/app/api/cron/ai-review/route.ts` — обрабатывает `PROCESSING` пачками по 5; защита через `x-cron-secret`
+- [x] `src/app/ai-reviews/page.tsx` — кабинет покупателя «Мои AI-ревью»
+- [x] `src/components/product/AiReviewCard.tsx` — отображение отчёта: общая оценка, категории, предупреждения, вердикт
+- [x] `src/components/product/AiReviewOrder.tsx` — блок на странице продукта: заказ или готовый результат
+- [x] Обновить `src/app/product/[slug]/page.tsx` — подключить `AiReviewOrder`
+
+## Монетизация
+
+### Тарифы разработчика
+
+| Тариф | Цена | Продукты | Комиссия | Модерация |
+|-------|------|----------|----------|-----------|
+| Бесплатный | ₽ 0 | 2 слота | 20% | Стандарт |
+| +1 слот | ₽ 490 (разово) | +1 навсегда | 20% | Стандарт |
+| +5 слотов | ₽ 1 990 (разово) | +5 навсегда | 20% | Стандарт |
+| +15 слотов | ₽ 4 990 (разово) | +15 навсегда | 20% | Стандарт |
+| Pro | ₽ 990/мес | Неограниченно | **17%** | Приоритет (12ч) |
+
+Pro окупается при ~7 продажах по ₽5 000 в месяц (экономия 3% комиссии = ₽1 050 → покрывает подписку).
+
+### AI-ревью для покупателей
+
+Покупатель может заказать независимый AI-аудит кода до покупки продукта.
+- Цена: **₽ 390** за ревью
+- Результат сохраняется в личном кабинете покупателя («Мои AI-ревью») — отчёт доступен бессрочно
+- Провайдер настраивается через `AI_REVIEW_PROVIDER`: `gemini` / `ollama` / `yandexgpt` — код не зависит от конкретной модели
+
+**Что входит в ревью:**
+- Общая оценка (1–10)
+- Оценки по категориям: качество кода, безопасность, соответствие описанию, простота установки, документация
+- Скрытые требования (хостинг, сторонние API, лицензии)
+- Замечания и предупреждения
+- Список «подходит для»
+- Итоговый вердикт
+
+### Новые модели Prisma (добавить в schema.prisma)
+
+```prisma
+model DeveloperPlan {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  plan        String    @default("FREE")   // FREE | PRO
+  totalSlots  Int       @default(2)        // 2 бесплатных + купленные доп. слоты
+  proUntil    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+  // usedSlots не хранится — вычисляется динамически через db.product.count
+}
+
+model SlotPurchase {
+  id          String   @id @default(cuid())
+  userId      String
+  slotsAdded  Int
+  amount      Int      // в копейках
+  paymentId   String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model AiReview {
+  id          String   @id @default(cuid())
+  productId   String
+  requestedBy String   // userId покупателя
+  paymentId   String?
+  status      String   @default("PENDING")  // PENDING | PROCESSING | DONE | FAILED
+  result      Json?    // структурированный ответ от AI
+  amount      Int      @default(39000)       // 390 руб в копейках
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  product     Product  @relation(fields: [productId], references: [id])
+  requester   User     @relation(fields: [requestedBy], references: [id])
+  // без @@unique — пользователь может заказать повторный аудит после обновления продукта
+
+  @@index([requestedBy])
+  @@index([status])
+}
+
+// Добавить в model User:
+// developerPlan   DeveloperPlan?
+// slotPurchases   SlotPurchase[]
+// aiReviews       AiReview[]     @relation("AiReviewRequester")
+```
+
+### Новые API маршруты (добавить в таблицу)
+
+| Метод | URL | Описание |
+|-------|-----|----------|
+| GET | `/api/developer/plan` | Текущий тариф, слоты (totalSlots, usedSlots computed) |
+| POST | `/api/developer/slots` | Купить пакет слотов → ЮKassa (`metadata.type: "slots"`) |
+| POST | `/api/developer/pro` | Оформить Pro подписку → ЮKassa (`metadata.type: "pro"`) |
+| POST | `/api/ai-review` | Заказать AI-ревью → ЮKassa → `AiReview(PENDING)` |
+| GET | `/api/ai-review` | Список всех ревью текущего пользователя |
+| GET | `/api/cron/ai-review` | Обработка очереди `PROCESSING` (системный cron, 5 мин) |
+
+### Промпт для AI-ревью (src/lib/ai-review/prompt.ts)
+
+```typescript
+// Провайдер абстрагирован через AI_REVIEW_PROVIDER (.env)
+// Один и тот же промпт отправляется в Gemini / Ollama / YandexGPT
+const prompt = `
+Ты — опытный технический аудитор программного обеспечения.
+Проанализируй следующий продукт и верни ТОЛЬКО валидный JSON без лишнего текста.
+
+Название: ${product.title}
+Категория: ${product.category}
+Описание разработчика: ${product.fullDesc}
+Заявленные функции: ${product.features.join(', ')}
+Результаты автоматического сканера безопасности: ${JSON.stringify(scanFindings)}
+Исходный код (фрагменты): ${codeSnippets}
+
+Верни JSON строго по этой схеме:
+{
+  "overall_score": <число 1-10>,
+  "quality":       { "score": <1-10>, "summary": "<строка>", "issues": ["..."] },
+  "security":      { "score": <1-10>, "summary": "<строка>", "issues": ["..."] },
+  "accuracy":      { "score": <1-10>, "summary": "<строка>", "missing": ["..."] },
+  "installation":  { "score": <1-10>, "complexity": "EASY|MEDIUM|HARD", "requirements": ["..."] },
+  "docs":          { "score": <1-10>, "summary": "<строка>" },
+  "hidden_costs":  ["<строка>"],
+  "recommended_for": ["<строка>"],
+  "verdict":       "<1-2 предложения итогового заключения>"
+}
+`
+```
+
+---
+
 ## Ключевые решения для помни
 
 1. **Slug** генерируется из названия + cuid suffix: `bot-dlya-zapisi-klientov-abc123`

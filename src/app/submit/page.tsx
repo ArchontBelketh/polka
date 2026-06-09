@@ -1,12 +1,17 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { SubmitForm } from "./SubmitForm"
+import { SlotGate } from "./SlotGate"
+import { getPlanInfo } from "@/lib/developer-plan"
 
 export const metadata = { title: "Загрузить продукт — ПОЛКА" }
 
 export default async function SubmitPage() {
   const session = await auth()
   if (!session?.user) redirect("/login?callbackUrl=/submit")
+
+  const plan = await getPlanInfo(session.user.id!)
+  const hasSlot = plan.isProActive || plan.availableSlots > 0
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -16,7 +21,15 @@ export default async function SubmitPage() {
           Заполните форму — после модерации продукт появится в каталоге.
         </p>
       </div>
-      <SubmitForm />
+
+      {hasSlot ? (
+        <SubmitForm />
+      ) : (
+        <SlotGate
+          usedSlots={plan.usedSlots}
+          totalSlots={plan.totalSlots}
+        />
+      )}
     </div>
   )
 }

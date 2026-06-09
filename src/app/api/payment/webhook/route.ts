@@ -34,12 +34,6 @@ export async function POST(req: NextRequest) {
   const { event, object: payment } = body
 
   if (event === "payment.succeeded") {
-    const purchaseId = payment.metadata?.purchaseId
-    if (!purchaseId) {
-      console.error("Webhook: missing purchaseId in metadata", payment.id)
-      return new Response("OK", { status: 200 })
-    }
-
     // Re-fetch from YooKassa to verify the status
     let verified
     try {
@@ -53,51 +47,105 @@ export async function POST(req: NextRequest) {
       return new Response("OK", { status: 200 })
     }
 
-    const purchase = await db.purchase.findUnique({
-      where: { id: purchaseId },
-      include: {
-        product: { select: { authorId: true, salesCount: true, title: true } },
-        buyer: { select: { email: true } },
-      },
-    })
+    const metaType = payment.metadata?.type ?? "purchase"
 
-    if (!purchase) {
-      console.error("Webhook: purchase not found", purchaseId)
-      return new Response("OK", { status: 200 })
-    }
+    // --- Product purchase ---
+    if (metaType === "purchase" || !payment.metadata?.type) {
+      const purchaseId = payment.metadata?.purchaseId
+      if (!purchaseId) {
+        console.error("Webhook: missing purchaseId in metadata", payment.id)
+        return new Response("OK", { status: 200 })
+      }
 
-    if (purchase.status !== "PENDING") {
-      // Already processed (idempotency)
-      return new Response("OK", { status: 200 })
-    }
-
-    await db.$transaction(async (tx) => {
-      await tx.purchase.update({
+      const purchase = await db.purchase.findUnique({
         where: { id: purchaseId },
-        data: {
-          status: "PAID",
-          paymentId: payment.id,
-          paidAt: new Date(),
-          escrowUntil: escrowUntilDate(),
+        include: {
+          product: { select: { authorId: true, salesCount: true, title: true } },
+          buyer: { select: { email: true } },
         },
       })
-      await tx.product.update({
-        where: { id: purchase.productId },
-        data: { salesCount: { increment: 1 } },
-      })
-    })
 
-    // Fire-and-forget notification to developer
-    const developer = await db.user.findUnique({
-      where: { id: purchase.product.authorId },
-      select: { telegramId: true },
-    })
-    void notifyNewSale({
-      developerTelegramId: developer?.telegramId ?? null,
-      productTitle: purchase.product.title,
-      amountKopecks: purchase.amount,
-      buyerEmail: purchase.buyer.email,
-    })
+      if (!purchase) {
+        console.error("Webhook: purchase not found", purchaseId)
+        return new Response("OK", { status: 200 })
+      }
+
+      if (purchase.status !== "PENDING") {
+        return new Response("OK", { status: 200 })
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.purchase.update({
+          where: { id: purchaseId },
+          data: {
+            status: "PAID",
+            paymentId: payment.id,
+            paidAt: new Date(),
+            escrowUntil: escrowUntilDate(),
+          },
+        })
+        await tx.product.update({
+          where: { id: purchase.productId },
+          data: { salesCount: { increment: 1 } },
+        })
+      })
+
+      const developer = await db.user.findUnique({
+        where: { id: purchase.product.authorId },
+        select: { telegramId: true },
+      })
+      void notifyNewSale({
+        developerTelegramId: developer?.telegramId ?? null,
+        productTitle: purchase.product.title,
+        amountKopecks: purchase.amount,
+        buyerEmail: purchase.buyer.email,
+      })
+    }
+
+    // --- Slot purchase ---
+    if (metaType === "slots") {
+      const { userId, slotsAdded } = payment.metadata ?? {}
+      if (!userId || !slotsAdded) return new Response("OK", { status: 200 })
+
+      const slots = parseInt(slotsAdded, 10)
+      if (isNaN(slots) || slots <= 0) return new Response("OK", { status: 200 })
+
+      await db.$transaction(async (tx) => {
+        await tx.slotPurchase.updateMany({
+          where: { paymentId: payment.id },
+          data: { paymentId: payment.id },
+        })
+        await tx.developerPlan.upsert({
+          where: { userId },
+          create: { userId, totalSlots: 2 + slots },
+          update: { totalSlots: { increment: slots } },
+        })
+      })
+    }
+
+    // --- Pro subscription ---
+    if (metaType === "pro") {
+      const { userId } = payment.metadata ?? {}
+      if (!userId) return new Response("OK", { status: 200 })
+
+      const proUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      await db.developerPlan.upsert({
+        where: { userId },
+        create: { userId, plan: "PRO", proUntil },
+        update: { plan: "PRO", proUntil },
+      })
+    }
+
+    // --- AI review ---
+    if (metaType === "ai_review") {
+      const { aiReviewId } = payment.metadata ?? {}
+      if (!aiReviewId) return new Response("OK", { status: 200 })
+
+      await db.aiReview.updateMany({
+        where: { id: aiReviewId, status: "PENDING" },
+        data: { status: "PROCESSING", paymentId: payment.id },
+      })
+    }
   }
 
   if (event === "payment.canceled") {
@@ -106,6 +154,14 @@ export async function POST(req: NextRequest) {
       await db.purchase.updateMany({
         where: { id: purchaseId, status: "PENDING" },
         data: { status: "REFUNDED" },
+      })
+    }
+
+    const aiReviewId = payment.metadata?.aiReviewId
+    if (aiReviewId) {
+      await db.aiReview.updateMany({
+        where: { id: aiReviewId, status: "PENDING" },
+        data: { status: "FAILED" },
       })
     }
   }

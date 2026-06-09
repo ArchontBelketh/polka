@@ -8,9 +8,11 @@ import { BuyPanel } from "@/components/product/BuyPanel"
 import { ReviewList } from "@/components/product/ReviewList"
 import { ReviewForm } from "@/components/product/ReviewForm"
 import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
+import { AiReviewOrder } from "@/components/product/AiReviewOrder"
 import { getPresignedDownloadUrl } from "@/lib/s3"
 import { Check, Star } from "lucide-react"
 import { TechBadge } from "@/components/catalog/TechBadge"
+import type { AiReviewResult } from "@/lib/ai-review/prompt"
 import type { Metadata } from "next"
 
 interface ProductPageProps {
@@ -72,16 +74,25 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const authorName = product.author.name ?? product.author.email ?? "Разработчик"
 
   // Check if current user has a purchase (to show review form)
-  const hasPurchase = session?.user?.id
-    ? !!(await db.purchase.findFirst({
-        where: {
-          buyerId: session.user.id,
-          productId: product.id,
-          status: { in: ["PAID", "DELIVERED"] },
-        },
-        select: { id: true },
-      }))
-    : false
+  const [hasPurchase, existingAiReview] = await Promise.all([
+    session?.user?.id
+      ? db.purchase.findFirst({
+          where: {
+            buyerId: session.user.id,
+            productId: product.id,
+            status: { in: ["PAID", "DELIVERED"] },
+          },
+          select: { id: true },
+        }).then(Boolean)
+      : false,
+    session?.user?.id && !isOwnProduct
+      ? db.aiReview.findFirst({
+          where: { productId: product.id, requestedBy: session.user.id },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, status: true, result: true, createdAt: true },
+        })
+      : null,
+  ])
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
 
@@ -187,6 +198,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* AI Review */}
+            {session?.user && !isOwnProduct && (
+              <AiReviewOrder
+                productId={product.id}
+                existingReview={existingAiReview ? {
+                  id: existingAiReview.id,
+                  status: existingAiReview.status,
+                  result: existingAiReview.result as AiReviewResult | null,
+                  createdAt: existingAiReview.createdAt.toISOString(),
+                } : null}
+              />
             )}
 
             {/* Reviews */}

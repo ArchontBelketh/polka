@@ -108,6 +108,9 @@ model User {
   wishlists       Wishlist[]
   supportTickets  SupportTicket[]
   ticketMessages  TicketMessage[]
+  developerPlan   DeveloperPlan?
+  slotPurchases   SlotPurchase[]
+  aiReviews       AiReview[]
 }
 
 model Account {
@@ -172,6 +175,7 @@ model Product {
   wishlists           Wishlist[]
   supportTickets      SupportTicket[]
   versions            ProductVersion[]
+  aiReviews           AiReview[]
 
   @@index([status])
   @@index([category])
@@ -321,4 +325,44 @@ model Coupon {
   createdAt   DateTime  @default(now())
 
   @@index([code])
+}
+
+model DeveloperPlan {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  plan       String    @default("FREE")  // FREE | PRO
+  totalSlots Int       @default(2)
+  proUntil   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SlotPurchase {
+  id         String   @id @default(cuid())
+  userId     String
+  slotsAdded Int
+  amount     Int
+  paymentId  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AiReview {
+  id          String    @id @default(cuid())
+  productId   String
+  requestedBy String
+  paymentId   String?
+  status      String    @default("PENDING")  // PENDING | PROCESSING | DONE | FAILED
+  result      Json?
+  amount      Int       @default(39000)
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [requestedBy], references: [id], onDelete: Cascade)
+
+  @@index([requestedBy])
+  @@index([status])
 }

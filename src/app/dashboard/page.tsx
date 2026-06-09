@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/utils"
 import { developerPayout } from "@/lib/escrow"
+import { getPlanInfo } from "@/lib/developer-plan"
+import { PlanSection } from "./PlanSection"
 
 export const metadata = { title: "Кабинет — ПОЛКА" }
 
@@ -19,10 +21,13 @@ export default async function DashboardPage() {
   if (user.role === "MODERATOR") redirect("/admin")
   if (!["DEVELOPER", "ADMIN"].includes(user.role)) redirect("/purchases")
 
-  const products = await db.product.findMany({
-    where: { authorId: session.user.id },
-    select: { id: true, status: true },
-  })
+  const [products, planInfo] = await Promise.all([
+    db.product.findMany({
+      where: { authorId: session.user.id },
+      select: { id: true, status: true },
+    }),
+    getPlanInfo(session.user.id!),
+  ])
   const productIds = products.map((p) => p.id)
   const approvedCount = products.filter((p) => p.status === "APPROVED").length
 
@@ -64,6 +69,15 @@ export default async function DashboardPage() {
         <StatCard label="Продажи" value={String(totalSales)} />
         <StatCard label="Активных продуктов" value={String(approvedCount)} />
       </div>
+
+      {/* Plan */}
+      <PlanSection
+        plan={planInfo.plan}
+        isProActive={planInfo.isProActive}
+        totalSlots={planInfo.totalSlots}
+        usedSlots={planInfo.usedSlots}
+        proUntil={planInfo.proUntil ? planInfo.proUntil.toISOString() : null}
+      />
 
       {/* Quick links */}
       <div className="flex gap-3 flex-wrap">
