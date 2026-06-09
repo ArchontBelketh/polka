@@ -4,9 +4,12 @@ import { getPayment } from "@/lib/yookassa"
 import { escrowUntilDate } from "@/lib/escrow"
 import { notifyNewSale } from "@/lib/notify"
 
-// YooKassa whitelisted IP ranges (verify at nginx level in production)
+// YooKassa whitelisted IP ranges — enforced in application code, not only at nginx
+// https://yookassa.ru/developers/using-api/webhooks#security
 const YOOKASSA_IPS = new Set([
-  "185.71.76.0", "185.71.77.0", "77.75.153.0", "77.75.156.11", "77.75.156.35",
+  "185.71.76.0", "185.71.76.1", "185.71.77.0", "185.71.77.1",
+  "77.75.153.0", "77.75.153.1", "77.75.156.11", "77.75.156.35",
+  "77.75.154.128", "140.82.116.0",
 ])
 
 interface WebhookBody {
@@ -20,6 +23,13 @@ interface WebhookBody {
 }
 
 export async function POST(req: NextRequest) {
+  // Enforce YooKassa IP allowlist in application code
+  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? ""
+  if (!YOOKASSA_IPS.has(clientIp)) {
+    console.warn("Webhook: rejected request from non-YooKassa IP:", clientIp)
+    return new Response("Forbidden", { status: 403 })
+  }
+
   let body: WebhookBody
   try {
     body = await req.json()
@@ -47,11 +57,13 @@ export async function POST(req: NextRequest) {
       return new Response("OK", { status: 200 })
     }
 
-    const metaType = payment.metadata?.type ?? "purchase"
+    // Use verified.metadata (authoritative from YooKassa) — never trust request body metadata
+    const meta = verified.metadata ?? {}
+    const metaType = meta.type ?? "purchase"
 
     // --- Product purchase ---
-    if (metaType === "purchase" || !payment.metadata?.type) {
-      const purchaseId = payment.metadata?.purchaseId
+    if (metaType === "purchase" || !meta.type) {
+      const purchaseId = meta.purchaseId
       if (!purchaseId) {
         console.error("Webhook: missing purchaseId in metadata", payment.id)
         return new Response("OK", { status: 200 })
@@ -104,7 +116,7 @@ export async function POST(req: NextRequest) {
 
     // --- Slot purchase ---
     if (metaType === "slots") {
-      const { userId, slotsAdded } = payment.metadata ?? {}
+      const { userId, slotsAdded } = meta
       if (!userId || !slotsAdded) return new Response("OK", { status: 200 })
 
       const slots = parseInt(slotsAdded, 10)
@@ -125,7 +137,7 @@ export async function POST(req: NextRequest) {
 
     // --- Pro subscription ---
     if (metaType === "pro") {
-      const { userId } = payment.metadata ?? {}
+      const { userId } = meta
       if (!userId) return new Response("OK", { status: 200 })
 
       const proUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -138,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     // --- AI review ---
     if (metaType === "ai_review") {
-      const { aiReviewId } = payment.metadata ?? {}
+      const { aiReviewId } = meta
       if (!aiReviewId) return new Response("OK", { status: 200 })
 
       await db.aiReview.updateMany({
@@ -149,7 +161,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (event === "payment.canceled") {
-    const purchaseId = payment.metadata?.purchaseId
+    // Re-fetch to get authoritative metadata
+    let canceledMeta: Record<string, string> = {}
+    try {
+      const canceledPayment = await getPayment(payment.id)
+      canceledMeta = canceledPayment.metadata ?? {}
+    } catch {
+      canceledMeta = {}
+    }
+
+    const purchaseId = canceledMeta.purchaseId
     if (purchaseId) {
       await db.purchase.updateMany({
         where: { id: purchaseId, status: "PENDING" },
@@ -157,7 +178,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const aiReviewId = payment.metadata?.aiReviewId
+    const aiReviewId = canceledMeta.aiReviewId
     if (aiReviewId) {
       await db.aiReview.updateMany({
         where: { id: aiReviewId, status: "PENDING" },

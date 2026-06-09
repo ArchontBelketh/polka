@@ -19,18 +19,26 @@ const createSchema = z.object({
   videoUrl: z.string().url().optional().or(z.literal("")),
 })
 
+const STAFF_ROLES = new Set(["ADMIN", "MODERATOR"])
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const category = searchParams.get("category") ?? undefined
   const q = searchParams.get("q") ?? undefined
-  const status = searchParams.get("status") ?? "APPROVED"
   const page = parseInt(searchParams.get("page") ?? "1", 10)
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 50)
   const skip = (page - 1) * limit
 
+  // Only ADMIN/MODERATOR may filter by arbitrary status; everyone else sees APPROVED only
+  const session = await auth()
+  const userRole = (session?.user as { role?: string } | undefined)?.role ?? ""
+  const isStaff = STAFF_ROLES.has(userRole)
+  const requestedStatus = searchParams.get("status")
+  const status = isStaff && requestedStatus ? requestedStatus : "APPROVED"
+
   const where = {
     ...(category ? { category: category as never } : {}),
-    ...(status ? { status: status as never } : {}),
+    status: status as never,
     ...(q
       ? {
           OR: [

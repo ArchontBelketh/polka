@@ -12,7 +12,12 @@ import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton"
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard"
+  // Validate callbackUrl to prevent open redirect to external domains
+  const rawCallback = searchParams.get("callbackUrl") ?? ""
+  const callbackUrl =
+    rawCallback.startsWith("/") && !rawCallback.startsWith("//")
+      ? rawCallback
+      : "/dashboard"
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")

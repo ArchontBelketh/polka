@@ -2,7 +2,7 @@ import { getObjectBuffer } from "@/lib/s3"
 import * as fs from "fs"
 import * as path from "path"
 import * as os from "os"
-import { execSync } from "child_process"
+import { spawnSync } from "child_process"
 
 const MAX_SNIPPET_CHARS = 8000
 const SUPPORTED_EXTS = new Set([".py", ".js", ".ts", ".bsl", ".vba", ".bas", ".cls"])
@@ -29,8 +29,10 @@ export async function extractSnippets(s3Key: string, fileName: string): Promise<
 
     if (ext === ".zip") {
       try {
-        execSync(`unzip -q "${filePath}" -d "${tmpDir}/unpacked"`, { timeout: 15000 })
-        return collectFromDir(path.join(tmpDir, "unpacked"))
+        const unpackedDir = path.join(tmpDir, "unpacked")
+        const r = spawnSync("unzip", ["-q", filePath, "-d", unpackedDir], { timeout: 15000 })
+        if (r.error) throw r.error
+        return collectFromDir(unpackedDir)
       } catch {
         return "(не удалось распаковать архив)"
       }
@@ -40,7 +42,8 @@ export async function extractSnippets(s3Key: string, fileName: string): Promise<
       const outDir = path.join(tmpDir, "unpacked")
       fs.mkdirSync(outDir)
       try {
-        execSync(`v8unpack -U "${filePath}" "${outDir}"`, { timeout: 15000 })
+        const r = spawnSync("v8unpack", ["-U", filePath, outDir], { timeout: 15000 })
+        if (r.error) throw r.error
         return collectFromDir(outDir)
       } catch {
         // fall back to raw binary snippet

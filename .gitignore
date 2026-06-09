@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+test-run.mjs
+test-zip-bomb.ts
+test-screenshots/
 
 # next.js
 /.next/

@@ -1,11 +1,8 @@
-import { exec } from "child_process"
-import { promisify } from "util"
+import { spawnSync } from "child_process"
 import fs from "fs"
 import path from "path"
 import type { ScanFinding } from "@/types"
 import { BSL_CRITICAL, BSL_WARNING } from "./patterns"
-
-const execAsync = promisify(exec)
 
 export async function scanEpf(
   filePath: string,
@@ -14,7 +11,9 @@ export async function scanEpf(
   // Try to unpack with v8unpack
   const unpacked = path.join(outDir, "epf_unpacked")
   try {
-    await execAsync(`v8unpack -U "${filePath}" "${unpacked}"`, { timeout: 30_000 })
+    const r = spawnSync("v8unpack", ["-U", filePath, unpacked], { timeout: 30_000 })
+    if (r.error) throw r.error
+    if (r.status !== 0) throw Object.assign(new Error("v8unpack failed"), { code: r.status })
   } catch (err: unknown) {
     if (isNoSuchFileError(err)) {
       // v8unpack not installed — try scanning the raw file with pattern matching
