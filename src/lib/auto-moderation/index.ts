@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { reviewProductContent, reviewVersionChangelog } from "./ai-review"
+import { reviewProductContent, reviewVersionChangelog, type ContentFlags } from "./ai-review"
 import { computeRiskScore } from "./risk-score"
 import {
   notifyProductAutoApproved,
@@ -13,19 +13,28 @@ export async function runAutoModeration(productId: string): Promise<void> {
     select: {
       title: true,
       slug: true,
+      files: { select: { id: true } },
       author: { select: { telegramId: true, email: true } },
-      scanResult: { select: { findings: true } },
+      scanResult: { select: { findings: true, toolsRun: true } },
     },
   })
   if (!product) return
 
-  // Layer 2: AI content review (skipped if not configured)
+  // Layer 2: AI content review (gracefully skipped when not configured)
   const contentFlags = await reviewProductContent(productId)
 
   // Layer 3: Risk score + decision
   const { score, decision, factors } = await computeRiskScore(productId, contentFlags)
 
-  const factorsSummary = factors.map((f) => `${f.name}(${f.delta >= 0 ? "+" : ""}${f.delta})`).join(", ")
+  const factorsSummary = factors
+    .map((f) => `${f.name}(${f.delta >= 0 ? "+" : ""}${f.delta})`)
+    .join(", ")
+
+  // Prompt injection warning prefix for moderation log
+  const injectionNote =
+    contentFlags.promptInjection
+      ? `⚠ PROMPT INJECTION DETECTED: «${(contentFlags.injectionText ?? "").slice(0, 120)}» | `
+      : ""
 
   await db.product.update({
     where: { id: productId },
@@ -45,7 +54,7 @@ export async function runAutoModeration(productId: string): Promise<void> {
       data: {
         productId,
         action: "AUTO_APPROVED",
-        comment: `score=${score}, decision=${decision}. ${factorsSummary}`,
+        comment: `${injectionNote}score=${score}, decision=${decision}. ${factorsSummary}`,
       },
     })
     await notifyProductAutoApproved({
@@ -65,7 +74,7 @@ export async function runAutoModeration(productId: string): Promise<void> {
       data: {
         productId,
         action: "AUTO_REJECTED",
-        comment: `score=${score}. ${criticalReasons.join("; ") || "критические находки"}`,
+        comment: `${injectionNote}score=${score}. ${criticalReasons.join("; ") || "критические находки"}`,
       },
     })
     await notifyProductAutoRejected({
@@ -77,11 +86,23 @@ export async function runAutoModeration(productId: string): Promise<void> {
   } else {
     // QUEUE_LOW / QUEUE_HIGH / QUEUE_URGENT → manual review
     await db.product.update({ where: { id: productId }, data: { status: "PENDING" } })
+
+    // If no coverage tools were available, note it explicitly
+    const toolsRun = product.scanResult?.toolsRun ?? []
+    const coverageNote =
+      product.files.length > 0 &&
+      !toolsRun.some((t) =>
+        ["bandit", "semgrep", "olevba", "epf-scanner", "virustotal", "entropy", "network-extra"].includes(t)
+      ) &&
+      contentFlags.provider === "skipped"
+        ? " | ⚠ Нет инструментов проверки (ручная очередь)"
+        : ""
+
     await db.moderationLog.create({
       data: {
         productId,
         action: "QUEUED",
-        comment: `score=${score}, decision=${decision}. ${factorsSummary}`,
+        comment: `${injectionNote}score=${score}, decision=${decision}. ${factorsSummary}${coverageNote}`,
       },
     })
   }
@@ -104,7 +125,9 @@ export async function runVersionAutoModeration(versionId: string): Promise<void>
   // Developer must be "verified": 3+ approved products, 0 violations
   const [approvedCount, violationCount] = await Promise.all([
     db.product.count({ where: { authorId: product.authorId, status: "APPROVED" } }),
-    db.product.count({ where: { authorId: product.authorId, status: { in: ["REJECTED", "SUSPENDED"] } } }),
+    db.product.count({
+      where: { authorId: product.authorId, status: { in: ["REJECTED", "SUSPENDED"] } },
+    }),
   ])
   if (violationCount > 0 || approvedCount < 3) return
 

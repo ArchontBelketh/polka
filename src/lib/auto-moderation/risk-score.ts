@@ -15,6 +15,12 @@ export interface ScoreResult {
   factors: Array<{ name: string; delta: number; reason: string }>
 }
 
+// Tools that constitute real file-level coverage
+const COVERAGE_TOOLS = new Set([
+  "bandit", "semgrep", "olevba", "epf-scanner",
+  "virustotal", "entropy", "network-extra",
+])
+
 export async function computeRiskScore(
   productId: string,
   contentFlags: ContentFlags | null,
@@ -24,7 +30,7 @@ export async function computeRiskScore(
     select: {
       authorId: true,
       files: { select: { fileName: true } },
-      scanResult: { select: { status: true, findings: true } },
+      scanResult: { select: { status: true, findings: true, toolsRun: true } },
     },
   })
 
@@ -39,7 +45,7 @@ export async function computeRiskScore(
   const factors: Array<{ name: string; delta: number; reason: string }> = []
   let score = 0
 
-  // ── BLOCKED → immediate reject ───────────────────────────────────────────
+  // ── BLOCKED scan → immediate reject ─────────────────────────────────────
   if (product.scanResult?.status === "BLOCKED") {
     return {
       score: 100,
@@ -74,13 +80,17 @@ export async function computeRiskScore(
   }
 
   // ── Scan warnings ────────────────────────────────────────────────────────
-  const findings = (product.scanResult?.findings ?? []) as Array<{ severity: string }>
+  const findings = (product.scanResult?.findings ?? []) as Array<{ severity: string; tool?: string }>
   const warningCount = findings.filter((f) => f.severity === "warning").length
   if (warningCount >= 3) {
     factors.push({ name: "scan_warnings_many", delta: 30, reason: `${warningCount} предупреждений сканера` })
     score += 30
   } else if (warningCount >= 1) {
-    factors.push({ name: "scan_warnings", delta: 15, reason: `${warningCount} предупреждени${warningCount === 1 ? "е" : "я"} сканера` })
+    factors.push({
+      name: "scan_warnings",
+      delta: 15,
+      reason: `${warningCount} предупреждени${warningCount === 1 ? "е" : "я"} сканера`,
+    })
     score += 15
   }
 
@@ -103,6 +113,19 @@ export async function computeRiskScore(
 
   // ── AI content flags ─────────────────────────────────────────────────────
   if (contentFlags && contentFlags.provider !== "skipped") {
+    // Prompt injection attempt — highest risk signal
+    if (contentFlags.promptInjection) {
+      const excerpt = contentFlags.injectionText
+        ? ` — «${contentFlags.injectionText.slice(0, 80)}»`
+        : ""
+      factors.push({
+        name: "ai_prompt_injection",
+        delta: 50,
+        reason: `AI: обнаружена попытка prompt injection в данных продукта${excerpt}`,
+      })
+      score += 50
+    }
+
     if (contentFlags.mismatch && contentFlags.suspicious) {
       factors.push({
         name: "ai_both_flags",
@@ -118,6 +141,26 @@ export async function computeRiskScore(
       })
       score += 20
     }
+  }
+
+  // ── No-coverage penalty ──────────────────────────────────────────────────
+  // If the product has files but absolutely nothing could check them:
+  //  - no real scan tools ran
+  //  - AI was skipped (disabled or not configured)
+  //  - VirusTotal wasn't checked (not in toolsRun)
+  // → Force into the manual queue so a human can review it.
+  const toolsRun = product.scanResult?.toolsRun ?? []
+  const hasFileCoverage = product.files.length === 0 || toolsRun.some((t) => COVERAGE_TOOLS.has(t))
+  const hasAiCoverage = contentFlags !== null && contentFlags.provider !== "skipped"
+
+  if (product.files.length > 0 && !hasFileCoverage && !hasAiCoverage) {
+    factors.push({
+      name: "no_coverage",
+      delta: 30,
+      reason:
+        "Нет инструментов для проверки файлов: сканеры не установлены, AI и VirusTotal не подключены",
+    })
+    score += 30
   }
 
   score = Math.max(0, Math.min(100, score))

@@ -1,24 +1,30 @@
 import fs from "fs"
 import path from "path"
 import os from "os"
-import { exec } from "child_process"
-import { promisify } from "util"
+import { createHash } from "crypto"
 import { db } from "@/lib/db"
 import { getObjectBuffer } from "@/lib/s3"
 import { runBandit } from "./python"
 import { runSemgrep } from "./semgrep"
 import { scanEpf } from "./epf"
 import { scanExcel } from "./excel"
+import { checkEntropy } from "./entropy"
+import { checkNetworkExtra } from "./network-extra"
+import { safeUnzip } from "./zip-safe"
+import { checkFileHash } from "@/lib/auto-moderation/virustotal"
 import { runAutoModeration } from "@/lib/auto-moderation"
 import type { ScanFinding } from "@/types"
-
-const execAsync = promisify(exec)
 
 const s3Configured =
   !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
 
+// File extensions eligible for entropy / network-extra analysis
+const EXTRA_ANALYSIS_EXTS = new Set([".py", ".js", ".ts", ".jsx", ".tsx", ".bsl", ".vbs", ".ps1", ".bat", ".sh"])
+
+// Size threshold for "unusually large" warning (independent of zip-bomb check)
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
+
 export async function runScan(productId: string): Promise<void> {
-  // Mark as pending
   await db.scanResult.upsert({
     where: { productId },
     update: { status: "PENDING", findings: [], scannedAt: null, toolsRun: [] },
@@ -56,15 +62,62 @@ export async function runScan(productId: string): Promise<void> {
   try {
     for (const file of product.files) {
       if (file.s3Key.startsWith("local/")) continue
+
       const buffer = await getObjectBuffer(file.s3Key)
       const localPath = path.join(tmpDir, file.fileName)
       fs.writeFileSync(localPath, buffer)
 
-      // Unzip if needed
-      const workDir = localPath.endsWith(".zip") ? await unzip(localPath, tmpDir) : tmpDir
-
       const ext = path.extname(file.fileName).toLowerCase()
 
+      // ── Size anomaly ─────────────────────────────────────────────────────
+      if (file.fileSize > MAX_FILE_SIZE_BYTES) {
+        allFindings.push({
+          tool: "size-check",
+          severity: "warning",
+          message: `Аномально большой файл: ${(file.fileSize / 1024 / 1024).toFixed(0)} МБ (обычные инструменты < 50 МБ)`,
+          file: file.fileName,
+        })
+        toolsRan.add("size-check")
+      }
+
+      // ── VirusTotal hash check ─────────────────────────────────────────────
+      const sha256 = createHash("sha256").update(buffer).digest("hex")
+      const vtResult = await checkFileHash(sha256, file.fileName)
+      if (vtResult.verdict === "malicious") {
+        allFindings.push({
+          tool: "virustotal",
+          severity: "critical",
+          message: `VirusTotal: файл флагируют ${vtResult.detections} AV-движков — вредоносный`,
+          file: file.fileName,
+        })
+        toolsRan.add("virustotal")
+      } else if (vtResult.verdict === "suspicious") {
+        allFindings.push({
+          tool: "virustotal",
+          severity: "warning",
+          message: `VirusTotal: подозрительный файл — ${vtResult.details ?? vtResult.detections + " флагов"}`,
+          file: file.fileName,
+        })
+        toolsRan.add("virustotal")
+      } else if (vtResult.known) {
+        toolsRan.add("virustotal")
+      }
+
+      // ── ZIP: safe streaming extraction with multi-layer bomb protection ──
+      let workDir = tmpDir
+      if (ext === ".zip") {
+        const unzipResult = await safeUnzip(localPath, tmpDir)
+        allFindings.push(...unzipResult.findings)
+        if (unzipResult.findings.length > 0) toolsRan.add("size-check")
+
+        if (!unzipResult.ok) {
+          // Bomb detected — skip further analysis of this file's contents
+          continue
+        }
+        workDir = unzipResult.extractedDir
+      }
+
+      // ── Python / ZIP: bandit + semgrep ────────────────────────────────────
       if ([".py", ".zip"].includes(ext)) {
         const { findings, ran } = await runBandit(workDir)
         allFindings.push(...findings)
@@ -75,23 +128,48 @@ export async function runScan(productId: string): Promise<void> {
         if (sg.ran) toolsRan.add("semgrep")
       }
 
+      // ── 1C external processing ────────────────────────────────────────────
       if ([".epf", ".erf"].includes(ext)) {
         const { findings, ran } = await scanEpf(localPath, tmpDir)
         allFindings.push(...findings)
         if (ran) toolsRan.add("epf-scanner")
       }
 
+      // ── Excel macros ──────────────────────────────────────────────────────
       if ([".xlsm", ".xls", ".xlam"].includes(ext)) {
         const { findings, ran } = await scanExcel(localPath)
         allFindings.push(...findings)
         if (ran) toolsRan.add("olevba")
       }
 
-      // Universal semgrep for JS/TS
+      // ── JS/TS: semgrep ────────────────────────────────────────────────────
       if ([".js", ".ts", ".jsx", ".tsx"].includes(ext)) {
         const sg = await runSemgrep(workDir)
         allFindings.push(...sg.findings)
         if (sg.ran) toolsRan.add("semgrep")
+      }
+
+      // ── Entropy + network-extra for text files ────────────────────────────
+      if (EXTRA_ANALYSIS_EXTS.has(ext)) {
+        const ef = checkEntropy(localPath)
+        allFindings.push(...ef)
+        if (ef.length > 0) toolsRan.add("entropy")
+
+        const nf = checkNetworkExtra(localPath)
+        allFindings.push(...nf)
+        if (nf.length > 0) toolsRan.add("network-extra")
+      }
+
+      // ── For extracted zip contents: entropy + network-extra recursively ───
+      if (ext === ".zip" && workDir !== tmpDir) {
+        for (const extractedFile of walkTextFiles(workDir)) {
+          allFindings.push(...checkEntropy(extractedFile))
+          allFindings.push(...checkNetworkExtra(extractedFile))
+        }
+        if (allFindings.some((f) => (f as ScanFinding & { tool?: string }).tool === "entropy"))
+          toolsRan.add("entropy")
+        if (allFindings.some((f) => (f as ScanFinding & { tool?: string }).tool === "network-extra"))
+          toolsRan.add("network-extra")
       }
     }
 
@@ -116,7 +194,6 @@ export async function runScan(productId: string): Promise<void> {
         data: { status: "SCAN_FAILED" },
       })
     } else {
-      // CLEAN or WARNING → auto-moderation pipeline (AI review + risk score)
       await runAutoModeration(productId)
     }
   } finally {
@@ -124,14 +201,20 @@ export async function runScan(productId: string): Promise<void> {
   }
 }
 
-async function unzip(zipPath: string, outDir: string): Promise<string> {
-  const dest = path.join(outDir, "unzipped")
-  fs.mkdirSync(dest, { recursive: true })
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function walkTextFiles(dir: string): string[] {
+  const results: string[] = []
   try {
-    await execAsync(`unzip -o "${zipPath}" -d "${dest}"`, { timeout: 30_000 })
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) results.push(...walkTextFiles(full))
+      else if (EXTRA_ANALYSIS_EXTS.has(path.extname(entry.name).toLowerCase())) {
+        results.push(full)
+      }
+    }
   } catch {
-    // unzip not available or failed — return original dir
-    return outDir
+    // Ignore unreadable directories
   }
-  return dest
+  return results
 }
