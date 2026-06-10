@@ -1,63 +1,119 @@
 # Ручное тестирование ПОЛКА
 
+Все команды выполняются из папки `c:\portfolio\polka`.
+
 ## Тестовые аккаунты
 
-| Email | Роль | Пароль |
-|---|---|---|
-| `admin@polka.test` | ADMIN | `password123` |
-| `dev@polka.test` | DEVELOPER | `password123` |
-| `buyer@polka.test` | BUYER | `password123` |
-| `moderator@polka.test` | MODERATOR | `password123` |
+Пароль у всех — `password123`.
+
+| Email | Роль |
+|---|---|
+| `admin@polka.test` | ADMIN |
+| `dev@polka.test` | DEVELOPER |
+| `buyer@polka.test` | BUYER |
+| `moderator@polka.test` | MODERATOR |
 
 ---
 
-## Запуск
+## База данных (Docker Postgres)
 
-Выполнять команды по порядку из папки `c:\portfolio\polka`.
+База работает в Docker-контейнере `polka-db-1` на порту **5432** (база `polka_db`,
+пользователь `polka`, пароль `password`). Подключение задано в `.env.local`.
 
-### 1. Сгенерировать клиент Prisma (один раз после изменений схемы)
+### Запустить базу
+
+```powershell
+docker compose up -d db
+```
+
+Данные сохраняются в Docker-томе `polka_pgdata` между перезапусками. После перезагрузки
+компьютера Docker Desktop обычно поднимает контейнер сам; если нет — повторите команду.
+
+### Остановить / удалить базу
+
+```powershell
+docker compose stop db        # остановить (данные сохранятся)
+docker compose down           # удалить контейнер (том с данными останется)
+docker compose down -v        # удалить контейнер И все данные
+```
+
+### Проверить, что база жива
+
+```powershell
+docker exec polka-db-1 pg_isready -U polka -d polka_db
+```
+
+---
+
+## Первичная настройка (один раз / после изменения схемы)
+
+### 1. Сгенерировать клиент Prisma (после изменений `schema.prisma`)
 
 ```powershell
 npx prisma generate
 ```
 
-### 2. Применить миграции БД (один раз после изменений схемы)
+### 2. Накатить схему на базу
 
 ```powershell
-npx prisma migrate dev
+npx prisma db push
 ```
 
-### 3. Засеять тестовые аккаунты (если не созданы)
+### 3. Засеять тестовые данные
+
+Скрипты сами читают `.env.local`, ручной `DATABASE_URL` указывать не нужно.
 
 ```powershell
-$env:DATABASE_URL="postgres://postgres:postgres@localhost:51218/template1?sslmode=disable"; npx tsx scripts/seed-test-users.ts
+npm run db:seed                        # 6 демо-продуктов + демо-автор
+npx tsx scripts/seed-test-users.ts     # 4 тестовых аккаунта (см. таблицу выше)
 ```
 
-### 4. Запустить дев-сервер
+---
+
+## Запуск приложения
 
 ```powershell
 npm run dev
 ```
 
-Сервер доступен на **http://localhost:3000**
+Приложение доступно на **http://localhost:3000**
+
+Остановить — `Ctrl+C` в терминале. Если сервер запущен в фоне и порт занят:
+
+```powershell
+netstat -ano | findstr :3000          # найти PID
+taskkill /PID <PID> /F                # убить процесс
+```
+
+> Если при старте Turbopack ругается на повреждённый кэш (`corrupted database`,
+> `Failed to restore task data`) — удалите кэш и запустите снова:
+> ```powershell
+> Remove-Item .next -Recurse -Force
+> npm run dev
+> ```
 
 ---
 
-## Остановка
-
-### Остановить дев-сервер
-
-Нажать `Ctrl+C` в терминале, где запущен `npm run dev`.
-
-Или, если сервер запущен в фоне, найти и убить процесс:
+## Просмотр базы данных визуально (Prisma Studio)
 
 ```powershell
-# Найти процесс на порту 3000
-netstat -ano | findstr :3000
-
-# Убить по PID (заменить XXXXX на реальный PID из вывода выше)
-taskkill /PID XXXXX /F
+npm run db:studio
 ```
+
+В консоли появится строка вида `Prisma Studio is running at: http://localhost:XXXXX` —
+**откройте именно тот адрес и порт, который он напечатал** (порт назначается автоматически
+и может меняться). Слева — список моделей (`Product`, `User`, `Purchase`…), справа — строки;
+можно фильтровать, редактировать и добавлять записи. Остановить — `Ctrl+C`.
+
+### Подключение из внешнего SQL-клиента (DBeaver, pgAdmin и т.п.)
+
+| Параметр | Значение |
+|---|---|
+| Host | `localhost` |
+| Port | `5432` |
+| Database | `polka_db` |
+| User | `polka` |
+| Password | `password` |
 
 ---
 
@@ -65,31 +121,51 @@ taskkill /PID XXXXX /F
 
 ### Покупатель (`buyer@polka.test`)
 - `/login` — вход
-- `/catalog` — каталог продуктов, фильтры по категориям, поиск
-- `/product/<slug>` — страница продукта, кнопка «Купить»
+- `/catalog` — каталог, фильтры по категориям, поиск, сортировка
+- `/product/<slug>` — страница продукта: описание, требования, «что входит», покупка
 - `/purchases` — история покупок
+- `/purchases/<id>` — детали покупки: скачивание + полная инструкция по установке
 
 ### Разработчик (`dev@polka.test`)
-- `/dashboard` — баланс, продажи
+- `/dashboard` — баланс, продажи, слоты
 - `/dashboard/products` — список своих продуктов
-- `/dashboard/products/new` — загрузка нового продукта
+- `/submit` — загрузка нового продукта (мастер: категория → описание → функции →
+  установка → медиа → цена)
 - `/dashboard/payouts` — запрос вывода средств
+- `/sell` — лендинг для разработчиков, калькулятор дохода
 
 ### Модератор (`moderator@polka.test`)
 - `/admin/queue` — очередь продуктов на проверку
-- `/admin/review/<id>` — одобрить или отклонить продукт
+- `/admin/review/<id>` — карточка проверки: скан, авто-оценка, инструкция; одобрить / отклонить
 
 ### Администратор (`admin@polka.test`)
 - Всё из списков выше
+- `/admin/users`, `/admin/coupons`
+
+### Публичные страницы
+- `/` — лендинг (Hero, цифры, популярное, категории, безопасность)
+- `/sell` — страница для разработчиков
 
 ---
 
-## Просмотр базы данных
+## Автоматические тесты
 
 ```powershell
-npx prisma studio
+npm run test:e2e          # Playwright e2e (нужен запущенный dev-сервер на :3000)
+npx tsx test-zip-bomb.ts  # юнит-тесты защиты от zip-бомб
+node test-run.mjs         # браузерный смоук-тест (нужен запущенный dev-сервер)
 ```
 
-Откроется веб-интерфейс на **http://localhost:5555**
+---
 
-Для выхода — `Ctrl+C` в терминале.
+## Типовой сценарий «с нуля»
+
+```powershell
+docker compose up -d db                  # 1. поднять базу
+npx prisma db push                       # 2. накатить схему
+npm run db:seed                          # 3. демо-продукты
+npx tsx scripts/seed-test-users.ts       # 4. тестовые аккаунты
+npm run dev                              # 5. запустить приложение
+# отдельный терминал, по желанию:
+npm run db:studio                        # визуальный просмотр базы
+```
