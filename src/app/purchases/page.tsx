@@ -73,6 +73,7 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
             screenshots: true,
             techStack: true,
             status: true,
+            manuallyVerified: true,
           },
         },
       },

@@ -16,6 +16,7 @@ import Link from "next/link"
 import { Markdown } from "@/components/ui/Markdown"
 import { formatFileSize } from "@/lib/utils"
 import { TechBadge } from "@/components/catalog/TechBadge"
+import { VerifiedBadge } from "@/components/product/VerifiedBadge"
 import type { AiReviewResult } from "@/lib/ai-review/prompt"
 import type { Metadata } from "next"
 
@@ -158,6 +159,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <Badge variant="outline" className="text-xs">
                   {product.license === "personal" ? "Личная лицензия" : product.license}
                 </Badge>
+                {product.manuallyVerified && <VerifiedBadge />}
               </div>
               <h1 className="text-2xl font-bold text-foreground">{product.title}</h1>
               <p className="mt-2 text-muted-foreground">{product.shortDesc}</p>

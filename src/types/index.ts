@@ -40,6 +40,7 @@ export interface Product {
   rating: number
   reviewCount: number
   salesCount: number
+  manuallyVerified: boolean
   createdAt: Date
   publishedAt?: Date | null
   author?: Pick<User, "id" | "name" | "telegramHandle">
@@ -74,6 +75,7 @@ export interface ScanFinding {
   message: string
   file?: string
   line?: number
+  link?: string
 }
 
 export interface ScanResult {

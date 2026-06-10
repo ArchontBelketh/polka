@@ -10,6 +10,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("CHANGES_REQUESTED"), comment: z.string().optional() }),
   z.object({ action: z.literal("SUSPENDED"), comment: z.string().min(1, "Укажите причину отзыва") }),
   z.object({ action: z.literal("RESTORED"), comment: z.string().optional() }),
+  z.object({ action: z.literal("VERIFIED"), verified: z.boolean() }),
 ])
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -35,6 +36,26 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const parsed = actionSchema.safeParse(body)
   if (!parsed.success) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 })
+  }
+
+  // ── "Проверено вручную" toggle — doesn't change moderation status ──────────
+  if (parsed.data.action === "VERIFIED") {
+    const verified = parsed.data.verified
+    await db.$transaction([
+      db.product.update({
+        where: { id: productId },
+        data: { manuallyVerified: verified, verifiedAt: verified ? new Date() : null },
+      }),
+      db.moderationLog.create({
+        data: {
+          productId,
+          moderatorId: session.user.id,
+          action: verified ? "VERIFIED" : "UNVERIFIED",
+          comment: verified ? "Работоспособность подтверждена" : "Отметка снята",
+        },
+      }),
+    ])
+    return Response.json({ success: true, manuallyVerified: verified })
   }
 
   const { action, comment } = parsed.data

@@ -61,6 +61,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     },
   })
 
+  // A new approved version replaces the verified file — drop the manual badge
+  if (action === "APPROVED") {
+    await db.product.update({
+      where: { id: version.productId },
+      data: { manuallyVerified: false, verifiedAt: null },
+    })
+  }
+
   const { product } = version
 
   if (action === "APPROVED") {

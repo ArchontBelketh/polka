@@ -6,8 +6,12 @@ import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 import { TechBadge } from "@/components/catalog/TechBadge"
 import { Markdown } from "@/components/ui/Markdown"
+import { VerifiedBadge } from "@/components/product/VerifiedBadge"
 import { ModerationActions } from "./ModerationActions"
+import { VerifyButton } from "./VerifyButton"
 import type { ScanFinding } from "@/types"
+
+const VERIFIABLE_STATUSES = ["APPROVED", "PENDING", "SCAN_FAILED"]
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -50,6 +54,8 @@ const ACTION_LABELS: Record<string, string> = {
   CHANGES_REQUESTED: "Запрошены правки",
   SUSPENDED: "Отозван",
   RESTORED: "Восстановлен",
+  VERIFIED: "Проверено вручную",
+  UNVERIFIED: "Отметка снята",
 }
 
 const DECISION_LABELS: Record<string, string> = {
@@ -71,6 +77,7 @@ const TOOL_LABELS: Record<string, string> = {
   entropy: "Энтропийный анализ",
   "network-extra": "Сетевые индикаторы",
   "size-check": "Размерный анализ",
+  "duplicate-check": "Проверка дубликатов",
 }
 
 const IN_QUEUE = new Set(["PENDING", "SCAN_FAILED"])
@@ -139,9 +146,12 @@ export default async function AdminReviewPage({ params }: RouteParams) {
             {CATEGORY_LABELS[product.category as keyof typeof CATEGORY_LABELS]} · {formatPrice(product.price)}
           </p>
         </div>
-        <Badge variant={PRODUCT_STATUS_VARIANT[product.status] ?? "outline"}>
-          {PRODUCT_STATUS_LABEL[product.status] ?? product.status}
-        </Badge>
+        <div className="flex flex-col items-end gap-1.5">
+          <Badge variant={PRODUCT_STATUS_VARIANT[product.status] ?? "outline"}>
+            {PRODUCT_STATUS_LABEL[product.status] ?? product.status}
+          </Badge>
+          {product.manuallyVerified && <VerifiedBadge />}
+        </div>
       </div>
 
       {/* Prompt injection alert — shown prominently at the top */}
@@ -301,6 +311,11 @@ export default async function AdminReviewPage({ params }: RouteParams) {
                           {f.file}{f.line ? `:${f.line}` : ""}
                         </p>
                       )}
+                      {f.link && (
+                        <a href={f.link} className="mt-1 inline-block text-xs text-primary hover:underline">
+                          → открыть продукт-оригинал
+                        </a>
+                      )}
                     </li>
                   ))}
               </ul>
@@ -325,6 +340,11 @@ export default async function AdminReviewPage({ params }: RouteParams) {
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {f.file}{f.line ? `:${f.line}` : ""}
                         </p>
+                      )}
+                      {f.link && (
+                        <a href={f.link} className="mt-1 inline-block text-xs text-primary hover:underline">
+                          → открыть продукт-оригинал
+                        </a>
                       )}
                     </li>
                   )
@@ -444,6 +464,11 @@ export default async function AdminReviewPage({ params }: RouteParams) {
             ))}
           </ul>
         </section>
+      )}
+
+      {/* Manual verification badge control */}
+      {VERIFIABLE_STATUSES.includes(product.status) && (
+        <VerifyButton productId={product.id} initialVerified={product.manuallyVerified} />
       )}
 
       {/* Action panel */}

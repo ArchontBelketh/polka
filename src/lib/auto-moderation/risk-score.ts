@@ -18,7 +18,7 @@ export interface ScoreResult {
 // Tools that constitute real file-level coverage
 const COVERAGE_TOOLS = new Set([
   "bandit", "semgrep", "olevba", "epf-scanner",
-  "virustotal", "entropy", "network-extra",
+  "virustotal", "entropy", "network-extra", "duplicate-check",
 ])
 
 export async function computeRiskScore(
@@ -79,9 +79,22 @@ export async function computeRiskScore(
     }
   }
 
-  // ── Scan warnings ────────────────────────────────────────────────────────
+  // ── Duplicate file (other author) ────────────────────────────────────────
   const findings = (product.scanResult?.findings ?? []) as Array<{ severity: string; tool?: string }>
-  const warningCount = findings.filter((f) => f.severity === "warning").length
+  const hasDuplicate = findings.some((f) => f.tool === "duplicate-check" && f.severity === "warning")
+  if (hasDuplicate) {
+    factors.push({
+      name: "duplicate_file",
+      delta: 30,
+      reason: "Файл совпадает с продуктом другого автора (возможный дубликат)",
+    })
+    score += 30
+  }
+
+  // ── Scan warnings (excluding the dedicated duplicate factor above) ────────
+  const warningCount = findings.filter(
+    (f) => f.severity === "warning" && f.tool !== "duplicate-check",
+  ).length
   if (warningCount >= 3) {
     factors.push({ name: "scan_warnings_many", delta: 30, reason: `${warningCount} предупреждений сканера` })
     score += 30

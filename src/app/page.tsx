@@ -46,6 +46,7 @@ const PRODUCT_CARD_SELECT = {
   salesCount: true,
   screenshots: true,
   techStack: true,
+  manuallyVerified: true,
 } as const
 
 export default async function Home() {
@@ -55,7 +56,7 @@ export default async function Home() {
     db.scanResult.count({ where: { scannedAt: { not: null } } }),
     db.product.findMany({
       where: { status: "APPROVED" },
-      orderBy: { salesCount: "desc" },
+      orderBy: [{ manuallyVerified: "desc" }, { salesCount: "desc" }],
       take: 6,
       select: PRODUCT_CARD_SELECT,
     }),

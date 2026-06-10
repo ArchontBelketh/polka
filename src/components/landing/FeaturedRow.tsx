@@ -4,7 +4,7 @@ import type { Product } from "@/types"
 
 type FeaturedProduct = Pick<
   Product,
-  "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots" | "techStack"
+  "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots" | "techStack" | "manuallyVerified"
 >
 
 interface FeaturedRowProps {

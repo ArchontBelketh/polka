@@ -10,6 +10,7 @@ import { scanEpf } from "./epf"
 import { scanExcel } from "./excel"
 import { checkEntropy } from "./entropy"
 import { checkNetworkExtra } from "./network-extra"
+import { checkDuplicateHash } from "./duplicate"
 import { safeUnzip } from "./zip-safe"
 import { checkFileHash } from "@/lib/auto-moderation/virustotal"
 import { runAutoModeration } from "@/lib/auto-moderation"
@@ -102,6 +103,15 @@ export async function runScan(productId: string): Promise<void> {
       } else if (vtResult.known) {
         toolsRan.add("virustotal")
       }
+
+      // ── Duplicate detection (SHA-256) ─────────────────────────────────────
+      const dupeFindings = await checkDuplicateHash(sha256, productId, product.authorId, file.fileName)
+      if (dupeFindings.length > 0) {
+        allFindings.push(...dupeFindings)
+        toolsRan.add("duplicate-check")
+      }
+      // Persist the hash so future uploads can be matched against this file
+      await db.productFile.update({ where: { id: file.id }, data: { sha256 } }).catch(() => {})
 
       // ── ZIP: safe streaming extraction with multi-layer bomb protection ──
       let workDir = tmpDir

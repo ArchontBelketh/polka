@@ -37,7 +37,8 @@ export const metadata = {
 }
 
 const ORDER_BY_MAP: Record<string, object> = {
-  popular:    { salesCount: "desc" },
+  // Manually-verified products get a ranking boost in "popular"
+  popular:    [{ manuallyVerified: "desc" }, { salesCount: "desc" }],
   newest:     { publishedAt: "desc" },
   rating:     { rating: "desc" },
   price_asc:  { price: "asc" },
@@ -72,7 +73,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     ...priceFilter,
   }
 
-  const orderBy = ORDER_BY_MAP[sort ?? ""] ?? { salesCount: "desc" }
+  const orderBy = ORDER_BY_MAP[sort ?? ""] ?? [{ manuallyVerified: "desc" }, { salesCount: "desc" }]
 
   const [products, total, session] = await Promise.all([
     db.product.findMany({
@@ -93,6 +94,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         screenshots: true,
         techStack: true,
         status: true,
+        manuallyVerified: true,
         author: { select: { id: true, name: true, telegramHandle: true } },
       },
     }),

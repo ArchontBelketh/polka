@@ -164,6 +164,8 @@ model Product {
   telegramBotUsername String?
   installGuide        String?         @db.Text
   requirements        String[]        @default([])
+  manuallyVerified    Boolean         @default(false)
+  verifiedAt          DateTime?
   rating              Float           @default(0)
   reviewCount         Int             @default(0)
   salesCount          Int             @default(0)
@@ -215,8 +217,11 @@ model ProductFile {
   fileType  FileType
   format    String
   version   String   @default("1.0.0")
+  sha256    String?  @db.VarChar(64)
   createdAt DateTime @default(now())
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([sha256])
 }
 
 model ScanResult {

@@ -78,11 +78,18 @@ npm run dev
 
 Приложение доступно на **http://localhost:3000**
 
-Остановить — `Ctrl+C` в терминале. Если сервер запущен в фоне и порт занят:
+Остановить — `Ctrl+C` в терминале. Если сервер запущен в фоне и порт занят
+(или после нескольких перезапусков накопились «осиротевшие» процессы, из-за которых
+все маршруты отдают 500 и в логе `Another write batch ... already active`):
 
 ```powershell
-netstat -ano | findstr :3000          # найти PID
-taskkill /PID <PID> /F                # убить процесс
+# убить всё, что слушает :3000, и все node-процессы next dev
+Get-NetTCPConnection -LocalPort 3000 -State Listen | Select -Expand OwningProcess -Unique |
+  ForEach-Object { Stop-Process -Id $_ -Force }
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+  Where-Object { $_.CommandLine -match 'next' -and $_.CommandLine -match 'dev' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+Remove-Item .next -Recurse -Force    # затем чистый старт
 ```
 
 > Если при старте Turbopack ругается на повреждённый кэш (`corrupted database`,
@@ -140,8 +147,12 @@ npm run db:studio
 
 ### Модератор (`moderator@polka.test`)
 - `/admin/queue` — очередь продуктов на проверку
-- `/admin/review/<id>` — карточка проверки: скан, авто-оценка, инструкция; одобрить / отклонить
+- `/admin/review/<id>` — карточка проверки: скан, авто-оценка, инструкция, находки
+  дубликатов (ссылка на оригинал); кнопка «Подтвердить работоспособность»; одобрить / отклонить
 - `/admin/disputes` — споры: переписка покупатель↔разработчик, возврат / отклонение спора
+
+Бейдж «Проверено вручную» после подтверждения виден на странице продукта, в каталоге
+и даёт буст в сортировке «Популярные». При одобрении новой версии бейдж снимается.
 
 ### Администратор (`admin@polka.test`)
 - Всё из списков выше

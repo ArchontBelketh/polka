@@ -6,12 +6,13 @@ import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS, type Product } from "@/types"
 import { WishlistButton } from "@/components/catalog/WishlistButton"
 import { TechBadge } from "@/components/catalog/TechBadge"
+import { VerifiedBadge } from "@/components/product/VerifiedBadge"
 
 interface ProductCardProps {
   product: Pick<
     Product,
     "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots" | "techStack"
-  >
+  > & { manuallyVerified?: boolean }
   isWishlisted?: boolean
 }
 
@@ -46,6 +47,8 @@ export function ProductCard({ product, isWishlisted = false }: ProductCardProps)
               {CATEGORY_LABELS[product.category]}
             </Badge>
           </div>
+
+          {product.manuallyVerified && <VerifiedBadge compact />}
 
           <p className="text-xs text-muted-foreground line-clamp-2">
             {product.shortDesc}
