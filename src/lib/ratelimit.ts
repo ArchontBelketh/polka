@@ -46,4 +46,5 @@ export const limits = {
   reviews: (userId: string) => rateLimit(`review:${userId}`, 10, 60_000), // 10/min
   coupon: (ip: string) => rateLimit(`coupon:${ip}`, 30, 60_000),         // 30/min
   questions: (userId: string) => rateLimit(`question:${userId}`, 5, 3_600_000), // 5/hour
+  messages: (userId: string) => rateLimit(`msg:${userId}`, 20, 600_000),         // 20/10min
 } as const

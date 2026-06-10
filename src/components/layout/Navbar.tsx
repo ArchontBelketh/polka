@@ -3,11 +3,27 @@ import { Search, Package, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
 import { UserMenu } from "@/components/layout/UserMenu"
+import { MessageBell } from "@/components/layout/MessageBell"
 
 export async function Navbar() {
   const session = await auth()
   const role = (session?.user as { role?: string } | undefined)?.role
+  const userId = session?.user?.id
+
+  // Unread message count for the bell (buyer or developer threads)
+  let unread = 0
+  if (userId) {
+    unread = await db.purchaseMessage.count({
+      where: {
+        isRead: false,
+        senderId: { not: userId },
+        purchase: { OR: [{ buyerId: userId }, { product: { authorId: userId } }] },
+      },
+    })
+  }
+  const messagesHref = role === "DEVELOPER" ? "/dashboard/messages" : "/purchases"
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
@@ -43,6 +59,7 @@ export async function Navbar() {
                   Продавать
                 </Link>
               )}
+              <MessageBell initialCount={unread} href={messagesHref} />
               <UserMenu role={role} />
             </>
           ) : (

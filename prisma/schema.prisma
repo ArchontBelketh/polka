@@ -112,6 +112,7 @@ model User {
   slotPurchases   SlotPurchase[]
   aiReviews       AiReview[]
   questions       ProductQuestion[]
+  purchaseMessages PurchaseMessage[]
 }
 
 model Account {
@@ -247,14 +248,30 @@ model Purchase {
   paymentId     String?
   escrowUntil   DateTime?
   downloadCount Int            @default(0)
+  lastMessageAt DateTime?
   createdAt     DateTime       @default(now())
   paidAt        DateTime?
   buyer         User           @relation(fields: [buyerId], references: [id])
   product       Product        @relation(fields: [productId], references: [id])
+  messages      PurchaseMessage[]
 
   @@index([buyerId])
   @@index([productId])
   @@index([escrowUntil])
+}
+
+model PurchaseMessage {
+  id         String   @id @default(cuid())
+  purchaseId String
+  senderId   String
+  text       String   @db.Text
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  sender     User     @relation(fields: [senderId], references: [id])
+
+  @@index([purchaseId])
+  @@index([senderId])
 }
 
 model Review {

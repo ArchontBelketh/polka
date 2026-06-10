@@ -5,9 +5,11 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Markdown } from "@/components/ui/Markdown"
+import { MessageThread, type ThreadMessage } from "@/components/messages/MessageThread"
+import { OpenDisputeButton } from "@/components/messages/OpenDisputeButton"
 import { formatPrice, formatFileSize } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
-import { Download, Monitor, FileText, ArrowLeft } from "lucide-react"
+import { Download, Monitor, FileText, ArrowLeft, MessageSquare } from "lucide-react"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -61,6 +63,33 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
   const canDownload = purchase.status === "PAID" || purchase.status === "DELIVERED"
   const authorName = product.author.name ?? product.author.email ?? "Разработчик"
 
+  // Messaging — only for the buyer; load thread and mark incoming as read
+  const isBuyer = purchase.buyerId === session.user.id
+  const THREAD_STATUSES = ["PAID", "DELIVERED", "DISPUTED", "REFUNDED"]
+  const showThread = isBuyer && THREAD_STATUSES.includes(purchase.status)
+  const canWrite = ["PAID", "DELIVERED", "DISPUTED"].includes(purchase.status)
+  const canDispute = purchase.status === "PAID" || purchase.status === "DELIVERED"
+
+  let initialMessages: ThreadMessage[] = []
+  if (showThread) {
+    await db.purchaseMessage.updateMany({
+      where: { purchaseId: purchase.id, senderId: { not: session.user.id }, isRead: false },
+      data: { isRead: true },
+    })
+    const rows = await db.purchaseMessage.findMany({
+      where: { purchaseId: purchase.id },
+      orderBy: { createdAt: "asc" },
+      take: 500,
+      select: { id: true, text: true, senderId: true, createdAt: true },
+    })
+    initialMessages = rows.map((r) => ({
+      id: r.id,
+      text: r.text,
+      senderId: r.senderId,
+      createdAt: r.createdAt.toISOString(),
+    }))
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <Link
@@ -102,6 +131,37 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
           </Button>
         )}
       </div>
+
+      {/* Messaging with the developer */}
+      {showThread && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              Связь с разработчиком
+            </h2>
+            {canDispute && <OpenDisputeButton purchaseId={purchase.id} />}
+          </div>
+
+          {purchase.status === "DISPUTED" && (
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+              Спор открыт. Модератор рассматривает обращение и переписку — ответ в течение 24 часов.
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            Не запускается или есть вопрос по настройке? Напишите автору — это быстрее, чем спор.
+            Обмен контактами и оплата мимо платформы запрещены.
+          </p>
+
+          <MessageThread
+            purchaseId={purchase.id}
+            currentUserId={session.user.id}
+            initialMessages={initialMessages}
+            canWrite={canWrite}
+          />
+        </section>
+      )}
 
       {/* What's included */}
       {product.files.length > 0 && (

@@ -81,6 +81,18 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
 
   const purchasedIds = new Set(purchases.map((p) => p.product.id))
 
+  // Unread message counts per purchase (messages from the developer)
+  const unreadRows = await db.purchaseMessage.groupBy({
+    by: ["purchaseId"],
+    where: {
+      senderId: { not: session.user.id },
+      isRead: false,
+      purchaseId: { in: purchases.map((p) => p.id) },
+    },
+    _count: { _all: true },
+  })
+  const unreadMap = new Map(unreadRows.map((r) => [r.purchaseId, r._count._all]))
+
   function tabUrl(t: string) {
     const sp = new URLSearchParams()
     sp.set("tab", t)
@@ -182,6 +194,11 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
                       <Badge variant={STATUS_VARIANTS[p.status] ?? "outline"} className="text-xs">
                         {STATUS_LABELS[p.status] ?? p.status}
                       </Badge>
+                      {(unreadMap.get(p.id) ?? 0) > 0 && (
+                        <Badge variant="default" className="text-xs">
+                          {unreadMap.get(p.id)} новых
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {CATEGORY_LABELS[p.product.category as keyof typeof CATEGORY_LABELS]} ·{" "}

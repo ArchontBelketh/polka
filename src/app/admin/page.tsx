@@ -32,11 +32,12 @@ export default async function AdminPage() {
 
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
 
-  const [pendingCount, scanFailedCount, todayReviewed, openTickets, recentLogs] = await Promise.all([
+  const [pendingCount, scanFailedCount, todayReviewed, openTickets, disputedCount, recentLogs] = await Promise.all([
     db.product.count({ where: { status: "PENDING" } }),
     db.product.count({ where: { status: "SCAN_FAILED" } }),
     db.moderationLog.count({ where: { createdAt: { gte: today } } }),
     db.supportTicket.count({ where: { status: { in: ["OPEN", "IN_PROGRESS"] } } }),
+    db.purchase.count({ where: { status: "DISPUTED" } }),
     db.moderationLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -119,6 +120,12 @@ export default async function AdminPage() {
           value={String(openTickets)}
           urgent={openTickets > 0}
           href="/admin/support"
+        />
+        <StatCard
+          label="Споров"
+          value={String(disputedCount)}
+          urgent={disputedCount > 0}
+          href="/admin/disputes"
         />
       </div>
 

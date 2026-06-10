@@ -323,6 +323,34 @@ export async function notifyQuestionAnswered(params: {
   ])
 }
 
+export async function notifyNewMessage(params: {
+  recipientTelegramId: string | null
+  recipientEmail?: string | null
+  productTitle: string
+  threadUrl: string
+  preview: string
+}): Promise<void> {
+  const short = params.preview.length > 200 ? params.preview.slice(0, 200) + "…" : params.preview
+
+  const tgText =
+    `✉️ <b>Новое сообщение по покупке</b>\n\n` +
+    `«${params.productTitle}»\n\n` +
+    `${short}\n\n` +
+    `Ответить: ${params.threadUrl}`
+
+  const emailHtml = `
+    <h2>✉️ Новое сообщение по покупке</h2>
+    <p><b>${params.productTitle}</b></p>
+    <p style="white-space:pre-wrap">${short}</p>
+    <p><a href="${params.threadUrl}">Открыть переписку и ответить</a></p>
+  `
+
+  await Promise.all([
+    params.recipientTelegramId ? sendTelegram(params.recipientTelegramId, tgText) : Promise.resolve(),
+    params.recipientEmail ? sendEmail(params.recipientEmail, `Новое сообщение: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
+}
+
 export async function notifyPurchaseConfirmed(params: {
   buyerEmail: string | null
   productTitle: string
