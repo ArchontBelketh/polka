@@ -191,6 +191,14 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
                         <> · Возврат до {new Date(p.escrowUntil).toLocaleDateString("ru-RU")}</>
                       )}
                     </p>
+                    {canDownload && (
+                      <Link
+                        href={`/purchases/${p.id}`}
+                        className="inline-block text-xs text-primary underline-offset-2 hover:underline"
+                      >
+                        Инструкция и детали →
+                      </Link>
+                    )}
                   </div>
 
                   {canDownload && (

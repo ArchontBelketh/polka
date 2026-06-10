@@ -6,6 +6,7 @@ import { StepIndicator } from "@/components/submit/StepIndicator"
 import { CategoryStep } from "@/components/submit/steps/CategoryStep"
 import { DescriptionStep } from "@/components/submit/steps/DescriptionStep"
 import { FeaturesStep } from "@/components/submit/steps/FeaturesStep"
+import { InstallStep } from "@/components/submit/steps/InstallStep"
 import { MediaStep } from "@/components/submit/steps/MediaStep"
 import { PricingStep } from "@/components/submit/steps/PricingStep"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,8 @@ interface FormState {
   targetAudience: string
   techStack: string[]
   features: string[]
+  installGuide: string
+  requirements: string[]
   productFile: File | null
   screenshots: File[]
   demoUrl: string
@@ -33,9 +36,12 @@ const INITIAL: FormState = {
   title: "", shortDesc: "", fullDesc: "",
   targetAudience: "", techStack: [],
   features: [],
+  installGuide: "", requirements: [],
   productFile: null, screenshots: [], demoUrl: "", videoUrl: "",
   price: "", license: "personal", telegramBotUsername: "",
 }
+
+const MIN_GUIDE = 200
 
 export function SubmitForm() {
   const router = useRouter()
@@ -48,7 +54,8 @@ export function SubmitForm() {
     if (step === 0) return form.category !== ""
     if (step === 1) return form.title.length >= 5 && form.shortDesc.length >= 10 && form.fullDesc.length >= 30
     if (step === 2) return form.features.length >= 1
-    if (step === 3) return form.productFile !== null
+    if (step === 3) return form.installGuide.trim().length >= MIN_GUIDE
+    if (step === 4) return form.productFile !== null
     return true
   }
 
@@ -59,7 +66,11 @@ export function SubmitForm() {
       if (form.fullDesc.length < 30) return `Полное описание: нужно ещё ${30 - form.fullDesc.length} симв.`
     }
     if (step === 2 && form.features.length === 0) return "Добавьте хотя бы одну функцию"
-    if (step === 3 && !form.productFile) return "Загрузите файл продукта"
+    if (step === 3) {
+      const len = form.installGuide.trim().length
+      if (len < MIN_GUIDE) return `Инструкция: нужно ещё ${MIN_GUIDE - len} символов`
+    }
+    if (step === 4 && !form.productFile) return "Загрузите файл продукта"
     return null
   }
 
@@ -80,6 +91,8 @@ export function SubmitForm() {
           category: form.category,
           price: priceKopecks,
           features: form.features,
+          installGuide: form.installGuide,
+          requirements: form.requirements.length > 0 ? form.requirements : undefined,
           targetAudience: form.targetAudience || undefined,
           techStack: form.techStack.length > 0 ? form.techStack : undefined,
           license: form.license,
@@ -170,12 +183,18 @@ export function SubmitForm() {
           />
         )}
         {step === 3 && (
+          <InstallStep
+            value={{ installGuide: form.installGuide, requirements: form.requirements }}
+            onChange={(v) => setForm({ ...form, ...v })}
+          />
+        )}
+        {step === 4 && (
           <MediaStep
             value={{ productFile: form.productFile, screenshots: form.screenshots, demoUrl: form.demoUrl, videoUrl: form.videoUrl }}
             onChange={(v) => setForm({ ...form, ...v })}
           />
         )}
-        {step === 4 && (
+        {step === 5 && (
           <PricingStep
             value={{ price: form.price, license: form.license, telegramBotUsername: form.telegramBotUsername }}
             category={form.category}
@@ -196,7 +215,7 @@ export function SubmitForm() {
           Назад
         </Button>
 
-        {step < 4 ? (
+        {step < 5 ? (
           <div className="flex flex-col items-end gap-1">
             {advanceHint() && (
               <p className="text-xs text-muted-foreground">{advanceHint()}</p>

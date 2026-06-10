@@ -160,6 +160,8 @@ model Product {
   techStack           String[]        @default([])
   license             String          @default("personal")
   telegramBotUsername String?
+  installGuide        String?         @db.Text
+  requirements        String[]        @default([])
   rating              Float           @default(0)
   reviewCount         Int             @default(0)
   salesCount          Int             @default(0)

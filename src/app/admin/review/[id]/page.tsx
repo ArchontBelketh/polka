@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 import { TechBadge } from "@/components/catalog/TechBadge"
+import { Markdown } from "@/components/ui/Markdown"
 import { ModerationActions } from "./ModerationActions"
 import type { ScanFinding } from "@/types"
 
@@ -200,6 +201,33 @@ export default async function AdminReviewPage({ params }: RouteParams) {
               </li>
             ))}
           </ul>
+        </div>
+
+        {product.requirements.length > 0 && (
+          <div>
+            <p className="text-muted-foreground text-sm mb-2">Системные требования</p>
+            <div className="flex flex-wrap gap-1.5">
+              {product.requirements.map((r, i) => (
+                <span key={i} className="rounded border border-border bg-muted px-2 py-0.5 text-xs">
+                  {r}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-muted-foreground text-sm">Инструкция по установке</p>
+            <span className="text-xs text-yellow-400/80">Проверьте, что инструкция воспроизводима</span>
+          </div>
+          {product.installGuide ? (
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <Markdown content={product.installGuide} />
+            </div>
+          ) : (
+            <p className="text-sm text-red-400">Инструкция не приложена</p>
+          )}
         </div>
       </section>
 

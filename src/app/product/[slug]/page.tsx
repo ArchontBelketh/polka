@@ -10,7 +10,10 @@ import { ReviewForm } from "@/components/product/ReviewForm"
 import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
 import { AiReviewOrder } from "@/components/product/AiReviewOrder"
 import { getPresignedDownloadUrl } from "@/lib/s3"
-import { Check, Star } from "lucide-react"
+import { Check, Star, FileText, Monitor, Lock } from "lucide-react"
+import Link from "next/link"
+import { Markdown } from "@/components/ui/Markdown"
+import { formatFileSize } from "@/lib/utils"
 import { TechBadge } from "@/components/catalog/TechBadge"
 import type { AiReviewResult } from "@/lib/ai-review/prompt"
 import type { Metadata } from "next"
@@ -56,7 +59,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const product = await db.product.findUnique({
     where: { slug },
-    include: { author: { select: { id: true, name: true, email: true } } },
+    include: {
+      author: { select: { id: true, name: true, email: true } },
+      files: {
+        where: { fileType: "SOURCE" },
+        select: { fileName: true, fileSize: true, format: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   })
 
   if (!product || product.status !== "APPROVED") notFound()
@@ -73,8 +83,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const isOwnProduct = session?.user?.id === product.authorId
   const authorName = product.author.name ?? product.author.email ?? "Разработчик"
 
-  // Check if current user has a purchase (to show review form)
-  const [hasPurchase, existingAiReview] = await Promise.all([
+  // Check if current user has a purchase (to show review form + full install guide)
+  const [purchaseRecord, existingAiReview] = await Promise.all([
     session?.user?.id
       ? db.purchase.findFirst({
           where: {
@@ -83,8 +93,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
             status: { in: ["PAID", "DELIVERED"] },
           },
           select: { id: true },
-        }).then(Boolean)
-      : false,
+        })
+      : null,
     session?.user?.id && !isOwnProduct
       ? db.aiReview.findFirst({
           where: { productId: product.id, requestedBy: session.user.id },
@@ -93,6 +103,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
         })
       : null,
   ])
+
+  const hasPurchase = Boolean(purchaseRecord)
+  const purchaseId = purchaseRecord?.id ?? null
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
 
@@ -178,6 +191,78 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 ))}
               </ul>
             </div>
+
+            {/* System requirements — public, reduces post-purchase disputes */}
+            {product.requirements.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Monitor className="h-4 w-4 text-primary" />
+                  Системные требования
+                </h2>
+                <ul className="flex flex-wrap gap-2">
+                  {product.requirements.map((r, i) => (
+                    <li key={i} className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm">
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* What's included — the files the buyer receives */}
+            {product.files.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Что входит в покупку
+                </h2>
+                <ul className="space-y-2">
+                  {product.files.map((f, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm"
+                    >
+                      <span className="font-mono truncate">{f.fileName}</span>
+                      <span className="text-muted-foreground shrink-0 ml-2">
+                        {f.format} · {formatFileSize(f.fileSize)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Install guide — teaser before purchase, full after */}
+            {product.installGuide && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3">Установка</h2>
+                {hasPurchase ? (
+                  <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                    <Markdown content={product.installGuide} />
+                    {purchaseId && (
+                      <Link
+                        href={`/purchases/${purchaseId}`}
+                        className="inline-block text-xs text-primary underline-offset-2 hover:underline"
+                      >
+                        Открыть на странице покупки →
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="relative overflow-hidden rounded-lg border border-border bg-card p-4">
+                    <div className="max-h-28 overflow-hidden">
+                      <Markdown content={product.installGuide.slice(0, 300)} />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 flex h-24 items-end justify-center bg-gradient-to-t from-card to-transparent pb-3">
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Lock className="h-3.5 w-3.5" />
+                        Полная инструкция доступна после покупки
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {(product.targetAudience || product.techStack.length > 0) && (
               <div className="rounded-lg bg-muted p-4 space-y-3 text-sm">

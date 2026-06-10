@@ -11,6 +11,8 @@ const createSchema = z.object({
   category: z.enum(["TELEGRAM", "PARSER", "EXCEL", "AUTOMATION", "WEB"]),
   price: z.number().int().positive(),
   features: z.array(z.string().min(1)).min(1).max(20),
+  installGuide: z.string().min(200, "Инструкция по установке обязательна (минимум 200 символов)").max(20000),
+  requirements: z.array(z.string().min(1).max(100)).max(15).default([]),
   targetAudience: z.string().optional(),
   techStack: z.array(z.string().max(50)).max(10).default([]),
   license: z.string().default("personal"),
