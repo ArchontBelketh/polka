@@ -12,7 +12,7 @@ export async function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
-        <Link href="/catalog" className="flex items-center gap-2 font-semibold text-foreground">
+        <Link href="/" className="flex items-center gap-2 font-semibold text-foreground">
           <Package className="h-5 w-5 text-primary" />
           <span>Полка</span>
         </Link>
@@ -31,20 +31,35 @@ export async function Navbar() {
         <nav className="ml-auto flex items-center gap-2">
           {session?.user ? (
             <>
-              {role === "DEVELOPER" && (
+              {role === "DEVELOPER" ? (
                 <Button asChild size="sm" variant="outline">
                   <Link href="/submit">Загрузить продукт</Link>
                 </Button>
+              ) : (
+                <Link
+                  href="/sell"
+                  className="hidden text-sm text-muted-foreground hover:text-foreground sm:block"
+                >
+                  Продавать
+                </Link>
               )}
               <UserMenu role={role} />
             </>
           ) : (
-            <Button asChild size="sm">
-              <Link href="/login" className="flex items-center gap-1.5">
-                <LogIn className="h-4 w-4" />
-                Войти
+            <>
+              <Link
+                href="/sell"
+                className="hidden text-sm text-muted-foreground hover:text-foreground sm:block"
+              >
+                Продавать
               </Link>
-            </Button>
+              <Button asChild size="sm">
+                <Link href="/login" className="flex items-center gap-1.5">
+                  <LogIn className="h-4 w-4" />
+                  Войти
+                </Link>
+              </Button>
+            </>
           )}
         </nav>
       </div>
