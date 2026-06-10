@@ -111,6 +111,7 @@ model User {
   developerPlan   DeveloperPlan?
   slotPurchases   SlotPurchase[]
   aiReviews       AiReview[]
+  questions       ProductQuestion[]
 }
 
 model Account {
@@ -181,9 +182,26 @@ model Product {
   supportTickets      SupportTicket[]
   versions            ProductVersion[]
   aiReviews           AiReview[]
+  questions           ProductQuestion[]
 
   @@index([status])
   @@index([category])
+  @@index([authorId])
+}
+
+model ProductQuestion {
+  id         String    @id @default(cuid())
+  productId  String
+  authorId   String
+  question   String    @db.Text
+  answer     String?   @db.Text
+  answeredAt DateTime?
+  isHidden   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id])
+
+  @@index([productId])
   @@index([authorId])
 }
 

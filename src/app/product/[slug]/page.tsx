@@ -9,6 +9,7 @@ import { ReviewList } from "@/components/product/ReviewList"
 import { ReviewForm } from "@/components/product/ReviewForm"
 import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
 import { AiReviewOrder } from "@/components/product/AiReviewOrder"
+import { QASection } from "@/components/product/QASection"
 import { getPresignedDownloadUrl } from "@/lib/s3"
 import { Check, Star, FileText, Monitor, Lock } from "lucide-react"
 import Link from "next/link"
@@ -297,6 +298,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 } : null}
               />
             )}
+
+            {/* Questions & Answers */}
+            <Suspense fallback={<p className="text-sm text-muted-foreground">Загрузка вопросов…</p>}>
+              <QASection
+                productId={product.id}
+                productAuthorId={product.authorId}
+                productSlug={product.slug}
+              />
+            </Suspense>
 
             {/* Reviews */}
             <section className="space-y-4">

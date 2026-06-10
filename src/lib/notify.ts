@@ -265,6 +265,64 @@ export async function notifyProductAutoRejected(params: {
   ])
 }
 
+export async function notifyNewQuestion(params: {
+  developerTelegramId: string | null
+  developerEmail?: string | null
+  productTitle: string
+  productSlug: string
+  question: string
+}): Promise<void> {
+  const url = `${APP_URL}/product/${params.productSlug}`
+  const short = params.question.length > 300 ? params.question.slice(0, 300) + "…" : params.question
+
+  const tgText =
+    `❓ <b>Новый вопрос по продукту</b>\n\n` +
+    `«${params.productTitle}»\n\n` +
+    `${short}\n\n` +
+    `Ответьте на странице продукта: ${url}`
+
+  const emailHtml = `
+    <h2>❓ Новый вопрос по продукту</h2>
+    <p><b>${params.productTitle}</b></p>
+    <p style="white-space:pre-wrap">${short}</p>
+    <p><a href="${url}">Ответить на странице продукта</a></p>
+  `
+
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail ? sendEmail(params.developerEmail, `Новый вопрос: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
+}
+
+export async function notifyQuestionAnswered(params: {
+  askerTelegramId: string | null
+  askerEmail?: string | null
+  productTitle: string
+  productSlug: string
+  answer: string
+}): Promise<void> {
+  const url = `${APP_URL}/product/${params.productSlug}`
+  const short = params.answer.length > 300 ? params.answer.slice(0, 300) + "…" : params.answer
+
+  const tgText =
+    `💬 <b>На ваш вопрос ответили</b>\n\n` +
+    `«${params.productTitle}»\n\n` +
+    `${short}\n\n` +
+    `Открыть: ${url}`
+
+  const emailHtml = `
+    <h2>💬 На ваш вопрос ответили</h2>
+    <p><b>${params.productTitle}</b></p>
+    <p style="white-space:pre-wrap">${short}</p>
+    <p><a href="${url}">Открыть страницу продукта</a></p>
+  `
+
+  await Promise.all([
+    params.askerTelegramId ? sendTelegram(params.askerTelegramId, tgText) : Promise.resolve(),
+    params.askerEmail ? sendEmail(params.askerEmail, `Ответ на вопрос: ${params.productTitle}`, emailHtml) : Promise.resolve(),
+  ])
+}
+
 export async function notifyPurchaseConfirmed(params: {
   buyerEmail: string | null
   productTitle: string

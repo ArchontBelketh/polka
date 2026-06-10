@@ -33,7 +33,7 @@ export default async function DashboardPage() {
 
   const now = new Date()
 
-  const [paidPurchases, deliveredPurchases, pendingEscrow] = await Promise.all([
+  const [paidPurchases, deliveredPurchases, pendingEscrow, unansweredQuestions] = await Promise.all([
     db.purchase.findMany({
       where: { productId: { in: productIds }, status: { in: ["PAID", "DELIVERED"] } },
       include: {
@@ -47,6 +47,9 @@ export default async function DashboardPage() {
     db.purchase.findMany({
       where: { productId: { in: productIds }, status: "PAID", escrowUntil: { gt: now } },
       select: { amount: true, escrowUntil: true },
+    }),
+    db.productQuestion.count({
+      where: { productId: { in: productIds }, isHidden: false, answer: null },
     }),
   ])
 
@@ -87,6 +90,11 @@ export default async function DashboardPage() {
         <Button variant="outline" asChild>
           <Link href="/dashboard/payouts">
             Вывод средств {user.balance > 0 && `(${formatPrice(user.balance)})`}
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/questions">
+            Вопросы {unansweredQuestions > 0 && `(${unansweredQuestions})`}
           </Link>
         </Button>
       </div>
