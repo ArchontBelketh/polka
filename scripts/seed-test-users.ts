@@ -12,6 +12,11 @@
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import bcrypt from "bcryptjs"
+import * as dotenv from "dotenv"
+
+// tsx does not auto-load env files — load them before reading DATABASE_URL.
+dotenv.config({ path: ".env.local" })
+dotenv.config({ path: ".env" })
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const db = new PrismaClient({ adapter })
