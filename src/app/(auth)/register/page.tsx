@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [asDeveloper, setAsDeveloper] = useState(false)
+  const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -25,7 +26,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, asDeveloper }),
+        body: JSON.stringify({ name, email, password, asDeveloper, agreedToTerms: agreed }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -101,9 +102,26 @@ export default function RegisterPage() {
             <span className="text-sm">Я разработчик — хочу продавать продукты</span>
           </label>
 
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-border"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              required
+            />
+            <span className="text-xs text-muted-foreground">
+              Принимаю{" "}
+              <Link href="/legal/terms" target="_blank" className="text-primary hover:underline">условия соглашения</Link>,{" "}
+              <Link href="/legal/offer" target="_blank" className="text-primary hover:underline">оферту</Link>{" "}
+              и даю согласие на{" "}
+              <Link href="/legal/privacy" target="_blank" className="text-primary hover:underline">обработку персональных данных</Link>.
+            </span>
+          </label>
+
           {error && <p className={cn("text-sm text-red-500")}>{error}</p>}
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading || !agreed}>
             {loading ? "Создаём аккаунт…" : "Создать аккаунт"}
           </Button>
         </form>

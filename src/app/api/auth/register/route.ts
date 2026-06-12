@@ -8,13 +8,17 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   asDeveloper: z.boolean().default(false),
+  agreedToTerms: z.literal(true, {
+    message: "Необходимо согласие с условиями и обработкой ПДн",
+  }),
 })
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return Response.json({ error: "Проверьте введённые данные" }, { status: 422 })
+    const msg = parsed.error.issues.find((i) => i.path[0] === "agreedToTerms")?.message
+    return Response.json({ error: msg ?? "Проверьте введённые данные" }, { status: 422 })
   }
 
   const { name, email, password, asDeveloper } = parsed.data

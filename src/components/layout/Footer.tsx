@@ -25,13 +25,21 @@ const COLUMNS = [
       { href: "/support", label: "Помощь" },
     ],
   },
+  {
+    title: "Документы",
+    links: [
+      { href: "/legal/offer", label: "Оферта" },
+      { href: "/legal/terms", label: "Соглашение" },
+      { href: "/legal/privacy", label: "Политика ПДн" },
+    ],
+  },
 ]
 
 export function Footer() {
   return (
     <footer className="border-t border-border bg-card/30">
       <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-5">
           <div className="col-span-2 space-y-3 sm:col-span-1">
             <Link href="/" className="flex items-center gap-2 font-semibold text-foreground">
               <Package className="h-5 w-5 text-primary" />
@@ -58,8 +66,9 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} ПОЛКА — маркетплейс готовых программ
+        <div className="mt-10 space-y-1 border-t border-border pt-6 text-xs text-muted-foreground">
+          <p>[РЕКВИЗИТЫ: ИП/ООО «…», ИНН …, ОГРН(ИП) …, email …] — заменить перед запуском</p>
+          <p>© {new Date().getFullYear()} ПОЛКА — маркетплейс готовых программ</p>
         </div>
       </div>
     </footer>
