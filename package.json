@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed:demo": "npx tsx scripts/seed-demo.ts",
+    "create-admin": "npx tsx scripts/create-admin.ts",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio",

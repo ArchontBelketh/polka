@@ -82,6 +82,11 @@ export function LoginForm() {
           required
           autoComplete="current-password"
         />
+        <div className="text-right">
+          <Link href="/forgot" className="text-xs text-muted-foreground hover:text-foreground">
+            Забыли пароль?
+          </Link>
+        </div>
       </div>
 
       {error && <p className={cn("text-sm text-red-500")}>{error}</p>}

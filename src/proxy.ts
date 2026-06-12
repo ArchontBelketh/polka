@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { limits } from "@/lib/ratelimit"
+import { clientIp } from "@/lib/ip"
 
 const AUTH_REQUIRED = ["/dashboard", "/submit", "/purchases"]
 const MOD_REQUIRED  = ["/admin"]
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anonymous"
+  // Trusted source (X-Real-IP); never the spoofable first X-Forwarded-For entry
+  const ip = clientIp(req) || "anonymous"
 
   // ── Auth guard ─────────────────────────────────────────────────────────
   const needsAuth = AUTH_REQUIRED.some((p) => pathname.startsWith(p))
@@ -26,10 +28,12 @@ export async function proxy(req: NextRequest) {
   }
 
   // ── Rate limiting ──────────────────────────────────────────────────────
+  // Payment creation is rate-limited inside its route handler by userId
+  // (from the session) — keeping an IP-keyed copy here would be a second,
+  // inconsistent bucket, so it is intentionally omitted.
   const rateLimitedRoutes: Array<{ prefix: string; check: () => boolean }> = [
     { prefix: "/api/upload",           check: () => limits.upload(ip) },
     { prefix: "/api/scan",             check: () => limits.scan(ip) },
-    { prefix: "/api/payment/create",   check: () => limits.payment(ip) },
     { prefix: "/api/reviews",          check: () => limits.reviews(ip) },
     { prefix: "/api/coupons/validate", check: () => limits.coupon(ip) },
   ]

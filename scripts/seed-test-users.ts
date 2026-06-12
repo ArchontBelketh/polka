@@ -13,6 +13,7 @@ import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import bcrypt from "bcryptjs"
 import * as dotenv from "dotenv"
+import { assertNotProduction } from "./guard"
 
 // tsx does not auto-load env files — load them before reading DATABASE_URL.
 dotenv.config({ path: ".env.local" })
@@ -29,6 +30,7 @@ const USERS = [
 ]
 
 async function main() {
+  assertNotProduction("Создание тестовых учёток")
   const hash = await bcrypt.hash("password123", 10)
 
   for (const u of USERS) {

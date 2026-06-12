@@ -64,7 +64,7 @@ npx prisma db push
 Скрипты сами читают `.env.local`, ручной `DATABASE_URL` указывать не нужно.
 
 ```powershell
-npm run db:seed                        # 6 демо-продуктов + демо-автор
+npm run db:seed:demo                   # 6 демо-продуктов + демо-автор (dev-only)
 npx tsx scripts/seed-test-users.ts     # 4 тестовых аккаунта (см. таблицу выше)
 ```
 
@@ -179,7 +179,7 @@ node test-run.mjs         # браузерный смоук-тест (нужен
 ```powershell
 docker compose up -d db                  # 1. поднять базу
 npx prisma db push                       # 2. накатить схему
-npm run db:seed                          # 3. демо-продукты
+npm run db:seed:demo                     # 3. демо-продукты (dev-only)
 npx tsx scripts/seed-test-users.ts       # 4. тестовые аккаунты
 npm run dev                              # 5. запустить приложение
 # отдельный терминал, по желанию:

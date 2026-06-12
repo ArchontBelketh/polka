@@ -1,0 +1,21 @@
+# Production overrides.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Set a strong DB password in a .env file next to these compose files
+# (compose reads it for interpolation), and keep it in sync with DATABASE_URL:
+#   POSTGRES_PASSWORD=$(openssl rand -base64 24)
+#
+# The app reaches Postgres over the compose network by hostname `db` — no host
+# port is published. Use `docker compose exec db psql ...` or an SSH tunnel for
+# manual access. Also run `ufw allow 22,80,443/tcp && ufw enable` on the host.
+services:
+  db:
+    # Remove the published host port — DB stays inside the compose network only.
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    restart: unless-stopped
+
+  app:
+    env_file: .env
+    restart: unless-stopped

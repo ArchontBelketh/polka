@@ -3,14 +3,19 @@ import { db } from "@/lib/db"
 import { getPayment } from "@/lib/yookassa"
 import { escrowUntilDate } from "@/lib/escrow"
 import { notifyNewSale } from "@/lib/notify"
+import { ipInCidr, clientIp } from "@/lib/ip"
 
-// YooKassa whitelisted IP ranges — enforced in application code, not only at nginx
-// https://yookassa.ru/developers/using-api/webhooks#security
-const YOOKASSA_IPS = new Set([
-  "185.71.76.0", "185.71.76.1", "185.71.77.0", "185.71.77.1",
-  "77.75.153.0", "77.75.153.1", "77.75.156.11", "77.75.156.35",
-  "77.75.154.128", "140.82.116.0",
-])
+// YooKassa notification source ranges (CIDR) — enforced in application code,
+// not only at nginx. Verify against the current list in the YooKassa docs
+// (Webhooks → Безопасность) on deploy.
+const YOOKASSA_CIDRS = [
+  "185.71.76.0/27",
+  "185.71.77.0/27",
+  "77.75.153.0/25",
+  "77.75.156.11/32",
+  "77.75.156.35/32",
+  "77.75.154.128/25",
+]
 
 interface WebhookBody {
   type: string
@@ -23,10 +28,11 @@ interface WebhookBody {
 }
 
 export async function POST(req: NextRequest) {
-  // Enforce YooKassa IP allowlist in application code
-  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? ""
-  if (!YOOKASSA_IPS.has(clientIp)) {
-    console.warn("Webhook: rejected request from non-YooKassa IP:", clientIp)
+  // Enforce YooKassa CIDR allowlist against a trusted IP source
+  const ip = clientIp(req)
+  const allowed = ip !== "" && YOOKASSA_CIDRS.some((cidr) => ipInCidr(ip, cidr))
+  if (!allowed) {
+    console.warn("Webhook: rejected request from non-YooKassa IP:", ip || "(none)")
     return new Response("Forbidden", { status: 403 })
   }
 

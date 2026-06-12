@@ -90,6 +90,8 @@ model User {
   role           Role       @default(BUYER)
   inn            String?
   passwordHash   String?
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
   agreedToTerms  Boolean    @default(false)
   agreedAt       DateTime?
   balance        Int        @default(0)

@@ -351,6 +351,16 @@ export async function notifyNewMessage(params: {
   ])
 }
 
+export async function notifyPasswordReset(email: string, resetUrl: string): Promise<void> {
+  const emailHtml = `
+    <h2>Восстановление пароля</h2>
+    <p>Вы запросили сброс пароля на ПОЛКЕ. Ссылка действительна 1 час:</p>
+    <p><a href="${resetUrl}">Задать новый пароль</a></p>
+    <p style="color:#888;font-size:12px;">Если вы не запрашивали сброс — просто проигнорируйте это письмо, пароль останется прежним.</p>
+  `
+  await sendEmail(email, "Восстановление пароля — ПОЛКА", emailHtml)
+}
+
 export async function notifyPurchaseConfirmed(params: {
   buyerEmail: string | null
   productTitle: string

@@ -11,6 +11,7 @@
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import * as dotenv from "dotenv"
+import { assertNotProduction } from "./guard"
 
 dotenv.config({ path: ".env.local" })
 dotenv.config({ path: ".env" })
@@ -50,6 +51,7 @@ async function clean() {
 }
 
 async function seed() {
+  assertNotProduction("E2E-сценарий")
   const [dev, buyer, admin] = await Promise.all([
     db.user.findUnique({ where: { email: "dev@polka.test" } }),
     db.user.findUnique({ where: { email: "buyer@polka.test" } }),

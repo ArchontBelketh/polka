@@ -54,9 +54,10 @@ docker run -d \
   -p 5432:5432 \
   postgres:15
 
-# 5. Применить схему и засеять тестовые данные
+# 5. Применить схему и засеять ДЕМО-данные (только для разработки)
 npm run db:push
-npm run db:seed
+npm run db:seed:demo                    # демо-продукты (dev-only)
+npx tsx scripts/seed-test-users.ts      # тестовые учётки (dev-only)
 
 # 6. Запустить dev-сервер
 npm run dev
@@ -64,7 +65,12 @@ npm run dev
 
 Приложение доступно на http://localhost:3000
 
-### Тестовые учётные записи (после seed)
+> **Демо-сиды защищены от прода.** `seed-demo.ts`, `seed-test-users.ts` и
+> `seed-e2e-scenario.ts` бросают ошибку при `NODE_ENV=production` (если не задан
+> `ALLOW_DEMO_SEED=1`). На проде запускается только безопасный `npm run db:seed`
+> (без демо-данных), а реальный админ создаётся отдельным скриптом — см. §7.
+
+### Тестовые учётные записи (только dev, после `seed-test-users`)
 
 | Email | Пароль | Роль |
 |---|---|---|
@@ -167,9 +173,16 @@ SENTRY_PROJECT="polka"
 # Применить схему (создаёт таблицы, не удаляет данные)
 npm run db:push
 
-# Засеять начальные данные (тестовые пользователи, категории и т.д.)
+# Безопасный сид (без демо-данных и тест-аккаунтов)
 npm run db:seed
+
+# Создать реального админа со стойким паролем
+npx tsx scripts/create-admin.ts --email admin@your-domain --password 'СтойкийПароль!'
 ```
+
+> **Не запускайте на проде** `db:seed:demo` или `seed-test-users.ts` — они создают
+> демо-продукты и учётки `*@polka.test` с публичным паролем. Эти скрипты защищены
+> guard-ом (`NODE_ENV=production` → ошибка), но не полагайтесь только на него.
 
 ### Обновление схемы при деплое новой версии
 
@@ -205,7 +218,7 @@ docker compose up -d --build
 
 # Применить схему (первый запуск)
 docker compose exec app npx prisma db push
-docker compose exec app npm run db:seed
+docker compose exec app npm run db:seed:demo   # только для локального стека
 
 # Логи
 docker compose logs -f app
@@ -218,6 +231,29 @@ docker compose down -v
 ```
 
 > **Внимание:** `docker-compose.yml` читает переменные из `.env.local`. Убедитесь, что файл создан и `DATABASE_URL` указывает на контейнер `db`: `postgresql://polka:password@db:5432/polka_db`
+
+### Продакшн-стек (с изоляцией БД)
+
+В проде запускайте с override-файлом — он убирает проброс порта БД наружу и требует
+стойкий пароль:
+
+```bash
+# .env рядом с compose-файлами (для интерполяции compose):
+#   POSTGRES_PASSWORD=$(openssl rand -base64 24)
+# тот же пароль — в DATABASE_URL приложения (env_file .env)
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+# firewall хоста
+sudo ufw allow 22,80,443/tcp && sudo ufw enable
+
+# доступ к БД для psql/бэкапов — без проброса порта:
+docker compose exec db psql -U polka -d polka_db
+```
+
+> В базовом `docker-compose.yml` порт БД биндится на `127.0.0.1` (только хост),
+> в проде override (`ports: !reset []`) убирает его полностью — приложение
+> ходит к БД по имени `db` внутри сети compose.
 
 ---
 
@@ -266,6 +302,14 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
 
     client_max_body_size 100M;
+
+    # Security headers (§2.5 readiness)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    # CSP — добавить отдельной задачей через Content-Security-Policy-Report-Only
 
     location / {
         proxy_pass http://localhost:3000;
@@ -318,7 +362,9 @@ DATABASE_URL="postgresql://polka:password@<host>:5432/polka_db"
 
 ```bash
 docker exec polka npx prisma migrate deploy
-docker exec polka npm run db:seed  # только для первичного сида
+docker exec polka npm run db:seed                                  # безопасный сид (без демо)
+docker exec polka npx tsx scripts/create-admin.ts --email admin@your-domain
+# демо-сиды (db:seed:demo / seed-test-users) на проде НЕ запускать
 ```
 
 ---
@@ -367,6 +413,13 @@ docker exec polka npm run db:seed  # только для первичного с
 - [ ] `NEXTAUTH_URL` и `NEXT_PUBLIC_APP_URL` указывают на продакшн-домен
 - [ ] HTTPS включён; HTTP редиректит на HTTPS
 - [ ] Sentry DSN установлен, тестовая ошибка видна в дашборде (опционально)
+- [ ] **В таблице `User` нет аккаунтов `*@polka.test`** (демо-сиды не запускались на проде)
+- [ ] **Реальный админ создан** через `create-admin.ts` со стойким паролем
+- [ ] nginx прокидывает `X-Real-IP $remote_addr`; вебхук ЮKassa проверяет CIDR (§1.1 readiness)
+- [ ] Домен вебхука не публикует AAAA-запись (ЮKassa шлёт только по IPv4)
+- [ ] `GET /api/health` отвечает `{ ok: true }`; внешний uptime-мониторинг настроен на него
+- [ ] Security-заголовки присутствуют (`curl -I https://your-domain.com` → HSTS, X-Frame-Options и т.д.)
+- [ ] Порт Postgres не проброшен наружу (прод-override), пароль БД сменён, `ufw` включён
 
 ---
 
