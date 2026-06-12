@@ -399,6 +399,11 @@ model SlotPurchase {
   @@index([userId])
 }
 
+model CronHeartbeat {
+  job   String   @id
+  ranAt DateTime
+}
+
 model AiReview {
   id          String    @id @default(cuid())
   productId   String

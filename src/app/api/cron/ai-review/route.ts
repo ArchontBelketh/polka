@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { runAiReview } from "@/lib/ai-review/prompt"
+import { recordCronRun } from "@/lib/cron-heartbeat"
 
 // Called by system cron every 5 minutes
 // curl -X POST http://localhost:3000/api/cron/ai-review -H "x-cron-secret: $CRON_SECRET"
@@ -41,5 +42,6 @@ export async function POST(req: NextRequest) {
   )
 
   const processed = results.map((r) => (r.status === "fulfilled" ? r.value : { status: "error" }))
+  await recordCronRun("ai-review")
   return Response.json({ processed })
 }

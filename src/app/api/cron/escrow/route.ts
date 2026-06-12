@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server"
 import { releaseExpiredEscrow } from "@/lib/escrow"
+import { recordCronRun } from "@/lib/cron-heartbeat"
 
 // Called by a system cron (e.g. GitHub Actions scheduled workflow or server crontab)
 // Requires CRON_SECRET header for protection from unauthorized calls
@@ -15,5 +16,6 @@ export async function POST(req: NextRequest) {
   }
 
   const released = await releaseExpiredEscrow()
+  await recordCronRun("escrow")
   return Response.json({ released })
 }
