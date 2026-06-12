@@ -361,6 +361,16 @@ export async function notifyPasswordReset(email: string, resetUrl: string): Prom
   await sendEmail(email, "Восстановление пароля — ПОЛКА", emailHtml)
 }
 
+export async function notifyEmailVerification(email: string, verifyUrl: string): Promise<void> {
+  const emailHtml = `
+    <h2>Подтверждение email</h2>
+    <p>Подтвердите адрес, чтобы оставлять отзывы и задавать вопросы на ПОЛКЕ:</p>
+    <p><a href="${verifyUrl}">Подтвердить email</a></p>
+    <p style="color:#888;font-size:12px;">Если вы не регистрировались на ПОЛКЕ — проигнорируйте это письмо.</p>
+  `
+  await sendEmail(email, "Подтверждение email — ПОЛКА", emailHtml)
+}
+
 export async function notifyPurchaseConfirmed(params: {
   buyerEmail: string | null
   productTitle: string

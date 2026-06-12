@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { limits } from "@/lib/ratelimit"
 import { containsContactInfo, CONTACT_BLOCK_MESSAGE } from "@/lib/contact-filter"
+import { isEmailVerified, EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/email-verify"
 import { notifyNewQuestion } from "@/lib/notify"
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -45,6 +46,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       { error: "Слишком много вопросов. Не более 5 в час." },
       { status: 429 },
     )
+  }
+
+  if (!(await isEmailVerified(session.user.id))) {
+    return Response.json({ error: EMAIL_NOT_VERIFIED_MESSAGE }, { status: 403 })
   }
 
   const body = await req.json()

@@ -50,6 +50,7 @@ enum PayoutStatus {
   PENDING
   PROCESSING
   PAID
+  REJECTED
 }
 
 enum TicketCategory {
@@ -92,6 +93,7 @@ model User {
   passwordHash   String?
   resetTokenHash      String?
   resetTokenExpiresAt DateTime?
+  emailVerifyTokenHash String?
   agreedToTerms  Boolean    @default(false)
   agreedAt       DateTime?
   balance        Int        @default(0)

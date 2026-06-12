@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
+import { issueEmailVerification } from "@/lib/email-verify"
 
 const schema = z.object({
   name: z.string().min(2).max(100),
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
       agreedAt: new Date(),
     },
   })
+
+  // Send the email-verification link (non-blocking — account is usable, but
+  // unverified users can't post reviews/questions until they confirm)
+  void issueEmailVerification(user.id, email)
 
   return Response.json({ id: user.id, email: user.email, role: user.role }, { status: 201 })
 }

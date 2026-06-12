@@ -11,11 +11,13 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING: "Ожидает",
   PROCESSING: "В обработке",
   PAID: "Выплачено",
+  REJECTED: "Отклонено (возвращено на баланс)",
 }
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PENDING: "outline",
   PROCESSING: "secondary",
   PAID: "default",
+  REJECTED: "destructive",
 }
 
 export default async function PayoutsPage() {

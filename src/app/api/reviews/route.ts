@@ -3,6 +3,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { limits } from "@/lib/ratelimit"
+import { isEmailVerified, EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/email-verify"
 
 const createSchema = z.object({
   productId: z.string().min(1),
@@ -36,6 +37,10 @@ export async function POST(req: NextRequest) {
 
   if (!limits.reviews(session.user.id)) {
     return Response.json({ error: "Слишком много запросов" }, { status: 429 })
+  }
+
+  if (!(await isEmailVerified(session.user.id))) {
+    return Response.json({ error: EMAIL_NOT_VERIFIED_MESSAGE }, { status: 403 })
   }
 
   const body = await req.json()

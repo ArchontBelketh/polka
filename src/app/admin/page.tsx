@@ -54,11 +54,12 @@ export default async function AdminPage() {
     totalUsers: number
     newUsers: number
     activeProducts: number
+    payoutsPending: number
     topProducts: { id: string; title: string; salesCount: number; price: number }[]
   } | null = null
 
   if (user.role === "ADMIN") {
-    const [totalAgg, monthAgg, totalUsers, newUsers, activeProducts, topProducts] = await Promise.all([
+    const [totalAgg, monthAgg, totalUsers, newUsers, activeProducts, payoutsPending, topProducts] = await Promise.all([
       db.purchase.aggregate({
         where: { status: { in: ["PAID", "DELIVERED"] } },
         _sum: { amount: true },
@@ -70,6 +71,7 @@ export default async function AdminPage() {
       db.user.count(),
       db.user.count({ where: { createdAt: { gte: monthStart } } }),
       db.product.count({ where: { status: "APPROVED" } }),
+      db.payout.count({ where: { status: { in: ["PENDING", "PROCESSING"] } } }),
       db.product.findMany({
         where: { status: "APPROVED" },
         orderBy: { salesCount: "desc" },
@@ -84,6 +86,7 @@ export default async function AdminPage() {
       totalUsers,
       newUsers,
       activeProducts,
+      payoutsPending,
       topProducts,
     }
   }
@@ -100,6 +103,11 @@ export default async function AdminPage() {
               </Button>
               <Button asChild variant="outline" size="sm">
                 <Link href="/admin/coupons">Купоны</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/payouts">
+                  Выплаты{adminStats && adminStats.payoutsPending > 0 ? ` (${adminStats.payoutsPending})` : ""}
+                </Link>
               </Button>
             </>
           )}

@@ -69,12 +69,12 @@
 
 ## Фаза 3 — После запуска (не блокеры)
 
-| # | Замечание | Объём |
+| # | Замечание | Статус |
 |---|---|---|
-| 3.1 | Redis rate-limit при горизонтальном масштабировании (`@upstash/ratelimit`) | отложить до 2+ инстансов |
-| 3.2 | Email-верификация при регистрации (`emailVerified` + письмо с токеном; ограничить отзывы/вопросы неверифицированным) | 🤖 M |
-| 3.3 | Формализация выплат: статусы `REQUESTED → PROCESSING → PAID/REJECTED`, SLA в FAQ `/sell`, двойная проверка суммы на момент исполнения | 🤖 M |
-| — | CSP через `Content-Security-Policy-Report-Only` (аккуратно из-за inline-скриптов Next.js и Telegram Login Widget) | отдельная задача |
+| 3.1 | Redis rate-limit при горизонтальном масштабировании (`@upstash/ratelimit`) | ⏸ Отложено до 2+ инстансов (на одном сервере in-memory корректен) |
+| 3.2 | Email-верификация при регистрации | ✅ `emailVerifyTokenHash` + письмо с токеном; `/verify/[token]`, resend, баннер; **гейт отзывов и вопросов** (403 для неподтверждённых); Telegram-аккаунты без email не гейтятся |
+| 3.3 | Формализация выплат | ✅ Статус `REJECTED` + `/admin/payouts` (ADMIN): переходы PENDING→PROCESSING→PAID, отклонение **возвращает сумму на баланс**; SLA в FAQ `/sell`; сумма резервируется при запросе (модель reservation покрывает «проверку на момент исполнения») |
+| CSP | `Content-Security-Policy-Report-Only` | ✅ Добавлен в `next.config.ts` (self + Next inline/eval + Telegram + S3 + Sentry); включать enforcing после анализа отчётов |
 
 ---
 

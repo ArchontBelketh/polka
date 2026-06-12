@@ -36,12 +36,13 @@ async function main() {
   for (const u of USERS) {
     await db.user.upsert({
       where: { email: u.email },
-      update: { passwordHash: hash, name: u.name, role: u.role },
+      update: { passwordHash: hash, name: u.name, role: u.role, emailVerified: new Date() },
       create: {
         email: u.email,
         name: u.name,
         role: u.role,
         passwordHash: hash,
+        emailVerified: new Date(),
         agreedToTerms: true,
         agreedAt: new Date(),
       },
