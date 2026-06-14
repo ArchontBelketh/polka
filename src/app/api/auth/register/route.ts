@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
+import { Prisma } from "@/generated/prisma/client"
 import { db } from "@/lib/db"
 import { issueEmailVerification } from "@/lib/email-verify"
 import { isEmailDomainAllowed, emailDomainError } from "@/lib/email-domains"
@@ -23,7 +24,10 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: msg ?? "Проверьте введённые данные" }, { status: 422 })
   }
 
-  const { name, email, password, asDeveloper } = parsed.data
+  const { name, password, asDeveloper } = parsed.data
+  // Нормализуем email: уникальный индекс в БД регистрозависим, поэтому без
+  // приведения к нижнему регистру User@x и user@x = два разных аккаунта.
+  const email = parsed.data.email.trim().toLowerCase()
 
   if (!isEmailDomainAllowed(email)) {
     return Response.json({ error: emailDomainError() }, { status: 422 })
@@ -36,16 +40,26 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await bcrypt.hash(password, 12)
 
-  const user = await db.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      role: asDeveloper ? "DEVELOPER" : "BUYER",
-      agreedToTerms: true,
-      agreedAt: new Date(),
-    },
-  })
+  let user
+  try {
+    user = await db.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role: asDeveloper ? "DEVELOPER" : "BUYER",
+        agreedToTerms: true,
+        agreedAt: new Date(),
+      },
+    })
+  } catch (e) {
+    // Гонка: между findUnique и create email мог занять параллельный запрос.
+    // P2002 — нарушение уникального индекса → отдаём тот же 409, а не 500.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return Response.json({ error: "Этот email уже используется" }, { status: 409 })
+    }
+    throw e
+  }
 
   // Send the email-verification link (non-blocking — account is usable, but
   // unverified users can't post reviews/questions until they confirm)
