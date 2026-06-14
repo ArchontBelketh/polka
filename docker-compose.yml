@@ -18,7 +18,15 @@ services:
       retries: 5
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # NEXT_PUBLIC_* must be baked in at build time. compose reads these from
+        # the .env file next to this compose file (prod) — empty in dev is fine.
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
+        NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME:-}
+        NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS: ${NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
     ports:
       - "3000:3000"
     env_file: .env.local
@@ -36,6 +44,20 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  # One-off tasks (schema push, admin creation). Built from the `builder` stage,
+  # which has the full node_modules + prisma CLI + tsx-runnable scripts. Never
+  # starts on `up` (profile "tools"); invoked via `docker compose run --rm migrate ...`.
+  migrate:
+    build:
+      context: .
+      target: builder
+    env_file: .env.local
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npx", "prisma", "db", "push", "--skip-generate"]
 
 volumes:
   pgdata:

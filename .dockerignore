@@ -1,0 +1,31 @@
+# Build context hygiene — keep secrets, local state and bulky dirs OUT of the image.
+.git
+.gitignore
+node_modules
+.next
+out
+build
+
+# Secrets — never bake env files into the image (compose passes them at runtime)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Local / CI artifacts
+test-screenshots
+playwright-report
+test-results
+coverage
+*.log
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs & deploy bundles (not needed at runtime)
+*.md
+!prisma/**/*.md
+polka-deploy.zip

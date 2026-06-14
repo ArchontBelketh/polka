@@ -20,6 +20,18 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
+
+# NEXT_PUBLIC_* are inlined into the client bundle at build time, so they must be
+# present here (not only at runtime). Passed via compose build args from .env.
+ARG NEXT_PUBLIC_APP_URL=""
+ARG NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=""
+ARG NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS=""
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=$NEXT_PUBLIC_TELEGRAM_BOT_USERNAME \
+    NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS=$NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS \
+    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+
 RUN npm run build
 
 # ── Runner ────────────────────────────────────────────────────────────────────

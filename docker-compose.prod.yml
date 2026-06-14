@@ -19,3 +19,11 @@ services:
   app:
     env_file: .env
     restart: unless-stopped
+    # Publish only to localhost — nginx on the host terminates TLS and proxies to
+    # 127.0.0.1:3000. The app port is never exposed to the internet directly.
+    # !override replaces the base list (lists append by default).
+    ports: !override
+      - "127.0.0.1:3000:3000"
+
+  migrate:
+    env_file: .env
