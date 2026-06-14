@@ -7,6 +7,27 @@ const MOD_REQUIRED  = ["/admin"]
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  // ── Maintenance mode ─────────────────────────────────────────────────────
+  // Toggle with MAINTENANCE_MODE=1 (requires restart). Everything is served the
+  // maintenance page except the page itself and the health probe (so uptime
+  // monitoring still works). API calls get a 503 JSON instead of HTML.
+  const maintenance =
+    process.env.MAINTENANCE_MODE === "1" || process.env.MAINTENANCE_MODE === "true"
+  if (maintenance && pathname !== "/maintenance" && pathname !== "/api/health") {
+    if (pathname.startsWith("/api/")) {
+      return Response.json(
+        { error: "Сервис на техническом обслуживании" },
+        { status: 503, headers: { "Retry-After": "3600" } },
+      )
+    }
+    const url = req.nextUrl.clone()
+    url.pathname = "/maintenance"
+    const res = NextResponse.rewrite(url)
+    res.headers.set("Retry-After", "3600")
+    return res
+  }
+
   // Trusted source (X-Real-IP); never the spoofable first X-Forwarded-For entry
   const ip = clientIp(req) || "anonymous"
 
