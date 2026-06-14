@@ -3,6 +3,7 @@ import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { issueEmailVerification } from "@/lib/email-verify"
+import { isEmailDomainAllowed, emailDomainError } from "@/lib/email-domains"
 
 const schema = z.object({
   name: z.string().min(2).max(100),
@@ -23,6 +24,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { name, email, password, asDeveloper } = parsed.data
+
+  if (!isEmailDomainAllowed(email)) {
+    return Response.json({ error: emailDomainError() }, { status: 422 })
+  }
 
   const existing = await db.user.findUnique({ where: { email } })
   if (existing) {

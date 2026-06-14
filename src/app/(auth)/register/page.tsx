@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
+// Подсказка о разрешённых доменах (опционально). Проверка — на сервере;
+// это только UX. Зеркало серверной ALLOWED_EMAIL_DOMAINS.
+const ALLOWED_DOMAINS_HINT = (process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS ?? "")
+  .split(",")
+  .map((d) => d.trim().replace(/^@/, ""))
+  .filter(Boolean)
+
 export default function RegisterPage() {
   const router = useRouter()
   const [name, setName] = useState("")
@@ -72,11 +79,16 @@ export default function RegisterPage() {
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={ALLOWED_DOMAINS_HINT[0] ? `you@${ALLOWED_DOMAINS_HINT[0]}` : "you@example.com"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
+            {ALLOWED_DOMAINS_HINT.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Только почта: {ALLOWED_DOMAINS_HINT.map((d) => "@" + d).join(", ")}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
