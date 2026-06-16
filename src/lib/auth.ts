@@ -13,6 +13,12 @@ const credentialsSchema = z.object({
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(db),
+  // Явно задаём секрет: NextAuth v5 в проде ищет AUTH_SECRET, а у нас он лежит
+  // как NEXTAUTH_SECRET (имя из v4). Без этого — ошибка "server configuration".
+  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
+  // За nginx-прокси нужно доверять Host/X-Forwarded-* заголовкам, иначе v5
+  // отклоняет запрос как UntrustedHost.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
