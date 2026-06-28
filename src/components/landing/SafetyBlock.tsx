@@ -1,58 +1,65 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { ScanLine, UserCheck, RotateCcw, Sparkles } from "lucide-react"
+import { SectionHead } from "./SectionHead"
 
-const ITEMS = [
+const ITEMS: { tint: "cyan" | "violet"; title: string; desc: string; icon: ReactNode }[] = [
   {
-    icon: ScanLine,
+    tint: "cyan",
     title: "Автоматическое сканирование",
-    text: "Код каждого продукта проходит статический анализ (Bandit, Semgrep, проверка по VirusTotal) и поиск опасных паттернов до того, как попадёт в каталог.",
+    desc: "Код проходит статический анализ (Bandit, Semgrep, проверка по VirusTotal) и поиск опасных паттернов до того, как попадёт в каталог.",
+    icon: <ScanLine className="h-5 w-5" />,
   },
   {
-    icon: UserCheck,
+    tint: "violet",
     title: "Ручная модерация",
-    text: "Подозрительные продукты уходят модератору. Никакой обфускации, скрытых сетевых вызовов и чужого кода — это правила площадки.",
+    desc: "Подозрительные продукты уходят модератору. Никакой обфускации, скрытых сетевых вызовов и чужого кода — это правила площадки.",
+    icon: <UserCheck className="h-5 w-5" />,
   },
   {
-    icon: RotateCcw,
+    tint: "cyan",
     title: "Споры и возвраты",
-    text: "Деньги держатся в эскроу 7 дней. Если продукт не соответствует описанию — открываете спор, модератор разбирает переписку и возвращает оплату.",
+    desc: "Оплата держится в эскроу 7 дней. Не соответствует описанию — открываете спор, модератор разбирает переписку и возвращает деньги.",
+    icon: <RotateCcw className="h-5 w-5" />,
   },
   {
-    icon: Sparkles,
+    tint: "violet",
     title: "AI-аудит по запросу",
-    text: "Перед покупкой можно заказать независимый разбор кода нейросетью за ₽390 — она ищет уязвимости и несоответствия описанию.",
+    desc: "Перед покупкой можно заказать независимый разбор кода нейросетью за 390 ₽ — она ищет уязвимости и несоответствия описанию.",
+    icon: <Sparkles className="h-5 w-5" />,
   },
 ]
 
+const BOX = {
+  cyan: "bg-cyan/[0.08] border-cyan/20 text-cyan",
+  violet: "bg-violet/10 border-violet/[0.22] text-violet",
+} as const
+
 export function SafetyBlock() {
   return (
-    <section className="border-y border-border bg-card/40">
-      <div className="mx-auto max-w-5xl px-4 py-16">
-        <h2 className="text-center text-2xl font-bold text-foreground">Почему на ПОЛКЕ безопасно</h2>
-        <p className="mt-2 text-center text-muted-foreground">
-          Маркетплейс готовых программ — это риск нарваться на вредонос. Мы закрыли его системно.
-        </p>
-
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
-          {ITEMS.map((item, i) => (
-            <div key={i} className="flex gap-4 rounded-lg border border-border bg-card p-5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <item.icon className="h-5 w-5" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-semibold text-foreground">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.text}</p>
-              </div>
+    <section className="mx-auto max-w-6xl px-4 pt-24">
+      <SectionHead
+        kicker="// безопасность"
+        title="Почему на ПОЛКЕ безопасно"
+        sub="Маркетплейс чужого кода — это риск нарваться на вредонос. Мы закрыли его системно, на каждом шаге."
+        wide
+      />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        {ITEMS.map((it) => (
+          <div key={it.title} className="flex items-start gap-5 rounded-2xl border border-border bg-card p-6 transition-colors hover:border-deep/40">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${BOX[it.tint]}`}>{it.icon}</div>
+            <div>
+              <h3 className="mb-2 text-[17px] font-bold text-foreground">{it.title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{it.desc}</p>
             </div>
-          ))}
-        </div>
-
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Подробнее о проверке —{" "}
-          <Link href="/catalog" className="text-primary underline-offset-2 hover:underline">
-            смотрите каталог
-          </Link>
-        </p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-9 text-center text-sm text-muted-foreground">
+        Подробнее о проверке —{" "}
+        <Link href="/catalog" className="text-violet transition-colors hover:text-violet/80">
+          смотрите каталог
+        </Link>
       </div>
     </section>
   )

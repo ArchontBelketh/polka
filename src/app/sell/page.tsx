@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { IncomeCalculator } from "@/components/landing/IncomeCalculator"
 import { Upload, ScanLine, UserCheck, TrendingUp, Check, X, ArrowRight } from "lucide-react"
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 export const metadata: Metadata = {
   title: "Продавать на ПОЛКЕ — заработок на готовых скриптах",

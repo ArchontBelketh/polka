@@ -9,17 +9,17 @@ import { CategoryGrid } from "@/components/landing/CategoryGrid"
 import { DeveloperCTA } from "@/components/landing/DeveloperCTA"
 import type { Category } from "@/types"
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 // Trust numbers don't need to be realtime
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: "ПОЛКА — маркетплейс готовых программ с проверкой кода",
+  title: "CYBERПОЛКА — маркетплейс готовых программ с проверкой кода",
   description:
     "Telegram-боты, парсеры, Excel- и 1С-скрипты, автоматизация. Код каждого продукта проходит сканирование и модерацию. Эскроу 7 дней, споры и возвраты.",
   openGraph: {
-    title: "ПОЛКА — маркетплейс готовых программ с проверкой кода",
+    title: "CYBERПОЛКА — маркетплейс готовых программ с проверкой кода",
     description:
       "Готовые программные продукты для бизнеса с проверкой кода, эскроу и возвратами.",
     url: APP_URL,
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ПОЛКА — маркетплейс готовых программ с проверкой кода",
+    title: "CYBERПОЛКА — маркетплейс готовых программ с проверкой кода",
     description: "Готовые программы для бизнеса с проверкой кода, эскроу и возвратами.",
     images: [`${APP_URL}/og-default.svg`],
   },

@@ -1,7 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#09090b"/>
-  <rect x="60" y="60" width="1080" height="510" rx="16" fill="#18181b" stroke="#27272a" stroke-width="1"/>
-  <text x="600" y="270" font-family="system-ui,-apple-system,sans-serif" font-size="96" font-weight="700" fill="#fafafa" text-anchor="middle">ПОЛКА</text>
-  <text x="600" y="360" font-family="system-ui,-apple-system,sans-serif" font-size="32" fill="#71717a" text-anchor="middle">Маркетплейс готовых программных продуктов</text>
-  <text x="600" y="430" font-family="system-ui,-apple-system,sans-serif" font-size="22" fill="#3f3f46" text-anchor="middle">Telegram-боты · Парсеры · Excel-скрипты · Автоматизация</text>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="28%" r="60%">
+      <stop offset="0" stop-color="#6c4bf5" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#0a0912" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0a0912"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect x="60" y="60" width="1080" height="510" rx="22" fill="#110f1c" stroke="#221e38" stroke-width="1.5"/>
+  <text x="600" y="290" font-family="'Tektur',system-ui,sans-serif" font-size="104" font-weight="800" text-anchor="middle">
+    <tspan fill="#34e6e0">CYBER</tspan><tspan fill="#edeaf7">ПОЛКА</tspan>
+  </text>
+  <text x="600" y="372" font-family="'Exo 2',system-ui,sans-serif" font-size="32" fill="#9a95ad" text-anchor="middle">Маркетплейс готовых программ с проверкой кода</text>
+  <text x="600" y="438" font-family="'JetBrains Mono',monospace" font-size="22" fill="#6b6781" text-anchor="middle">Telegram-боты · Парсеры · Excel / 1С · Автоматизация</text>
 </svg>

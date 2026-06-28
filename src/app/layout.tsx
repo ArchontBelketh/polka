@@ -1,6 +1,4 @@
 import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { Suspense } from "react"
 import { Navbar } from "@/components/layout/Navbar"
@@ -9,8 +7,8 @@ import { EmailVerifyBar } from "@/components/layout/EmailVerifyBar"
 import { FeedbackWidgetWrapper } from "@/components/layout/FeedbackWidgetWrapper"
 
 export const metadata: Metadata = {
-  title: "Полка — маркетплейс программных продуктов",
-  description: "Готовые программные продукты для российского бизнеса: Telegram-боты, парсеры, Excel-скрипты, автоматизация.",
+  title: "CYBERПОЛКА — маркетплейс готовых программ",
+  description: "Готовые программные продукты для российского бизнеса: Telegram-боты, парсеры, Excel-скрипты, автоматизация. С проверкой кода, эскроу и возвратами.",
 }
 
 export default function RootLayout({
@@ -24,7 +22,7 @@ export default function RootLayout({
     process.env.MAINTENANCE_MODE === "1" || process.env.MAINTENANCE_MODE === "true"
 
   return (
-    <html lang="ru" className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased dark`}>
+    <html lang="ru" className="h-full antialiased dark">
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {maintenance ? (
           children

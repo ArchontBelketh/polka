@@ -182,7 +182,7 @@ export interface MaintenancePageProps {
 }
 
 export default function MaintenancePage({
-  supportEmail = "support@polka.ru",
+  supportEmail = "support@cyberpolka.store",
   statusUrl = "#",
 }: MaintenancePageProps) {
   const [hover, setHover] = React.useState<string | null>(null)
@@ -213,7 +213,9 @@ export default function MaintenancePage({
             <path d="M3.27 6.96 12 12.01l8.73-5.05" />
             <path d="M12 22.08V12" />
           </svg>
-          <span style={styles.brandName}>Полка</span>
+          <span style={styles.brandName}>
+            <span style={{ color: ACCENT_LIGHT }}>CYBER</span>ПОЛКА
+          </span>
         </div>
         <a href={statusUrl} style={styles.statusLink}>
           <span style={styles.statusDot} />
@@ -284,7 +286,7 @@ export default function MaintenancePage({
 
       {/* footer */}
       <footer style={styles.footer}>
-        <span>© {new Date().getFullYear()} ПОЛКА</span>
+        <span>© {new Date().getFullYear()} CYBERПОЛКА</span>
         <span>{supportEmail}</span>
       </footer>
     </div>

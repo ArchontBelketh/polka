@@ -11,14 +11,73 @@
 #    6. настраивает nginx + бесплатный HTTPS (Let's Encrypt);
 #    7. включает firewall и проверяет здоровье.
 #
-#  Запуск (от root):   sudo bash scripts/server-setup.sh
-#  Повторный запуск безопасен (идемпотентно) — например после правки .env.
-#
-#  Необязательно можно задать значения заранее, без вопросов:
-#    sudo DOMAIN=polka.ru LETSENCRYPT_EMAIL=me@polka.ru ADMIN_EMAIL=admin@polka.ru \
-#         bash scripts/server-setup.sh
+#  КАК ПОЛЬЗОВАТЬСЯ:
+#    1. Заполните блок «НАСТРОЙКИ» ниже своими значениями (что не нужно — оставьте пустым).
+#    2. Запустите от root:   sudo bash scripts/server-setup.sh
+#  Повторный запуск безопасен (идемпотентно) — впишете новые значения и запустите снова.
+#  Пустые поля не затирают то, что уже есть в .env. Секреты (пароль БД, ключи
+#  сессий) генерируются автоматически — их в блоке нет.
 # =============================================================================
 set -euo pipefail
+
+# ╔════════════════════════════════════════════════════════════════════════════╗
+# ║                          Н А С Т Р О Й К И                                  ║
+# ║   Впишите свои значения. Пустые поля = функция выключена, допишете позже.   ║
+# ╚════════════════════════════════════════════════════════════════════════════╝
+
+# ── Обязательно ───────────────────────────────────────────────────────────────
+CFG_DOMAIN="cyberpolka.store"                 # БЕЗ https:// — только домен
+CFG_LETSENCRYPT_EMAIL="admin@cyberpolka.store"  # email для уведомлений о TLS
+CFG_ADMIN_EMAIL="admin@cyberpolka.store"        # email первого администратора
+CFG_ADMIN_PASSWORD=""                          # пусто = сгенерируется и покажется
+
+# ── Хранилище файлов (Yandex Object Storage) ──────────────────────────────────
+CFG_YANDEX_S3_ACCESS_KEY=""
+CFG_YANDEX_S3_SECRET_KEY=""
+CFG_YANDEX_S3_BUCKET="cyberpolka"
+CFG_YANDEX_S3_ENDPOINT="https://storage.yandexcloud.net"
+CFG_YANDEX_S3_REGION="ru-central1"
+
+# ── Платежи (ЮKassa) ──────────────────────────────────────────────────────────
+CFG_YOOKASSA_SHOP_ID=""
+CFG_YOOKASSA_SECRET_KEY=""
+
+# ── Telegram (Login Widget + уведомления) ─────────────────────────────────────
+CFG_TELEGRAM_BOT_TOKEN=""
+CFG_TELEGRAM_BOT_SECRET=""
+CFG_NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=""        # без @, напр. cyberpolka_bot
+
+# ── Почта (SMTP) ──────────────────────────────────────────────────────────────
+CFG_SMTP_HOST="smtp.yandex.ru"
+CFG_SMTP_PORT="465"
+CFG_SMTP_SECURE="true"
+CFG_SMTP_USER="support@cyberpolka.store"
+CFG_SMTP_PASS=""
+CFG_SMTP_FROM='"ПОЛКА" <support@cyberpolka.store>'
+
+# ── Ограничение доменов почты при регистрации (необязательно) ─────────────────
+CFG_ALLOWED_EMAIL_DOMAINS=""                    # напр. "yandex.ru, gmail.com"
+CFG_NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS=""        # держите в синхроне с предыдущей
+
+# ── AI-ревью кода (необязательно) ─────────────────────────────────────────────
+CFG_AI_REVIEW_PROVIDER="disabled"               # gemini | ollama | yandexgpt | disabled
+CFG_GEMINI_API_KEY=""
+
+# ── VirusTotal (необязательно) ────────────────────────────────────────────────
+CFG_VIRUSTOTAL_API_KEY=""
+
+# ── Sentry (необязательно) ────────────────────────────────────────────────────
+CFG_SENTRY_DSN=""
+CFG_NEXT_PUBLIC_SENTRY_DSN=""
+
+# ── Прочее ────────────────────────────────────────────────────────────────────
+CFG_SUPPORT_EMAIL="support@cyberpolka.store"
+CFG_STATUS_URL=""
+CFG_COMMISSION_RATE="0.20"
+CFG_ESCROW_DAYS="7"
+CFG_MAINTENANCE_MODE=""                          # "1" — включить страницу техработ
+
+# ╚══════════════════════════ конец настроек ══════════════════════════════════╝
 
 # ── Перейти в корень проекта (рядом лежат docker-compose.yml и .env) ──────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -48,10 +107,18 @@ env_get() {
 }
 env_set() {
   local key="$1" val="$2" tmp
+  val="${val//\\/\\\\}"   # экранируем обратные слэши
+  val="${val//\"/\\\"}"   # и кавычки — чтобы значения вида "ПОЛКА" <...> не ломали .env
   tmp="$(mktemp)"
   grep -v -E "^${key}=" .env > "$tmp" 2>/dev/null || true
   printf '%s="%s"\n' "$key" "$val" >> "$tmp"
   mv "$tmp" .env
+}
+# Записать значение в .env, только если оно непустое (пустые поля не затирают .env).
+apply() {
+  local key="$1" val="$2"
+  [ -n "$val" ] && env_set "$key" "$val"
+  return 0
 }
 # Спросить значение, если оно пустое/плейсхолдер. Приоритет: env-переменная → .env → вопрос.
 resolve() {
@@ -101,8 +168,46 @@ if [ ! -f .env ]; then
   c_ok "Создал .env из шаблона."
 fi
 
+# Переносим значения из блока НАСТРОЙКИ в .env (пустые — пропускаем)
+c_info "Записываю значения из блока НАСТРОЙКИ в .env…"
+apply ADMIN_PASSWORD                     "$CFG_ADMIN_PASSWORD"
+apply YANDEX_S3_ACCESS_KEY               "$CFG_YANDEX_S3_ACCESS_KEY"
+apply YANDEX_S3_SECRET_KEY               "$CFG_YANDEX_S3_SECRET_KEY"
+apply YANDEX_S3_BUCKET                   "$CFG_YANDEX_S3_BUCKET"
+apply YANDEX_S3_ENDPOINT                 "$CFG_YANDEX_S3_ENDPOINT"
+apply YANDEX_S3_REGION                   "$CFG_YANDEX_S3_REGION"
+apply YOOKASSA_SHOP_ID                   "$CFG_YOOKASSA_SHOP_ID"
+apply YOOKASSA_SECRET_KEY                "$CFG_YOOKASSA_SECRET_KEY"
+apply TELEGRAM_BOT_TOKEN                 "$CFG_TELEGRAM_BOT_TOKEN"
+apply TELEGRAM_BOT_SECRET                "$CFG_TELEGRAM_BOT_SECRET"
+apply NEXT_PUBLIC_TELEGRAM_BOT_USERNAME  "$CFG_NEXT_PUBLIC_TELEGRAM_BOT_USERNAME"
+apply SMTP_HOST                          "$CFG_SMTP_HOST"
+apply SMTP_PORT                          "$CFG_SMTP_PORT"
+apply SMTP_SECURE                        "$CFG_SMTP_SECURE"
+apply SMTP_USER                          "$CFG_SMTP_USER"
+apply SMTP_PASS                          "$CFG_SMTP_PASS"
+apply SMTP_FROM                          "$CFG_SMTP_FROM"
+apply ALLOWED_EMAIL_DOMAINS              "$CFG_ALLOWED_EMAIL_DOMAINS"
+apply NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS  "$CFG_NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS"
+apply AI_REVIEW_PROVIDER                 "$CFG_AI_REVIEW_PROVIDER"
+apply GEMINI_API_KEY                     "$CFG_GEMINI_API_KEY"
+apply VIRUSTOTAL_API_KEY                 "$CFG_VIRUSTOTAL_API_KEY"
+apply SENTRY_DSN                         "$CFG_SENTRY_DSN"
+apply NEXT_PUBLIC_SENTRY_DSN             "$CFG_NEXT_PUBLIC_SENTRY_DSN"
+apply SUPPORT_EMAIL                      "$CFG_SUPPORT_EMAIL"
+apply STATUS_URL                         "$CFG_STATUS_URL"
+apply COMMISSION_RATE                    "$CFG_COMMISSION_RATE"
+apply ESCROW_DAYS                        "$CFG_ESCROW_DAYS"
+apply MAINTENANCE_MODE                   "$CFG_MAINTENANCE_MODE"
+chmod 600 .env
+c_ok "Значения записаны."
+
 # ── 3. Домен / email / админ ─────────────────────────────────────────────────
 c_info "Параметры домена и администратора…"
+# Значения берём из блока НАСТРОЙКИ; если там пусто — resolve спросит/возьмёт из .env
+DOMAIN="$CFG_DOMAIN"
+LETSENCRYPT_EMAIL="$CFG_LETSENCRYPT_EMAIL"
+ADMIN_EMAIL="$CFG_ADMIN_EMAIL"
 resolve DOMAIN            "Домен (A-запись уже указывает на этот сервер), напр. polka.ru"
 resolve LETSENCRYPT_EMAIL "Email для уведомлений Let's Encrypt" "admin@${DOMAIN}"
 resolve ADMIN_EMAIL       "Email первого администратора"        "admin@${DOMAIN}"

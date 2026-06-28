@@ -16,7 +16,7 @@ interface CatalogPageProps {
   }>
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 export const metadata = {
   title: "Каталог — ПОЛКА",

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { ProductCard } from "@/components/catalog/ProductCard"
+import { Kicker, ArrowRight } from "./SectionHead"
 import type { Product } from "@/types"
 
 type FeaturedProduct = Pick<
@@ -15,18 +16,20 @@ export function FeaturedRow({ products }: FeaturedRowProps) {
   if (products.length === 0) return null
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16">
-      <div className="flex items-end justify-between">
+    <section className="mx-auto max-w-7xl px-4 pt-4">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Популярное</h2>
-          <p className="mt-1 text-muted-foreground">Продукты, которые покупают чаще всего</p>
+          <Kicker>{"// топ продаж"}</Kicker>
+          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">Популярное</h2>
+          <p className="mt-2 text-muted-foreground">Продукты, которые покупают чаще всего</p>
         </div>
-        <Link href="/catalog?sort=popular" className="text-sm text-primary underline-offset-2 hover:underline">
-          Весь каталог →
+        <Link href="/catalog?sort=popular" className="inline-flex items-center gap-1.5 font-semibold text-violet transition-colors hover:text-violet/80">
+          Весь каталог
+          <ArrowRight />
         </Link>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

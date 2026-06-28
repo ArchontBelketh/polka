@@ -13,7 +13,7 @@ const sendSchema = z.object({
 
 const PARTICIPANT_STATUSES = ["PAID", "DELIVERED", "DISPUTED", "REFUNDED"]
 const WRITABLE_STATUSES = ["PAID", "DELIVERED", "DISPUTED"]
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 async function loadThread(id: string) {
   return db.purchase.findUnique({

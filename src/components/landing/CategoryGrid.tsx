@@ -1,7 +1,23 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
-import { CATEGORY_LABELS, CATEGORY_ICONS, type Category } from "@/types"
+import { Bot, Search, Table2, Workflow, Globe } from "lucide-react"
+import { CATEGORY_LABELS, type Category } from "@/types"
+import { SectionHead } from "./SectionHead"
 
 const ORDER: Category[] = ["TELEGRAM", "PARSER", "EXCEL", "AUTOMATION", "WEB"]
+
+const META: Record<Category, { tint: "cyan" | "violet"; icon: ReactNode }> = {
+  TELEGRAM: { tint: "violet", icon: <Bot className="h-6 w-6" /> },
+  PARSER: { tint: "cyan", icon: <Search className="h-6 w-6" /> },
+  EXCEL: { tint: "violet", icon: <Table2 className="h-6 w-6" /> },
+  AUTOMATION: { tint: "cyan", icon: <Workflow className="h-6 w-6" /> },
+  WEB: { tint: "violet", icon: <Globe className="h-6 w-6" /> },
+}
+
+const BOX = {
+  cyan: "bg-cyan/[0.08] border-cyan/20 text-cyan",
+  violet: "bg-violet/10 border-violet/[0.22] text-violet",
+} as const
 
 interface CategoryGridProps {
   counts: Record<Category, number>
@@ -18,23 +34,22 @@ function plural(n: number, one: string, few: string, many: string) {
 
 export function CategoryGrid({ counts }: CategoryGridProps) {
   return (
-    <section className="mx-auto max-w-5xl px-4 py-16">
-      <h2 className="text-center text-2xl font-bold text-foreground">Категории</h2>
-      <p className="mt-2 text-center text-muted-foreground">Найдите готовое решение под свою задачу</p>
-
-      <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+    <section className="mx-auto max-w-6xl px-4 pt-24">
+      <SectionHead kicker="// каталог" title="Категории" sub="Найдите готовое решение под свою задачу" />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {ORDER.map((cat) => {
           const count = counts[cat] ?? 0
+          const m = META[cat]
           return (
             <Link
               key={cat}
               href={`/catalog?category=${cat}`}
-              className="group flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-6 text-center transition-colors hover:border-primary/50"
+              className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-7 text-center transition-all duration-200 hover:-translate-y-1 hover:border-deep/40 hover:bg-accent/40"
             >
-              <span className="text-4xl transition-transform group-hover:scale-110">{CATEGORY_ICONS[cat]}</span>
-              <span className="text-sm font-medium text-foreground">{CATEGORY_LABELS[cat]}</span>
-              <span className="text-xs text-muted-foreground">
-                {count} {plural(count, "продукт", "продукта", "продуктов")}
+              <div className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${BOX[m.tint]}`}>{m.icon}</div>
+              <span className="text-[15px] font-bold text-foreground">{CATEGORY_LABELS[cat]}</span>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {count > 0 ? `${count} ${plural(count, "продукт", "продукта", "продуктов")}` : "скоро"}
               </span>
             </Link>
           )

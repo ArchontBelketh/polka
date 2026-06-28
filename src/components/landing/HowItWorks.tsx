@@ -1,40 +1,47 @@
+import type { ReactNode } from "react"
 import { Search, CreditCard, Download } from "lucide-react"
+import { SectionHead } from "./SectionHead"
 
-const STEPS = [
+const STEPS: { n: string; tint: "cyan" | "violet"; title: string; desc: string; icon: ReactNode }[] = [
   {
-    icon: Search,
+    n: "1",
+    tint: "violet",
     title: "Выбрали продукт",
-    text: "В каталоге видно, что входит в покупку, системные требования и отзывы. До покупки можно задать вопрос автору.",
+    desc: "В карточке видно, что входит в покупку, системные требования и отзывы. До оплаты можно задать вопрос автору.",
+    icon: <Search className="h-5 w-5" />,
   },
   {
-    icon: CreditCard,
+    n: "2",
+    tint: "cyan",
     title: "Оплатили",
-    text: "Деньги замораживаются в эскроу на 7 дней. Если продукт не работает — вы оформляете возврат, не теряя ни рубля.",
+    desc: "Деньги замораживаются в эскроу на 7 дней. Не заработало — оформляете возврат, не теряя ни рубля.",
+    icon: <CreditCard className="h-5 w-5" />,
   },
   {
-    icon: Download,
+    n: "3",
+    tint: "violet",
     title: "Скачали и запустили",
-    text: "Файлы доступны сразу после оплаты вместе с инструкцией по установке. Что-то не запустилось — пишете разработчику.",
+    desc: "Файлы и инструкция доступны сразу после оплаты. Что-то не запустилось — пишете разработчику в чат.",
+    icon: <Download className="h-5 w-5" />,
   },
 ]
 
+const BOX = {
+  cyan: "bg-cyan/[0.08] border-cyan/20 text-cyan",
+  violet: "bg-violet/10 border-violet/[0.22] text-violet",
+} as const
+
 export function HowItWorks() {
   return (
-    <section className="mx-auto max-w-5xl px-4 py-16">
-      <h2 className="text-center text-2xl font-bold text-foreground">Как это работает</h2>
-      <p className="mt-2 text-center text-muted-foreground">Три шага от выбора до запуска</p>
-
-      <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-        {STEPS.map((step, i) => (
-          <div key={i} className="relative rounded-lg border border-border bg-card p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <step.icon className="h-5 w-5" />
-              </div>
-              <span className="text-3xl font-bold text-muted-foreground/20">{i + 1}</span>
-            </div>
-            <h3 className="font-semibold text-foreground">{step.title}</h3>
-            <p className="text-sm text-muted-foreground">{step.text}</p>
+    <section className="mx-auto max-w-6xl px-4 pt-24">
+      <SectionHead kicker="// процесс" title="Как это работает" sub="Три шага от выбора до запуска" />
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        {STEPS.map((s) => (
+          <div key={s.n} className="relative overflow-hidden rounded-2xl border border-border bg-card p-7">
+            <span className="absolute right-6 top-4 font-display text-6xl font-extrabold leading-none text-accent">{s.n}</span>
+            <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-xl border ${BOX[s.tint]}`}>{s.icon}</div>
+            <h3 className="mb-2.5 text-lg font-bold text-foreground">{s.title}</h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
           </div>
         ))}
       </div>

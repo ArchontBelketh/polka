@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { Package } from "lucide-react"
 
 const COLUMNS = [
   {
@@ -37,38 +36,52 @@ const COLUMNS = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/30">
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-5">
-          <div className="col-span-2 space-y-3 sm:col-span-1">
-            <Link href="/" className="flex items-center gap-2 font-semibold text-foreground">
-              <Package className="h-5 w-5 text-primary" />
-              <span>Полка</span>
-            </Link>
-            <p className="text-sm text-muted-foreground">
-              Маркетплейс готовых программ с проверкой кода.
-            </p>
-          </div>
-
-          {COLUMNS.map((col) => (
-            <div key={col.title} className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
-              <ul className="space-y-2">
-                {col.links.map((link) => (
-                  <li key={link.href}>
-                    <Link href={link.href} className="text-sm text-muted-foreground hover:text-foreground">
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <footer className="mt-24 border-t border-border bg-[#0b0a12]">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-14 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="col-span-2 space-y-4 sm:col-span-3 lg:col-span-1">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-border bg-[#100e1a]">
+              <span className="flex flex-col items-start gap-[2.5px]">
+                <span className="flex items-end gap-[2.5px]">
+                  <span className="font-mono text-[12px] font-extrabold leading-none text-violet">&gt;</span>
+                  <span className="flex items-end gap-[2px]">
+                    <span className="h-[6px] w-[3px] rounded-[1px] bg-cyan" />
+                    <span className="h-[9px] w-[3px] rounded-[1px] bg-violet" />
+                  </span>
+                </span>
+                <span className="h-[2.5px] w-[21px] rounded-[2px] bg-deep" />
+              </span>
+            </span>
+            <span className="text-[15px] font-extrabold tracking-[0.06em]">
+              <span className="text-cyan">CYBER</span>
+              <span className="text-foreground">ПОЛКА</span>
+            </span>
+          </Link>
+          <p className="max-w-[280px] text-sm leading-relaxed text-muted-foreground">
+            Маркетплейс готовых программ с проверкой кода. Эскроу, модерация и возвраты — на каждой сделке.
+          </p>
         </div>
 
-        <div className="mt-10 space-y-1 border-t border-border pt-6 text-xs text-muted-foreground">
+        {COLUMNS.map((col) => (
+          <div key={col.title} className="space-y-4">
+            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground">{col.title}</h3>
+            <ul className="space-y-2.5">
+              {col.links.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-border/60">
+        <div className="mx-auto max-w-7xl space-y-1 px-4 py-6 font-mono text-xs text-muted-foreground">
           <p>[РЕКВИЗИТЫ: ИП/ООО «…», ИНН …, ОГРН(ИП) …, email …] — заменить перед запуском</p>
-          <p>© {new Date().getFullYear()} ПОЛКА — маркетплейс готовых программ</p>
+          <p>© {new Date().getFullYear()} CYBERПОЛКА — маркетплейс готовых программ</p>
         </div>
       </div>
     </footer>

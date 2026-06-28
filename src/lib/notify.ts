@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer"
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 // ── Email transport ────────────────────────────────────────────────────────
 function getMailTransport() {
@@ -23,7 +23,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
   if (!transport || !to) return
   try {
     await transport.sendMail({
-      from: process.env.SMTP_FROM ?? `"ПОЛКА" <noreply@polka.app>`,
+      from: process.env.SMTP_FROM ?? `"CYBERПОЛКА" <noreply@cyberpolka.store>`,
       to,
       subject,
       html,
@@ -358,7 +358,7 @@ export async function notifyPasswordReset(email: string, resetUrl: string): Prom
     <p><a href="${resetUrl}">Задать новый пароль</a></p>
     <p style="color:#888;font-size:12px;">Если вы не запрашивали сброс — просто проигнорируйте это письмо, пароль останется прежним.</p>
   `
-  await sendEmail(email, "Восстановление пароля — ПОЛКА", emailHtml)
+  await sendEmail(email, "Восстановление пароля — CYBERПОЛКА", emailHtml)
 }
 
 export async function notifyEmailVerification(email: string, verifyUrl: string): Promise<void> {
@@ -368,7 +368,7 @@ export async function notifyEmailVerification(email: string, verifyUrl: string):
     <p><a href="${verifyUrl}">Подтвердить email</a></p>
     <p style="color:#888;font-size:12px;">Если вы не регистрировались на ПОЛКЕ — проигнорируйте это письмо.</p>
   `
-  await sendEmail(email, "Подтверждение email — ПОЛКА", emailHtml)
+  await sendEmail(email, "Подтверждение email — CYBERПОЛКА", emailHtml)
 }
 
 export async function notifyPurchaseConfirmed(params: {

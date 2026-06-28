@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   })
   if (!product) return {}
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
   const ogImage = product.screenshots[0]
     ? `${appUrl}/api/og?key=${encodeURIComponent(product.screenshots[0])}`
     : `${appUrl}/og-default.svg`
@@ -109,7 +109,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const hasPurchase = Boolean(purchaseRecord)
   const purchaseId = purchaseRecord?.id ?? null
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://polka.app"
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
   const jsonLd = {
     "@context": "https://schema.org",
