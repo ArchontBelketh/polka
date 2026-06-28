@@ -8,7 +8,7 @@ import { PasswordForm } from "./PasswordForm"
 import { formatPrice } from "@/lib/utils"
 import { ExternalLink } from "lucide-react"
 
-export const metadata = { title: "Настройки — ПОЛКА" }
+export const metadata = { title: "Настройки" }
 
 const ROLE_LABELS: Record<string, string> = {
   BUYER:     "Покупатель",

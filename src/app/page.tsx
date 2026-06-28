@@ -15,7 +15,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: "CYBERПОЛКА — маркетплейс готовых программ с проверкой кода",
+  // Вкладка главной — только «CYBERПОЛКА» (absolute обходит шаблон родителя).
+  title: { absolute: "CYBERПОЛКА" },
   description:
     "Telegram-боты, парсеры, Excel- и 1С-скрипты, автоматизация. Код каждого продукта проходит сканирование и модерацию. Эскроу 7 дней, споры и возвраты.",
   openGraph: {

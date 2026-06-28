@@ -4,7 +4,7 @@ import { SubmitForm } from "./SubmitForm"
 import { SlotGate } from "./SlotGate"
 import { getPlanInfo } from "@/lib/developer-plan"
 
-export const metadata = { title: "Загрузить продукт — ПОЛКА" }
+export const metadata = { title: "Загрузить продукт" }
 
 export default async function SubmitPage() {
   const session = await auth()

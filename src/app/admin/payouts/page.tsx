@@ -7,7 +7,7 @@ import { formatPrice } from "@/lib/utils"
 import { PayoutActions } from "./PayoutActions"
 import { ArrowLeft } from "lucide-react"
 
-export const metadata = { title: "Выплаты — ПОЛКА" }
+export const metadata = { title: "Выплаты" }
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Запрошено",

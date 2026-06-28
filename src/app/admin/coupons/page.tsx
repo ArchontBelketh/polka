@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { CouponForm } from "./CouponForm"
 import { DeactivateButton, DeleteButton } from "./CouponActions"
 
-export const metadata = { title: "Управление купонами — ПОЛКА" }
+export const metadata = { title: "Управление купонами" }
 
 function couponStatus(coupon: {
   expiresAt: Date | null

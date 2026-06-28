@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     : `${appUrl}/og-default.svg`
 
   return {
-    title: `${product.title} — ПОЛКА`,
+    title: `${product.title}`,
     description: product.shortDesc,
     openGraph: {
       title: product.title,

@@ -1,7 +1,7 @@
 import { signOut } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 
-export const metadata = { title: "Аккаунт заблокирован — ПОЛКА" }
+export const metadata = { title: "Аккаунт заблокирован" }
 
 export default function BannedPage() {
   return (

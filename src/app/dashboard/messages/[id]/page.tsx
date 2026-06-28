@@ -16,7 +16,7 @@ const STATUS_LABELS: Record<string, string> = {
   DISPUTED: "Спор",
 }
 
-export const metadata = { title: "Диалог — ПОЛКА" }
+export const metadata = { title: "Диалог" }
 
 export default async function DeveloperThreadPage({ params }: RouteParams) {
   const session = await auth()

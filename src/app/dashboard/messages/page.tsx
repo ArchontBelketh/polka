@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { MessageSquare, ArrowLeft } from "lucide-react"
 
-export const metadata = { title: "Сообщения — ПОЛКА" }
+export const metadata = { title: "Сообщения" }
 
 export default async function DashboardMessagesPage() {
   const session = await auth()

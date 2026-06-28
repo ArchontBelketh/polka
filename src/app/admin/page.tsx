@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { CATEGORY_LABELS } from "@/types"
 import { formatPrice } from "@/lib/utils"
 
-export const metadata = { title: "Рабочий стол — ПОЛКА" }
+export const metadata = { title: "Рабочий стол" }
 
 const ACTION_LABELS: Record<string, string> = {
   APPROVED: "Одобрен",

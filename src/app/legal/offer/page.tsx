@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Публичная оферта — ПОЛКА" }
+export const metadata: Metadata = { title: "Публичная оферта" }
 
 export default function OfferPage() {
   return (

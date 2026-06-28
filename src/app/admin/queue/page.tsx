@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 
-export const metadata = { title: "Очередь модерации — ПОЛКА" }
+export const metadata = { title: "Очередь модерации" }
 
 const PRODUCT_STATUS_LABELS: Record<string, string> = {
   PENDING: "На проверке",

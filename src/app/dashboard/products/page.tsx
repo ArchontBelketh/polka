@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 
-export const metadata = { title: "Мои продукты — ПОЛКА" }
+export const metadata = { title: "Мои продукты" }
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Черновик",

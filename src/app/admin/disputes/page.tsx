@@ -7,7 +7,7 @@ import { formatPrice } from "@/lib/utils"
 import { DisputeResolveActions } from "./DisputeResolveActions"
 import { ArrowLeft, MessageSquare } from "lucide-react"
 
-export const metadata = { title: "Споры — ПОЛКА" }
+export const metadata = { title: "Споры" }
 
 export default async function AdminDisputesPage() {
   const session = await auth()

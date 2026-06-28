@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Пользовательское соглашение — ПОЛКА" }
+export const metadata: Metadata = { title: "Пользовательское соглашение" }
 
 export default function TermsPage() {
   return (

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { BanButton, UnbanButton } from "./UserBanActions"
 import Link from "next/link"
 
-export const metadata = { title: "Пользователи — ПОЛКА" }
+export const metadata = { title: "Пользователи" }
 
 const ROLE_LABELS: Record<string, string> = {
   BUYER: "Покупатель",

@@ -1,6 +1,6 @@
 import { ResetForm } from "./ResetForm"
 
-export const metadata = { title: "Новый пароль — ПОЛКА" }
+export const metadata = { title: "Новый пароль" }
 
 interface ResetPageProps {
   params: Promise<{ token: string }>

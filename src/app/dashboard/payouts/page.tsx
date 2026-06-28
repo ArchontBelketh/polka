@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import { PayoutRequestForm } from "./PayoutRequestForm"
 
-export const metadata = { title: "Вывод средств — ПОЛКА" }
+export const metadata = { title: "Вывод средств" }
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Ожидает",

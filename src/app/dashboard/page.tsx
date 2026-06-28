@@ -9,7 +9,7 @@ import { developerPayout } from "@/lib/escrow"
 import { getPlanInfo } from "@/lib/developer-plan"
 import { PlanSection } from "./PlanSection"
 
-export const metadata = { title: "Кабинет — ПОЛКА" }
+export const metadata = { title: "Кабинет" }
 
 export default async function DashboardPage() {
   const session = await auth()

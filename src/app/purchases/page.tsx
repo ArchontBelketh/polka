@@ -10,7 +10,7 @@ import { Download, Heart, ShoppingBag } from "lucide-react"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { cn } from "@/lib/utils"
 
-export const metadata = { title: "Кабинет покупателя — ПОЛКА" }
+export const metadata = { title: "Кабинет покупателя" }
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Ожидает оплаты",

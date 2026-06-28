@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Политика обработки персональных данных — ПОЛКА" }
+export const metadata: Metadata = { title: "Политика обработки персональных данных" }
 
 export default function PrivacyPage() {
   return (

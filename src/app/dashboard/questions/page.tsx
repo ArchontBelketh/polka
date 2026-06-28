@@ -5,7 +5,7 @@ import Link from "next/link"
 import { AnswerForm } from "@/components/product/AnswerForm"
 import { MessageCircleQuestion, ArrowLeft } from "lucide-react"
 
-export const metadata = { title: "Вопросы — ПОЛКА" }
+export const metadata = { title: "Вопросы" }
 
 export default async function DashboardQuestionsPage() {
   const session = await auth()

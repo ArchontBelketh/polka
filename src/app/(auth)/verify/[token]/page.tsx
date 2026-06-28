@@ -1,6 +1,6 @@
 import { VerifyClient } from "./VerifyClient"
 
-export const metadata = { title: "Подтверждение email — ПОЛКА" }
+export const metadata = { title: "Подтверждение email" }
 
 interface VerifyPageProps {
   params: Promise<{ token: string }>

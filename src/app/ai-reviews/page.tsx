@@ -7,7 +7,7 @@ import { AiReviewCard } from "@/components/product/AiReviewCard"
 import type { AiReviewResult } from "@/lib/ai-review/prompt"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Мои AI-ревью — ПОЛКА" }
+export const metadata: Metadata = { title: "Мои AI-ревью" }
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING:    "Ожидает оплаты",

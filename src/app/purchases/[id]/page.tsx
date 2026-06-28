@@ -28,7 +28,7 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
   DISPUTED: "destructive",
 }
 
-export const metadata = { title: "Покупка — ПОЛКА" }
+export const metadata = { title: "Покупка" }
 
 export default async function PurchaseDetailPage({ params }: RouteParams) {
   const session = await auth()

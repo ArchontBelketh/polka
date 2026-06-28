@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params
   const user = await db.user.findUnique({ where: { id }, select: { name: true } })
   if (!user) return {}
-  return { title: `${user.name ?? "Разработчик"} — ПОЛКА` }
+  return { title: `${user.name ?? "Разработчик"}` }
 }
 
 export default async function DeveloperPage({ params }: PageProps) {

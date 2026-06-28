@@ -19,10 +19,10 @@ interface CatalogPageProps {
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 export const metadata = {
-  title: "Каталог — ПОЛКА",
+  title: "Каталог",
   description: "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация",
   openGraph: {
-    title: "Каталог — ПОЛКА",
+    title: "Каталог",
     description: "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация",
     url: `${APP_URL}/catalog`,
     images: [{ url: `${APP_URL}/og-default.svg`, width: 1200, height: 630 }],
@@ -30,7 +30,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Каталог — ПОЛКА",
+    title: "Каталог",
     description: "Готовые программные продукты для бизнеса",
     images: [`${APP_URL}/og-default.svg`],
   },

@@ -4,7 +4,7 @@ import { db } from "@/lib/db"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 
-export const metadata = { title: "Обращения — ПОЛКА" }
+export const metadata = { title: "Обращения" }
 
 const STATUS_LABELS: Record<string, string> = {
   OPEN: "Открыт",

@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
     select: { version: true, product: { select: { title: true } } },
   })
   if (!v) return {}
-  return { title: `v${v.version} — ${v.product.title} — ПОЛКА` }
+  return { title: `v${v.version} — ${v.product.title}` }
 }
 
 export default async function AdminVersionReviewPage({ params }: RouteParams) {

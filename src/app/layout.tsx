@@ -7,8 +7,20 @@ import { EmailVerifyBar } from "@/components/layout/EmailVerifyBar"
 import { FeedbackWidgetWrapper } from "@/components/layout/FeedbackWidgetWrapper"
 
 export const metadata: Metadata = {
-  title: "CYBERПОЛКА — маркетплейс готовых программ",
+  // Вкладка: по умолчанию (и на главной) — просто «CYBERПОЛКА»;
+  // внутренние страницы добавляют свой раздел: «Каталог — CYBERПОЛКА».
+  title: {
+    default: "CYBERПОЛКА",
+    template: "%s — CYBERПОЛКА",
+  },
   description: "Готовые программные продукты для российского бизнеса: Telegram-боты, парсеры, Excel-скрипты, автоматизация. С проверкой кода, эскроу и возвратами.",
+  // favicon.ico авто-эмитится из src/app; остальное объявляем явно (иначе Next,
+  // увидев metadata.icons, перестаёт авто-линковать icon.svg/apple-icon).
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#6c4bf5" }],
+  },
 }
 
 export default function RootLayout({
