@@ -12,8 +12,9 @@ RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; \
 
 # ── Scanner tools ─────────────────────────────────────────────────────────────
 FROM python:3.12-slim AS scanner-tools
-RUN pip install --no-cache-dir bandit semgrep olevba --break-system-packages || \
-    pip install --no-cache-dir bandit semgrep olevba
+# oletools предоставляет CLI `olevba` (пакета `olevba` в PyPI нет).
+RUN pip install --no-cache-dir bandit semgrep oletools --break-system-packages || \
+    pip install --no-cache-dir bandit semgrep oletools
 
 # ── Builder ───────────────────────────────────────────────────────────────────
 FROM base AS builder

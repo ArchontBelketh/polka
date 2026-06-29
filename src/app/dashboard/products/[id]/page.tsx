@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth"
+import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
 import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +48,18 @@ const LOG_ACTION_LABELS: Record<string, string> = {
   CHANGES_REQUESTED: "Запрошены правки",
   SUSPENDED: "Приостановлен",
   RESTORED: "Восстановлен",
+  AUTO_APPROVED: "Одобрено автоматически",
+  AUTO_REJECTED: "Не пройдена проверка",
+  QUEUED: "На ручной проверке",
+}
+
+// Авто-логи содержат внутренние детали (score, коды правил) — разработчику
+// показываем человекочитаемое описание вместо сырого комментария.
+const AUTO_LOG_MESSAGES: Record<string, string> = {
+  AUTO_APPROVED: "Продукт прошёл автоматическую проверку безопасности и опубликован.",
+  AUTO_REJECTED:
+    "Продукт не прошёл автоматическую проверку безопасности. Подробности придут в уведомлении; при вопросах напишите в поддержку.",
+  QUEUED: "Продукт отправлен на ручную проверку модератором.",
 }
 
 function StatusBanner({ status, reason }: { status: string; reason?: string | null }) {
@@ -127,7 +140,7 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mb-1">
-          <a href="/dashboard/products" className="hover:underline">← Мои продукты</a>
+          <Link href="/dashboard/products" className="hover:underline">← Мои продукты</Link>
         </p>
         <div className="flex items-start justify-between gap-4">
           <h1 className="text-2xl font-semibold">{product.title}</h1>
@@ -272,7 +285,11 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
                   {LOG_ACTION_LABELS[log.action] ?? log.action}
                 </Badge>
                 <div className="space-y-0.5">
-                  {log.comment && <p>{log.comment}</p>}
+                  {AUTO_LOG_MESSAGES[log.action] ? (
+                    <p>{AUTO_LOG_MESSAGES[log.action]}</p>
+                  ) : (
+                    log.comment && <p>{log.comment}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {log.createdAt.toLocaleDateString("ru-RU", {
                       day: "numeric",
