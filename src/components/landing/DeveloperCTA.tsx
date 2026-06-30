@@ -10,10 +10,6 @@ export function DeveloperCTA() {
           <path d="M440 42 H312 L290 64 H188 M312 42 V14 M188 64 L166 86 H64" stroke="#34E6E0" strokeWidth="1.5" strokeLinecap="round" />
           <path d="M440 124 H352 L330 102 H236" stroke="#9D8CFF" strokeWidth="1.5" strokeLinecap="round" />
           <path d="M440 172 H300 L284 156" stroke="#6C4BF5" strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="188" cy="64" r="3.6" fill="none" stroke="#34E6E0" strokeWidth="1.6" />
-          <circle cx="64" cy="86" r="2.8" fill="#34E6E0" />
-          <circle cx="236" cy="102" r="3" fill="#9D8CFF" />
-          <circle cx="312" cy="14" r="2.6" fill="#6C4BF5" />
         </svg>
 
         <div className="relative">
