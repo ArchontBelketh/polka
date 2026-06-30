@@ -48,3 +48,4 @@ next-env.d.ts
 public/fonts
 
 other**
+scanner-test-fixtures**
