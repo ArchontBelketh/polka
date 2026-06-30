@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { limits } from "@/lib/ratelimit"
 import { clientIp } from "@/lib/ip"
+import { guardConfig, checkAccess } from "@/lib/access-guard"
 
 const AUTH_REQUIRED = ["/dashboard", "/submit", "/purchases"]
 const MOD_REQUIRED  = ["/admin"]
@@ -30,6 +31,26 @@ export async function proxy(req: NextRequest) {
 
   // Trusted source (X-Real-IP); never the spoofable first X-Forwarded-For entry
   const ip = clientIp(req) || "anonymous"
+
+  // ── Access guard (анти-VPN / прокси / дата-центр / гео) ───────────────────
+  // Главный рубильник — ACCESS_GUARD_ENABLED. Пока выключен, checkAccess
+  // мгновенно возвращает allowed:true (никаких запросов). Страница /blocked и
+  // health-проба не проверяются, чтобы не было петли и работал мониторинг.
+  if (guardConfig.enabled && pathname !== "/blocked" && pathname !== "/api/health") {
+    const access = await checkAccess(ip)
+    if (!access.allowed) {
+      if (pathname.startsWith("/api/")) {
+        return Response.json(
+          { error: "Доступ ограничен. Похоже, вы используете VPN/прокси." },
+          { status: 403 },
+        )
+      }
+      const url = req.nextUrl.clone()
+      url.pathname = "/blocked"
+      url.searchParams.set("reason", access.reason ?? "vpn")
+      return NextResponse.rewrite(url)
+    }
+  }
 
   // ── Auth guard ─────────────────────────────────────────────────────────
   const needsAuth = AUTH_REQUIRED.some((p) => pathname.startsWith(p))
