@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { limits } from "@/lib/ratelimit"
 import { notifyNewMessage } from "@/lib/notify"
+import { containsContactInfo, CONTACT_BLOCK_MESSAGE } from "@/lib/contact-filter"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -90,6 +91,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 })
   }
   const text = parsed.data.text
+
+  if (containsContactInfo(text)) {
+    return Response.json({ error: CONTACT_BLOCK_MESSAGE }, { status: 400 })
+  }
 
   const { id } = await params
   const purchase = await loadThread(id)
