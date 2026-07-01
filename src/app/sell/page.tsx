@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { auth } from "@/lib/auth"
 import { IncomeCalculator } from "@/components/landing/IncomeCalculator"
-import { Upload, ScanLine, UserCheck, TrendingUp, Check, X, ArrowRight } from "lucide-react"
+import { Upload, ScanLine, UserCheck, TrendingUp, Check, X } from "lucide-react"
+import { SellCta } from "./SellCta"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
@@ -88,7 +88,9 @@ const PLANS = [
   },
 ]
 
-export default function SellPage() {
+export default async function SellPage() {
+  const session = await auth()
+  const role = (session?.user as { role?: string } | undefined)?.role
   return (
     <div className="space-y-4">
       {/* Hero */}
@@ -104,15 +106,7 @@ export default function SellPage() {
             с каждой продажи.
           </p>
           <div className="flex items-center justify-center gap-3">
-            <Button asChild size="lg">
-              <Link href="/submit" className="flex items-center gap-2">
-                Загрузить первый продукт
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/register?role=developer">Создать аккаунт</Link>
-            </Button>
+            <SellCta role={role} />
           </div>
         </div>
       </section>
@@ -232,12 +226,9 @@ export default function SellPage() {
         <p className="text-muted-foreground">
           Загрузка занимает 15 минут. Дальше площадка работает за вас.
         </p>
-        <Button asChild size="lg">
-          <Link href="/submit" className="flex items-center gap-2">
-            Загрузить продукт
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center justify-center">
+          <SellCta role={role} />
+        </div>
       </section>
     </div>
   )

@@ -96,11 +96,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (dbUser?.isBanned) return false
       return true
     },
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         // @ts-expect-error role is added in authorize
         token.role = user.role
+      } else if (trigger === "update" && token.id) {
+        // Роль могла измениться (например, апгрейд покупателя до разработчика) —
+        // перечитываем из БД при вызове session.update() на клиенте.
+        const fresh = await db.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        })
+        if (fresh) token.role = fresh.role
       }
       return token
     },
