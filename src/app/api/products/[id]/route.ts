@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { deleteObject } from "@/lib/s3"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -28,6 +29,17 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: "Нельзя удалить продукт с покупками" }, { status: 409 })
   }
 
+  // Собираем S3-ключи ДО удаления записей (файлы, версии, скриншоты).
+  const [files, versions] = await Promise.all([
+    db.productFile.findMany({ where: { productId: id }, select: { s3Key: true } }),
+    db.productVersion.findMany({ where: { productId: id }, select: { s3Key: true } }),
+  ])
+  const s3Keys = [
+    ...files.map((f) => f.s3Key),
+    ...versions.map((v) => v.s3Key),
+    ...product.screenshots,
+  ].filter(Boolean)
+
   // Delete in dependency order (no cascade on ModerationLog/Review)
   await db.$transaction([
     db.moderationLog.deleteMany({ where: { productId: id } }),
@@ -35,6 +47,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     db.wishlist.deleteMany({ where: { productId: id } }),
     db.product.delete({ where: { id } }),
   ])
+
+  // Подчищаем файлы в S3 (best-effort — БД уже источник истины, ошибки S3 не валят ответ).
+  await Promise.allSettled(s3Keys.map((key) => deleteObject(key)))
 
   return Response.json({ success: true })
 }

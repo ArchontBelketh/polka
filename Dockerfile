@@ -10,12 +10,6 @@ COPY package.json pnpm-lock.yaml* package-lock.json* ./
 RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; \
     else npm ci; fi
 
-# ── Scanner tools ─────────────────────────────────────────────────────────────
-FROM python:3.12-slim AS scanner-tools
-# oletools предоставляет CLI `olevba` (пакета `olevba` в PyPI нет).
-RUN pip install --no-cache-dir bandit semgrep oletools --break-system-packages || \
-    pip install --no-cache-dir bandit semgrep oletools
-
 # ── Builder ───────────────────────────────────────────────────────────────────
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -39,13 +33,13 @@ RUN npm run build
 FROM node:22-slim AS runner
 WORKDIR /app
 
-# Python + scanner tools
+# Python + сканеры (bandit / semgrep / olevba). Ставим ЗДЕСЬ, в runner, тем же
+# python3, который их и запускает — иначе шебанг и site-packages из отдельной
+# стадии не совпадают, и bandit/semgrep не стартуют (отсюда «сканеры не установлены»
+# при физически присутствующих файлах). oletools даёт CLI `olevba`.
 RUN apt-get update && apt-get install -y python3 python3-pip git --no-install-recommends && \
+    pip3 install --no-cache-dir --break-system-packages bandit semgrep oletools && \
     rm -rf /var/lib/apt/lists/*
-COPY --from=scanner-tools /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=scanner-tools /usr/local/bin/bandit /usr/local/bin/bandit
-COPY --from=scanner-tools /usr/local/bin/semgrep /usr/local/bin/semgrep
-COPY --from=scanner-tools /usr/local/bin/olevba  /usr/local/bin/olevba
 
 # v8unpack (1С .epf unpacker) — compiled from source if available
 # RUN git clone --depth=1 https://github.com/e8tools/v8unpack /tmp/v8unpack && \
