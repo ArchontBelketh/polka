@@ -1,5 +1,10 @@
-# ПОЛКА — Технический роадмап
+# CYBERПОЛКА — Технический роадмап
 > Маркетплейс готовых программных продуктов для российского рынка
+
+> **Бренд:** проект переименован «ПОЛКА» → **CYBERПОЛКА** (прод `cyberpolka.store`).
+> Ниже по тексту в исторических записях по неделям местами встречается прежнее имя.
+> **Схема БД управляется через `prisma db push`** — каталога миграций в проекте нет,
+> команды `prisma migrate` в старых разделах ниже заменены на `db push`.
 
 ---
 
@@ -7,14 +12,15 @@
 
 | Слой | Технология |
 |------|-----------|
-| Framework | Next.js 16 (App Router) + TypeScript |
-| База данных | PostgreSQL 15 + Prisma 7 (`@prisma/adapter-pg`) |
-| Аутентификация | NextAuth.js v5 (Telegram OAuth + email) |
+| Framework | Next.js 16 (App Router) + React 19 + TypeScript |
+| База данных | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`, клиент в `src/generated/prisma`) |
+| Аутентификация | NextAuth v5 (JWT): Telegram Login + credentials (email) |
 | Хранилище файлов | Yandex Object Storage (S3-совместимый) |
-| Платежи | ЮKassa SDK |
-| Стили | Tailwind CSS + shadcn/ui |
-| Сканер кода | bandit (Python), semgrep, v8unpack (1С .epf) |
-| Деплой | Hetzner CX21 (~€4/мес) + Docker Compose |
+| Платежи | ЮKassa (REST API) |
+| Стили | Tailwind CSS v4 (`@theme inline`) + Radix-примитивы |
+| Сканер кода | bandit (Python), semgrep, oletools (`olevba`), BSL-паттерны (1С .epf) |
+| AI-ревью / автомодерация | Gemini / Ollama / YandexGPT (провайдер через env) |
+| Деплой | Ubuntu VPS + Docker Compose + nginx + Let's Encrypt |
 
 ---
 
@@ -153,175 +159,39 @@ polka/
 
 ## Схема базы данных (Prisma)
 
-```prisma
-generator client {
-  provider = "prisma-client-js"
-}
+> **Единственный источник правды — [`prisma/schema.prisma`](prisma/schema.prisma).**
+> Раньше здесь дублировался полный дамп схемы; он устаревал быстрее кода, поэтому
+> заменён на карту моделей ниже. Смотрите актуальные поля прямо в файле схемы.
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+**Enum'ы:** `Role` (BUYER/DEVELOPER/MODERATOR/ADMIN), `Category`, `ProductStatus`,
+`ScanStatus`, `PurchaseStatus`, `PayoutStatus`, `TicketCategory`, `TicketStatus`,
+`FileType`, `ProductVersionStatus`.
 
-enum Role         { BUYER DEVELOPER MODERATOR ADMIN }
-enum Category     { TELEGRAM PARSER EXCEL AUTOMATION WEB }
-enum ProductStatus { DRAFT PENDING SCAN_FAILED APPROVED REJECTED SUSPENDED }
-enum ScanStatus   { PENDING CLEAN WARNING BLOCKED }
-enum PurchaseStatus { PENDING PAID DELIVERED REFUNDED DISPUTED }
-enum PayoutStatus  { PENDING PROCESSING PAID }
-enum FileType     { SOURCE BINARY DECOMPILED }
+**Модели:**
 
-model User {
-  id              String    @id @default(cuid())
-  email           String?   @unique
-  emailVerified   DateTime?
-  name            String?
-  telegramId      String?   @unique
-  telegramHandle  String?
-  phone           String?
-  role            Role      @default(BUYER)
-  inn             String?
-  agreedToTerms   Boolean   @default(false)
-  agreedAt        DateTime?
-  balance         Int       @default(0)   // в копейках
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  products        Product[]
-  purchases       Purchase[]
-  reviews         Review[]
-  payouts         Payout[]
-  accounts        Account[]
-  sessions        Session[]
-}
+| Модель | Назначение |
+|--------|-----------|
+| `User` | Пользователь; роль, баланс, telegram/email, `resetTokenHash`, `emailVerifyTokenHash`, бан |
+| `Account`, `Session`, `VerificationToken` | NextAuth |
+| `Product` | Продукт; `riskScore`, `autoDecision`, `aiReviewFlags`, `manuallyVerified`, `installGuide`, `requirements`, `techStack` |
+| `ProductFile` | Файлы продукта; `sha256` (дедуп) |
+| `ProductVersion` | Версии с отдельной модерацией (`autoApproved`, `riskScore`) |
+| `ScanResult` | Результат сканера (`findings`, `toolsRun`) |
+| `ModerationLog` | История модерации (в т.ч. авто-логи AUTO_APPROVED/REJECTED/QUEUED) |
+| `Purchase` | Покупка; эскроу, `downloadCount`, `lastMessageAt` |
+| `PurchaseMessage` | Приватный чат покупатель ↔ разработчик |
+| `ProductQuestion` | Публичный Q&A до покупки |
+| `Review` | Отзывы (уникально по продукту+автор) |
+| `Payout` | Заявки на вывод (PENDING→PROCESSING→PAID/REJECTED) |
+| `Wishlist`, `Coupon` | Избранное, промокоды |
+| `SupportTicket`, `TicketMessage` | Поддержка |
+| `DeveloperPlan`, `SlotPurchase` | Тариф (FREE/PRO, `totalSlots`), докупка слотов |
+| `AiReview` | Заказанные AI-ревью (PENDING→PROCESSING→DONE/FAILED) |
+| `CronHeartbeat` | Отметка успешных прогонов cron (эскроу, AI-ревью) |
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  access_token      String? @db.Text
-  refresh_token     String? @db.Text
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Product {
-  id             String        @id @default(cuid())
-  title          String
-  slug           String        @unique
-  shortDesc      String
-  fullDesc       String        @db.Text
-  category       Category
-  price          Int           // в копейках
-  status         ProductStatus @default(DRAFT)
-  authorId       String
-  features       String[]
-  screenshots    String[]      // S3 keys
-  demoUrl        String?
-  videoUrl       String?
-  targetAudience String?
-  techStack      String[]      @default([])
-  license        String        @default("personal")
-  telegramBotUsername String?
-  rating         Float         @default(0)
-  reviewCount    Int           @default(0)
-  salesCount     Int           @default(0)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  publishedAt    DateTime?
-  author         User          @relation(fields: [authorId], references: [id])
-  files          ProductFile[]
-  purchases      Purchase[]
-  reviews        Review[]
-  scanResult     ScanResult?
-  moderationLogs ModerationLog[]
-
-  @@index([status])
-  @@index([category])
-  @@index([authorId])
-}
-
-model ProductFile {
-  id          String    @id @default(cuid())
-  productId   String
-  s3Key       String
-  fileName    String
-  fileSize    Int
-  fileType    FileType
-  format      String    // .py | .epf | .xlsm | .js | ...
-  createdAt   DateTime  @default(now())
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-}
-
-model ScanResult {
-  id          String     @id @default(cuid())
-  productId   String     @unique
-  status      ScanStatus @default(PENDING)
-  findings    Json       @default("[]")
-  scannedAt   DateTime?
-  toolsRun    String[]
-  product     Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-}
-
-model ModerationLog {
-  id          String   @id @default(cuid())
-  productId   String
-  moderatorId String?
-  action      String   // APPROVED | REJECTED | CHANGES_REQUESTED | SUSPENDED
-  comment     String?
-  createdAt   DateTime @default(now())
-  product     Product  @relation(fields: [productId], references: [id])
-}
-
-model Purchase {
-  id            String         @id @default(cuid())
-  buyerId       String
-  productId     String
-  amount        Int            // в копейках
-  status        PurchaseStatus @default(PENDING)
-  paymentId     String?        // ID платежа в ЮKassa
-  escrowUntil   DateTime?      // дата снятия удержания
-  downloadCount Int            @default(0)
-  createdAt     DateTime       @default(now())
-  paidAt        DateTime?
-  buyer         User           @relation(fields: [buyerId], references: [id])
-  product       Product        @relation(fields: [productId], references: [id])
-
-  @@index([buyerId])
-  @@index([productId])
-}
-
-model Review {
-  id          String   @id @default(cuid())
-  productId   String
-  authorId    String
-  rating      Int      // 1-5
-  text        String   @db.Text
-  createdAt   DateTime @default(now())
-  product     Product  @relation(fields: [productId], references: [id])
-  author      User     @relation(fields: [authorId], references: [id])
-  @@unique([productId, authorId])
-}
-
-model Payout {
-  id          String   @id @default(cuid())
-  developerId String
-  amount      Int      // в копейках
-  status      PayoutStatus @default(PENDING)
-  requestedAt DateTime @default(now())
-  paidAt      DateTime?
-  developer   User     @relation(fields: [developerId], references: [id])
-}
-```
+> Денежные суммы — в копейках (`Int`). `usedSlots` не хранится: считается динамически
+> через `db.product.count`. Поля `riskScore`/`trustScore` у пользователя не хранятся —
+> тир разработчика вычисляется агрегатом по продуктам (см. AUTO_MODERATION.md).
 
 ---
 
@@ -413,13 +283,14 @@ const WARNING = [
 ]
 ```
 
-### Инструменты на сервере (установить при деплое)
+### Инструменты на сервере (ставятся в Dockerfile, стадия runner)
 ```bash
-pip install bandit safety semgrep --break-system-packages
-# v8unpack: собрать из исходников (github.com/e8tools/v8unpack)
-# или использовать OneScript: oscript.io
-pip install olevba  # для .xlsm
+apt-get install -y python3 python3-pip git
+pip3 install --break-system-packages bandit semgrep oletools   # oletools даёт CLI olevba (.xlsm/.docm)
 ```
+> Ставятся в том же `python3`, который их и запускает (иначе шебанг/site-packages
+> из отдельной стадии не совпадают и сканеры не стартуют). `.epf` (1С) проверяются
+> BSL-паттернами; отдельный `v8unpack` в образ не ставится.
 
 ---
 
@@ -472,8 +343,11 @@ GET /api/download/[purchaseId]
 
 ## Docker Compose (docker-compose.yml)
 
+> Ключ `version:` в compose устарел и не используется. В проде поверх базового
+> файла накатывается `docker-compose.prod.yml` (изоляция порта БД, healthcheck,
+> стойкий пароль).
+
 ```yaml
-version: '3.8'
 services:
   db:
     image: postgres:15
@@ -523,9 +397,9 @@ npx shadcn-ui@latest add button input badge card table
 
 # 4. База данных (локально через Docker)
 docker compose up -d db
-npx prisma migrate dev --name init
-npx prisma generate
-npx tsx prisma/seed.ts
+npm run db:push        # схема управляется db push, миграций нет
+npm run db:generate
+npm run db:seed:demo   # демо-данные (dev-only)
 
 # 5. Запуск
 npm run dev
@@ -824,6 +698,6 @@ const prompt = `
 5. **Webhook ЮKassa** — обязательно проверять `X-Idempotence-Key` и IP-адрес
 6. **Сканер** запускается асинхронно — результат пишем в `ScanResult` и уведомляем модератора
 7. **Категория TELEGRAM** имеет доп. поле `telegramBotUsername` для проверки демо-бота
-8. **Формат .epf** — требовать одновременно `.epf` + `.bsl` исходники, diff через v8unpack
-9. **Escrow cron** — на Hetzner нет встроенного планировщика для Next.js; использовать `node-cron` внутри `/api/cron/escrow/route.ts` + системный cron (`crontab`) или GitHub Actions scheduled workflow для вызова эндпоинта
-10. **Сканер в Docker** — `bandit`, `semgrep`, `olevba`, `v8unpack` должны быть в Dockerfile; сканер запускается через `child_process.exec` с таймаутом 60 сек на инструмент
+8. **Формат .epf** — проверяется BSL-паттернами (`Shell(`, `Выполнить(` и т.п.); отдельный v8unpack в образ не ставится
+9. **Escrow cron** — нет встроенного планировщика; системный `crontab` на сервере дёргает `/api/cron/escrow` (раз в час) и `/api/cron/ai-review` (раз в 5 мин) с `x-cron-secret`; каждый прогон пишет `CronHeartbeat`
+10. **Сканер в Docker** — `bandit`, `semgrep`, `oletools` ставятся `pip3 --break-system-packages` в стадии runner (тем же python3, что и запускает); вызов через `child_process` с таймаутом на инструмент

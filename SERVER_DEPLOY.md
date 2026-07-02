@@ -1,4 +1,4 @@
-# Развёртывание ПОЛКИ на сервере — быстрый старт
+# Развёртывание CYBERПОЛКИ на сервере — быстрый старт
 
 Эта инструкция — для свежего сервера **Ubuntu/Debian** с доступом по SSH.
 Разворачивает всё «под ключ»: Docker, PostgreSQL, приложение, nginx и
@@ -78,6 +78,8 @@ nano /opt/polka/.env
 | Письма (SMTP) | `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` |
 | Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_SECRET`, `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` |
 | Ограничение почты при регистрации | `ALLOWED_EMAIL_DOMAINS`, `NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS` |
+| AI-ревью (опционально) | `AI_REVIEW_PROVIDER`, `GEMINI_API_KEY` (или ollama/yandexgpt) |
+| Анти-VPN/гео (опционально) | `ACCESS_GUARD_ENABLED` + тумблеры — см. [access-guard](src/lib/access-guard/README.md) |
 
 После правок применить:
 

@@ -1,6 +1,11 @@
-# ПОЛКА — Маркетплейс готовых программных продуктов
+# CYBERПОЛКА — Маркетплейс готовых программных продуктов
 
-Платформа для продажи и покупки готовых программных решений: Telegram-боты, парсеры, Excel-скрипты, автоматизация, веб-сервисы.
+Платформа для продажи и покупки готовых программных решений: Telegram-боты, парсеры,
+Excel-скрипты, автоматизация, веб-сервисы. Площадка выступает агентом-посредником между
+разработчиком и покупателем: берёт на себя оплату, доставку файлов, эскроу и споры.
+
+> Прод: `https://cyberpolka.store`. Раньше проект назывался «ПОЛКА» — в коде и старых
+> документах местами встречается прежнее имя.
 
 ---
 
@@ -8,169 +13,168 @@
 
 | Слой | Технология |
 |------|-----------|
-| Framework | Next.js 16 (App Router) + TypeScript |
-| База данных | PostgreSQL 15 + Prisma ORM |
-| Аутентификация | NextAuth.js v5 (email + credentials) |
-| Хранилище | Yandex Object Storage (S3-совместимый) |
-| Платежи | ЮKassa REST API |
-| Стили | Tailwind CSS + shadcn/ui |
-| Сканер кода | bandit, semgrep, olevba, v8unpack |
-| Деплой | Hetzner CX21 + Docker Compose |
+| Framework | Next.js 16 (App Router) + React 19 + TypeScript |
+| База данных | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`, клиент в `src/generated/prisma`) |
+| Аутентификация | NextAuth v5 (JWT): credentials (email+пароль) + Telegram Login |
+| Хранилище файлов | Yandex Object Storage (S3-совместимый) |
+| Платежи | ЮKassa (REST API) |
+| Стили | Tailwind CSS v4 (`@theme inline`), самостоятельно захостенные шрифты |
+| Сканер кода | bandit, semgrep, oletools (`olevba`), BSL-паттерны (1С) |
+| AI-ревью / автомодерация | Gemini / Ollama / YandexGPT (провайдер через env) |
+| Почта | SMTP (Yandex 360), nodemailer |
+| Мониторинг | Sentry (все рантаймы) |
+| Деплой | Ubuntu VPS + Docker Compose + nginx + Let's Encrypt |
 
 ---
 
-## Быстрый старт
+## Быстрый старт (локально)
 
 ```bash
 # 1. Зависимости
 npm install
 
-# 2. Поднять БД
+# 2. Поднять БД (Postgres в Docker)
 docker compose up -d db
 
-# 3. Применить миграции и сгенерировать Prisma-клиент
-npx prisma migrate dev
-npx prisma generate
+# 3. Накатить схему и сгенерировать Prisma-клиент
+npm run db:push
+npm run db:generate
 
-# 4. Заполнить тестовыми данными
-npx tsx prisma/seed.ts
+# 4. Демо-данные и тестовые аккаунты (ТОЛЬКО для разработки)
+npm run db:seed:demo                    # демо-продукты
+npx tsx scripts/seed-test-users.ts      # тестовые учётки *@polka.test
 
 # 5. Запустить dev-сервер
-npm run dev
+npm run dev                             # http://localhost:3000
 ```
 
-Скопируйте `.env.example` → `.env.local` и заполните переменные.
+Скопируйте `.env.example` → `.env.local` и заполните переменные. Схема управляется
+через **`prisma db push`** — каталога миграций (`prisma/migrations`) в проекте нет.
+
+> Полный гайд по локальной работе и ручному тестированию — в [TESTING.md](TESTING.md).
 
 ---
 
 ## Переменные среды
 
+Все переменные с комментариями — в `.env.example`. Ключевые:
+
 | Переменная | Описание |
 |-----------|----------|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | Случайная строка (openssl rand -base64 32) |
-| `NEXTAUTH_URL` | Базовый URL приложения |
-| `TELEGRAM_BOT_TOKEN` | Токен бота для уведомлений |
+| `NEXTAUTH_SECRET` / `AUTH_SECRET` | Секрет сессий (`openssl rand -base64 32`) |
+| `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL` | Базовый и публичный URL |
+| `ALLOWED_EMAIL_DOMAINS` | Ограничение доменов при регистрации (напр. `yandex.ru, gmail.com`); пусто — любые |
 | `YANDEX_S3_*` | Ключи и настройки Yandex Object Storage |
-| `YOOKASSA_SHOP_ID` | ID магазина в ЮKassa |
-| `YOOKASSA_SECRET_KEY` | Секретный ключ ЮKassa |
-| `NEXT_PUBLIC_APP_URL` | Публичный URL (для OG-тегов и JSON-LD) |
-| `COMMISSION_RATE` | Комиссия платформы (по умолчанию `0.20`) |
-| `ESCROW_DAYS` | Срок удержания средств (по умолчанию `7`) |
-| `CRON_SECRET` | Секрет для защиты `/api/cron/escrow` |
+| `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` | Реквизиты ЮKassa |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_SECRET` | Бот для входа и уведомлений |
+| `SMTP_*` | Почта (host/port/user/pass/from) |
+| `AI_REVIEW_PROVIDER` | `gemini` \| `ollama` \| `yandexgpt` \| `disabled` (+ ключ провайдера) |
+| `VIRUSTOTAL_API_KEY` | Опционально: hash-lookup в сканере |
+| `ACCESS_GUARD_*` | Анти-VPN/прокси/гео (главный рубильник `ACCESS_GUARD_ENABLED`) — см. [модуль](src/lib/access-guard/README.md) |
+| `CRON_SECRET` | Секрет для cron-эндпоинтов (эскроу, AI-ревью); ≥32 символов |
+| `COMMISSION_RATE`, `ESCROW_DAYS` | Комиссия (`0.20`) и срок эскроу (`7`) |
+| `SENTRY_*` | Мониторинг (опционально) |
 
 ---
 
 ## Деплой
 
+Два пути, оба через Docker Compose на Ubuntu-сервере:
+
+- **С нуля, «под ключ»** (Docker + nginx + HTTPS автоматически) — [SERVER_DEPLOY.md](SERVER_DEPLOY.md):
+  залить `polka-deploy.zip`, заполнить блок настроек в `scripts/server-setup.sh`, запустить.
+- **Подробный справочник** (env, БД, бэкапы, cron, мониторинг, nginx) — [DEPLOY.md](DEPLOY.md).
+
+Обновление версии:
+
 ```bash
-# Первый деплой — создать директорию и скопировать .env.local на сервер
-ssh user@host "mkdir -p /opt/polka"
-scp .env.local user@host:/opt/polka/.env.local
-
-# Деплой
-./scripts/deploy.sh <host> [user]
-# или через переменные среды
-DEPLOY_HOST=1.2.3.4 DEPLOY_USER=root ./scripts/deploy.sh
+bash scripts/make-release.sh                     # собрать polka-deploy.zip локально
+scp polka-deploy.zip USER@IP:/root/
+ssh USER@IP "unzip -o /root/polka-deploy.zip -d /opt/polka"
+# на сервере:
+cd /opt/polka
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
-
-Скрипт выполняет: rsync исходников → `docker compose build` → `prisma migrate deploy` → `docker compose up -d`.
 
 ---
 
 ## Что реализовано
 
-### Неделя 1 — Фундамент
-- Prisma-схема: `User`, `Product`, `Purchase`, `Review`, `Payout`, `ScanResult`, `ModerationLog`
-- NextAuth.js: email/password аутентификация, JWT-сессии
-- Каталог с фильтрацией по категориям и поиском
-- Страница продукта (статика)
-- Navbar, тёмная тема, shadcn/ui компоненты
+**Каталог и продукт**
+- Каталог с поиском, сортировкой, фильтрами по категориям и цене
+- Страница продукта: описание, системные требования, «что входит», скриншот-слайдер,
+  отзывы, публичный Q&A, JSON-LD + OG-теги
+- Профиль разработчика `/developer/[id]`, избранное, промокоды
 
-### Неделя 2 — Загрузка и модерация
-- 5-шаговая форма загрузки продукта (`/submit`)
-- Presigned S3 URL для загрузки файлов и скриншотов
-- Авто-сканер кода: bandit (Python), semgrep, olevba (.xlsm), BSL-паттерны (.epf)
-- Панель модератора: очередь (`/admin/queue`), карточка проверки с результатами сканера
-- API модерации: `APPROVED` / `REJECTED` / `CHANGES_REQUESTED` / `SUSPENDED`
-- Кабинет разработчика: список своих продуктов со статусами (`/dashboard/products`)
+**Загрузка и модерация**
+- Мастер загрузки `/submit` (категория → описание → функции → установка → медиа → цена)
+- Автосканер: bandit / semgrep / oletools / BSL-паттерны + защита от zip-бомб + SHA-256 дедуп
+- **Автомодерация**: risk-score → AUTO_APPROVE / MONITOR / очередь / AUTO_REJECT
+  (см. [docs/AUTO_MODERATION.md](docs/AUTO_MODERATION.md))
+- VirusTotal hash-check (опционально), бейдж «Проверено вручную»
+- Версионирование продуктов с отдельной модерацией версий
 
-### Неделя 3 — Платежи и доставка
-- Интеграция ЮKassa: создание платежа, обработка webhook
-- Эскроу: 7-дневное удержание средств после оплаты
-- Скачивание файла через presigned S3 URL (900 сек, +`downloadCount`)
-- Страница покупок покупателя (`/purchases`) с кнопкой «Скачать»
-- Кабинет разработчика: баланс, эскроу, последние продажи (`/dashboard`)
-- Вывод средств: запрос и история (`/dashboard/payouts`)
-- Cron-эндпоинт для разблокировки эскроу (`/api/cron/escrow`)
+**Платежи и доставка**
+- ЮKassa: создание платежа, верификация webhook по CIDR + `X-Real-IP`
+- Эскроу (7 дней), споры, возвраты, отзывы (только после покупки)
+- Скачивание через одноразовый presigned S3 URL
 
-### Неделя 4 — Запуск
-- Отзывы: POST требует PAID/DELIVERED покупку, пересчёт `Product.rating` атомарно
-- Споры: покупатель открывает, модератор разрешает (`REFUNDED` или `DELIVERED`)
-- Telegram-уведомления разработчику: новая продажа, одобрение/отказ, открытие спора
-- JSON-LD structured data (`SoftwareApplication` + `AggregateRating`) на странице продукта
-- OpenGraph + Twitter Card метаданные на каталоге и страницах продуктов
-- Multi-stage Dockerfile (builder → scanner-tools → runner) с `output: standalone`
-- `scripts/deploy.sh` — деплой на Hetzner через rsync + SSH
+**Коммуникации**
+- Приватный чат покупатель ↔ разработчик (тред на покупку) + эскалация в спор
+- Публичный Q&A до покупки
+- **Фильтр контактов** ([src/lib/contact-filter.ts](src/lib/contact-filter.ts)) — блокирует
+  обмен телефоном/email/мессенджерами в Q&A и приватном чате, ловит обходы
+- Уведомления: Telegram + email (nodemailer)
 
-### После запуска
-- Цветные бейджи стека технологий на карточках каталога и странице продукта
-- Визуальный TechStackPicker: 44 предустановленных тега по группам + кастомные теги
-- `techStack String[]` в схеме (заменил `String?`) — миграция через `prisma db push`
-- Страница профиля разработчика `/developer/[id]` со статистикой
-- Избранное: API готов (`/api/wishlist`), модель `Wishlist` в схеме
-- Промокоды: API валидации готов (`/api/coupons/validate`), модель `Coupon` в схеме
-- Rate limiting: библиотека готова (`src/lib/ratelimit.ts`), 5 пре-настроенных лимитов
-- Поддержка: тикеты (`/support`), admin-панель тикетов (`/admin/support`)
+**Монетизация**
+- Тарифные слоты (2 бесплатных) + докупка слотов + Pro-подписка (комиссия 17%)
+- Самостоятельный апгрейд покупателя до разработчика (`/sell` → «Стать разработчиком»)
+- AI-ревью кода по запросу покупателя (₽390)
+
+**Безопасность и инфраструктура**
+- Восстановление пароля, email-верификация, ограничение доменов регистрации
+- **access-guard**: анти-VPN/прокси/дата-центр/гео с главным рубильником
+- Security-заголовки + CSP-Report-Only, health-эндпоинт, бэкапы, cron-heartbeat, Sentry
+- Юридический контур: оферта / политика / соглашение + чекбокс согласия
+
+**Роли:** BUYER, DEVELOPER, MODERATOR, ADMIN. Тарифы и цены — в [ROADMAP.md](ROADMAP.md#монетизация).
 
 ---
 
-## API
+## Основные API-маршруты
 
 | Метод | URL | Описание | Доступ |
 |-------|-----|----------|--------|
-| GET | `/api/products` | Список продуктов | Все |
-| POST | `/api/products` | Создать черновик | Developer |
+| GET/POST | `/api/products` | Список / создать черновик | Все / Developer |
 | POST | `/api/upload` | Presigned S3 URL | Developer |
 | POST | `/api/scan` | Запустить сканер | Developer/Admin |
 | POST | `/api/moderation/[id]` | Одобрить / отклонить | Moderator |
+| POST | `/api/products/[id]/versions` | Загрузить новую версию | Author |
+| GET/POST | `/api/products/[id]/questions` | Q&A по продукту | Все / Auth |
+| GET/POST | `/api/purchases/[id]/messages` | Приватный чат по покупке | Buyer / Author |
 | POST | `/api/payment/create` | Создать платёж ЮKassa | Buyer |
-| POST | `/api/payment/webhook` | Webhook от ЮKassa | System |
-| GET | `/api/download/[purchaseId]` | Signed S3 URL (15 мин) | Buyer |
-| GET/POST | `/api/reviews` | Список / создать отзыв | All / Buyer |
-| GET/POST | `/api/disputes` | Список / открыть спор | Buyer / Moderator |
-| GET/POST | `/api/payouts` | Список / запросить вывод | Developer |
-| POST | `/api/cron/escrow` | Разблокировать эскроу | Cron (secret) |
+| POST | `/api/payment/webhook` | Webhook ЮKassa (CIDR + X-Real-IP) | System |
+| GET | `/api/download/[purchaseId]` | Одноразовый signed S3 URL | Buyer |
+| GET/POST | `/api/reviews` | Отзывы | Все / Buyer |
+| GET/POST | `/api/disputes` | Споры | Buyer / Moderator |
+| GET/POST | `/api/payouts` | Вывод средств | Developer |
+| POST | `/api/developer/slots` \| `/pro` \| `/upgrade` | Слоты / Pro / апгрейд роли | Developer/Buyer |
+| POST | `/api/ai-review` | Заказать AI-ревью | Buyer |
+| POST | `/api/cron/escrow` \| `/api/cron/ai-review` | Cron-задачи | Cron (secret) |
+| GET | `/api/health` | Healthcheck (`SELECT 1`) | Все |
 
 ---
 
-## Следующие шаги
+## Документация
 
-### Завершить начатое (API готов, нужен UI)
-- [ ] **Кнопка «В избранное»** — добавить на `ProductCard` и страницу продукта; `POST /api/wishlist` уже работает
-- [ ] **Подключить rate limiting** — `src/lib/ratelimit.ts` уже реализован; применить в `/api/upload`, `/api/payment/create`, `/api/reviews`, `/api/coupons/validate`
-- [ ] **Admin-панель промокодов** — CRUD-страница `/admin/coupons`; модель и API валидации уже есть
-
-### Каталог
-- [ ] **Полнотекстовый поиск** — `ILIKE` или `to_tsvector` по `title + shortDesc`; подключить к фильтрам каталога
-- [ ] **Сортировка** — по цене, рейтингу, дате выхода, числу продаж
-- [ ] **Фильтр по цене** — диапазон мин/макс
-
-### Страница продукта
-- [ ] **Слайдер скриншотов** — карусель по массиву `product.screenshots` вместо одного изображения
-
-### Аналитика и управление
-- [ ] **Admin дашборд** — GMV за период, число активных продуктов, новые пользователи, топ продукты
-- [ ] **Версионирование продуктов** — разработчик загружает новую версию файла; покупатели получают уведомление и ссылку на скачивание
-
-### Инфраструктура запуска
-- [ ] **SSL + reverse proxy** — Caddy: `polka.app { reverse_proxy localhost:3000 }`
-- [ ] **Webhook ЮKassa** — зарегистрировать `https://polka.app/api/payment/webhook` в личном кабинете
-- [ ] **Системный cron** — `0 3 * * * curl -X POST https://polka.app/api/cron/escrow -H "x-cron-secret: $CRON_SECRET"`
-- [ ] **Telegram Login Widget** — NextAuth Credentials-провайдер с проверкой init data hash
-
-### Качество
-- [ ] **Email-уведомления** — дублировать Telegram через Resend или nodemailer
-- [ ] **og-default.png** — заглушка в `public/` для OG-тегов каталога
-- [ ] **E2E-тесты** — Playwright: регистрация → загрузка → покупка → скачивание
-- [ ] **Мониторинг** — Sentry в продакшне
+| Файл | О чём |
+|------|-------|
+| [ROADMAP.md](ROADMAP.md) | Технический справочник, схема БД, история по неделям, монетизация |
+| [DEPLOY.md](DEPLOY.md) | Полный гайд деплоя: env, БД, Docker, бэкапы, cron, nginx |
+| [SERVER_DEPLOY.md](SERVER_DEPLOY.md) | Быстрое развёртывание «под ключ» на свежем сервере |
+| [TESTING.md](TESTING.md) | Локальный запуск и ручное тестирование по ролям |
+| [docs/AUTO_MODERATION.md](docs/AUTO_MODERATION.md) | Архитектура автомодерации (risk-score, AI, VirusTotal) |
+| [STOREFRONT_AND_COMMUNICATION.md](STOREFRONT_AND_COMMUNICATION.md) | Спека лендинга, /sell, сообщений, Q&A |
+| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) / [PRODUCTION_FIXES_PLAN.md](PRODUCTION_FIXES_PLAN.md) | Аудит готовности к проду и статус устранения |
+| [src/lib/access-guard/README.md](src/lib/access-guard/README.md) | Модуль анти-VPN/гео |

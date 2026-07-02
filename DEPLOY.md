@@ -1,4 +1,4 @@
-# Инструкция по деплою — ПОЛКА
+# Инструкция по деплою — CYBERПОЛКА
 
 ## Содержание
 1. [Требования](#1-требования)
@@ -27,8 +27,10 @@
 Инструменты сканера (устанавливаются через pip; необязательны, без них продукты уходят в ручную очередь):
 
 ```bash
-pip install bandit semgrep olevba
+pip install bandit semgrep oletools   # oletools даёт CLI olevba (.xlsm/.docm)
 ```
+> В Docker-образе они ставятся автоматически в стадии runner тем же `python3`,
+> который их запускает. `.epf` (1С) проверяются BSL-паттернами без v8unpack.
 
 ---
 
@@ -148,8 +150,30 @@ SMTP_PORT="587"
 SMTP_SECURE="false"
 SMTP_USER="noreply@polka.app"
 SMTP_PASS="..."
-SMTP_FROM="\"ПОЛКА\" <noreply@polka.app>"
+SMTP_FROM="CYBERПОЛКА <support@your-domain.com>"
 ```
+
+> `SMTP_FROM` в `env_file` берётся целиком как значение — кавычки внутри (`\"`)
+> ломают парсинг. Оборачивайте всю строку в двойные кавычки без вложенных.
+
+### Ограничение регистрации и доступа (опционально)
+
+```env
+# Разрешённые домены почты при регистрации (пусто — любые)
+ALLOWED_EMAIL_DOMAINS="yandex.ru, gmail.com"
+NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS="yandex.ru, gmail.com"   # для подсказки на форме
+
+# Анти-VPN/прокси/дата-центр/гео — главный рубильник + тумблеры
+ACCESS_GUARD_ENABLED="1"            # пусто — модуль выключен, нулевые накладные
+ACCESS_GUARD_VPN_API="1"            # блок VPN/прокси по API репутации
+ACCESS_GUARD_ASN="1"                # блок дата-центровых ASN
+ACCESS_GUARD_GEO=""                 # только ACCESS_GUARD_ALLOWED_COUNTRIES
+ACCESS_GUARD_API_PROVIDER="proxycheck"   # proxycheck | vpnapi
+ACCESS_GUARD_API_KEY="..."
+ACCESS_GUARD_ALLOWLIST=""           # свои IP/CIDR в обход
+```
+> Подробно — [src/lib/access-guard/README.md](src/lib/access-guard/README.md). Это
+> рантайм-переменные: меняются без пересборки (`up -d --force-recreate app`).
 
 ### Sentry (опционально)
 
@@ -454,7 +478,7 @@ set -a; . /opt/polka/backup.env; set +a
 
 ## 9. Чеклист после деплоя
 
-- [ ] `https://your-domain.com` открывается, заголовок "Каталог — ПОЛКА"
+- [ ] `https://your-domain.com` открывается, вкладка "CYBERПОЛКА" (внутри — "Каталог — CYBERПОЛКА")
 - [ ] Вход под покупателем, разработчиком, модератором работает
 - [ ] Загрузка файла в форме отправки продукта (S3 подключён)
 - [ ] Сканирование запускается после отправки продукта
