@@ -124,7 +124,7 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
         </div>
         {canDownload && (
           <Button variant="outline" size="sm" asChild className="shrink-0">
-            <Link href={`/api/download/${purchase.id}`}>
+            <Link href={`/purchases/${purchase.id}/download`}>
               <Download className="h-4 w-4 mr-1" />
               Скачать
             </Link>

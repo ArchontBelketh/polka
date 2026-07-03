@@ -40,6 +40,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: "Продукт недоступен для скачивания" }, { status: 403 })
   }
 
+  // Снятый с публикации продукт недоступен даже прошлым покупателям.
+  // Сотрудники (MODERATOR/ADMIN) — в обход, чтобы проверить файл.
+  if (purchase.product.status === "SUSPENDED" && !isAdmin) {
+    return Response.json(
+      { error: "Продукт снят с публикации и недоступен для скачивания" },
+      { status: 403 },
+    )
+  }
+
   // Prefer latest version file over original upload
   const latestVersion = purchase.product.versions[0]
   const originalFile = purchase.product.files[0]

@@ -221,7 +221,7 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
 
                   {canDownload && (
                     <Button variant="outline" size="sm" asChild className="shrink-0">
-                      <Link href={`/api/download/${p.id}`}>
+                      <Link href={`/purchases/${p.id}/download`}>
                         <Download className="h-4 w-4 mr-1" />
                         Скачать
                       </Link>
