@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { notifyProductApproved, notifyProductRejected } from "@/lib/notify"
+import { notifyProductApproved, notifyProductRejected, notifySecurityRecall } from "@/lib/notify"
 
 const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("APPROVED"), comment: z.string().optional() }),
@@ -11,6 +11,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("SUSPENDED"), comment: z.string().min(1, "Укажите причину отзыва") }),
   z.object({ action: z.literal("RESTORED"), comment: z.string().optional() }),
   z.object({ action: z.literal("VERIFIED"), verified: z.boolean() }),
+  z.object({ action: z.literal("SECURITY_NOTICE"), comment: z.string().optional() }),
 ])
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -56,6 +57,33 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       }),
     ])
     return Response.json({ success: true, manuallyVerified: verified })
+  }
+
+  // ── Отзыв по безопасности — рассылка покупателям, статус не меняем ──────────
+  if (parsed.data.action === "SECURITY_NOTICE") {
+    const purchases = await db.purchase.findMany({
+      where: { productId, status: { in: ["PAID", "DELIVERED"] } },
+      select: { buyer: { select: { id: true, telegramId: true, email: true } } },
+    })
+    // Дедуп по покупателю — один человек мог купить продукт не раз
+    const byUser = new Map<string, { telegramId: string | null; email: string | null }>()
+    for (const p of purchases) {
+      byUser.set(p.buyer.id, { telegramId: p.buyer.telegramId, email: p.buyer.email })
+    }
+    const buyers = [...byUser.values()]
+
+    await db.moderationLog.create({
+      data: {
+        productId,
+        moderatorId: session.user.id,
+        action: "SECURITY_NOTICE",
+        comment: parsed.data.comment ?? `Уведомлено покупателей: ${buyers.length}`,
+      },
+    })
+
+    void notifySecurityRecall({ productTitle: product.title, buyers })
+
+    return Response.json({ success: true, notified: buyers.length })
   }
 
   const { action, comment } = parsed.data

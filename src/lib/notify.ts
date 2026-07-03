@@ -216,6 +216,53 @@ export async function notifyNewVersion(params: {
   )
 }
 
+/**
+ * Отзыв по безопасности — предупреждение всем покупателям продукта о том, что
+ * приобретённый продукт снят с площадки из-за вопросов к безопасности.
+ * Текст выверенный: без обвинений, с конкретными действиями.
+ */
+export async function notifySecurityRecall(params: {
+  productTitle: string
+  buyers: Array<{ telegramId: string | null; email: string | null }>
+}): Promise<void> {
+  const supportUrl = `${APP_URL}/support`
+
+  const tgText =
+    `⚠️ <b>Важное уведомление о безопасности</b>\n\n` +
+    `Продукт «${params.productTitle}», который вы приобрели на CYBERПОЛКЕ, снят с площадки: ` +
+    `при проверке к нему возникли вопросы по безопасности.\n\n` +
+    `Если вы уже скачивали или запускали его, рекомендуем:\n` +
+    `• проверить систему антивирусом;\n` +
+    `• если вы вводили пароли или токены от важных сервисов — сменить их;\n` +
+    `• при необходимости восстановить данные из резервной копии.\n\n` +
+    `Вы можете вернуть средства — напишите в поддержку: ${supportUrl}\n\n` +
+    `Приносим извинения за беспокойство. Мы удаляем небезопасные продукты, как только узнаём о проблеме.`
+
+  const emailHtml = `
+    <h2>⚠️ Важное уведомление о безопасности</h2>
+    <p>Продукт «<b>${params.productTitle}</b>», который вы приобрели на CYBERПОЛКЕ,
+       снят с площадки: при проверке к нему возникли вопросы по безопасности.</p>
+    <p>Если вы уже скачивали или запускали его, рекомендуем:</p>
+    <ul>
+      <li>проверить систему антивирусом;</li>
+      <li>если вы вводили пароли или токены от важных сервисов — сменить их;</li>
+      <li>при необходимости восстановить данные из резервной копии.</li>
+    </ul>
+    <p>Вы можете вернуть средства — <a href="${supportUrl}">напишите в поддержку</a>.</p>
+    <p style="color:#888">Приносим извинения за беспокойство. Мы удаляем небезопасные
+       продукты, как только узнаём о проблеме.</p>
+  `
+
+  const subject = `Уведомление о безопасности: ${params.productTitle}`
+
+  await Promise.all(
+    params.buyers.flatMap((buyer) => [
+      buyer.telegramId ? sendTelegram(buyer.telegramId, tgText) : Promise.resolve(),
+      buyer.email ? sendEmail(buyer.email, subject, emailHtml) : Promise.resolve(),
+    ]),
+  )
+}
+
 export async function notifyProductAutoApproved(params: {
   developerTelegramId: string | null
   developerEmail?: string | null

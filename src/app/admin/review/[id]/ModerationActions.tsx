@@ -12,6 +12,91 @@ interface ModerationActionsProps {
 
 type Action = "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "SUSPENDED" | "RESTORED"
 
+/**
+ * Отдельная кнопка «Информировать покупателей» — отзыв по безопасности.
+ * Рассылает всем покупателям продукта выверенное предупреждение. Статус продукта
+ * не меняет (снятие — отдельной кнопкой рядом). Действие исходящее и необратимое,
+ * поэтому с подтверждением.
+ */
+function NotifyBuyersButton({ productId }: { productId: string }) {
+  const [step, setStep] = useState<"idle" | "confirm" | "done">("idle")
+  const [note, setNote] = useState("")
+  const [count, setCount] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function send() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/moderation/${productId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SECURITY_NOTICE", comment: note.trim() || undefined }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(d.error ?? "Ошибка")
+        return
+      }
+      setCount(d.notified ?? 0)
+      setStep("done")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (step === "done") {
+    return (
+      <p className="text-sm text-green-500">
+        Предупреждение отправлено покупателям: {count}.
+      </p>
+    )
+  }
+
+  if (step === "confirm") {
+    return (
+      <div className="space-y-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+        <p className="text-sm text-muted-foreground">
+          Всем покупателям этого продукта уйдёт предупреждение о проблеме безопасности
+          (Telegram и email) с рекомендацией проверить систему и сменить пароли. Отправка
+          необратима.
+        </p>
+        <div className="space-y-1.5">
+          <label className="text-sm text-muted-foreground">
+            Внутренняя пометка для журнала (необязательно, покупателям не показывается)
+          </label>
+          <Textarea
+            placeholder="Например: подтверждён бэкдор в версии 1.2…"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+          />
+        </div>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        <div className="flex gap-3">
+          <Button variant="destructive" onClick={send} disabled={loading}>
+            {loading ? "Отправляем…" : "Отправить предупреждение"}
+          </Button>
+          <Button variant="ghost" onClick={() => { setStep("idle"); setError(null) }} disabled={loading}>
+            Отмена
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Button
+      variant="outline"
+      className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+      onClick={() => setStep("confirm")}
+    >
+      Информировать покупателей о проблеме безопасности
+    </Button>
+  )
+}
+
 export function ModerationActions({ productId, productStatus }: ModerationActionsProps) {
   const router = useRouter()
   const [comment, setComment] = useState("")
@@ -101,6 +186,10 @@ export function ModerationActions({ productId, productStatus }: ModerationAction
             </div>
           </div>
         )}
+
+        <div className="border-t border-border pt-4">
+          <NotifyBuyersButton productId={productId} />
+        </div>
       </section>
     )
   }
@@ -133,6 +222,10 @@ export function ModerationActions({ productId, productStatus }: ModerationAction
         >
           {loading ? "Восстанавливаем…" : "Восстановить в каталог"}
         </Button>
+
+        <div className="border-t border-border pt-4">
+          <NotifyBuyersButton productId={productId} />
+        </div>
       </section>
     )
   }

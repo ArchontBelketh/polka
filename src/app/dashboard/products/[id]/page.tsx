@@ -51,6 +51,7 @@ const LOG_ACTION_LABELS: Record<string, string> = {
   AUTO_APPROVED: "Одобрено автоматически",
   AUTO_REJECTED: "Не пройдена проверка",
   QUEUED: "На ручной проверке",
+  SECURITY_NOTICE: "Уведомление о безопасности",
 }
 
 // Авто-логи содержат внутренние детали (score, коды правил) — разработчику
@@ -60,6 +61,7 @@ const AUTO_LOG_MESSAGES: Record<string, string> = {
   AUTO_REJECTED:
     "Продукт не прошёл автоматическую проверку безопасности. Подробности придут в уведомлении; при вопросах напишите в поддержку.",
   QUEUED: "Продукт отправлен на ручную проверку модератором.",
+  SECURITY_NOTICE: "Покупатели уведомлены о проблеме безопасности этого продукта.",
 }
 
 function StatusBanner({ status, reason }: { status: string; reason?: string | null }) {
