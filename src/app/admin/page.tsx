@@ -111,6 +111,9 @@ export default async function AdminPage() {
               </Button>
             </>
           )}
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/products">Продукты</Link>
+          </Button>
           <Button asChild variant={queueTotal > 0 ? "default" : "outline"}>
             <Link href="/admin/queue">
               Очередь{queueTotal > 0 ? ` (${queueTotal})` : ""}
