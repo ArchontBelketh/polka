@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Markdown } from "@/components/ui/Markdown"
 import { MessageThread, type ThreadMessage } from "@/components/messages/MessageThread"
-import { OpenDisputeButton } from "@/components/messages/OpenDisputeButton"
 import { formatPrice, formatFileSize } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 import { Download, Monitor, FileText, ArrowLeft, MessageSquare } from "lucide-react"
@@ -16,16 +15,14 @@ type RouteParams = { params: Promise<{ id: string }> }
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Ожидает оплаты",
   PAID: "Оплачено",
-  DELIVERED: "Доставлено",
-  REFUNDED: "Возврат",
-  DISPUTED: "Спор",
+  DELIVERED: "Оплачено",
+  REFUNDED: "Отменено",
 }
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PENDING: "outline",
   PAID: "default",
-  DELIVERED: "secondary",
+  DELIVERED: "default",
   REFUNDED: "destructive",
-  DISPUTED: "destructive",
 }
 
 export const metadata = { title: "Покупка" }
@@ -65,10 +62,9 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
 
   // Messaging — only for the buyer; load thread and mark incoming as read
   const isBuyer = purchase.buyerId === session.user.id
-  const THREAD_STATUSES = ["PAID", "DELIVERED", "DISPUTED", "REFUNDED"]
+  const THREAD_STATUSES = ["PAID", "DELIVERED"]
   const showThread = isBuyer && THREAD_STATUSES.includes(purchase.status)
-  const canWrite = ["PAID", "DELIVERED", "DISPUTED"].includes(purchase.status)
-  const canDispute = purchase.status === "PAID" || purchase.status === "DELIVERED"
+  const canWrite = ["PAID", "DELIVERED"].includes(purchase.status)
 
   let initialMessages: ThreadMessage[] = []
   if (showThread) {
@@ -140,17 +136,10 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
               <MessageSquare className="h-4 w-4 text-primary" />
               Связь с разработчиком
             </h2>
-            {canDispute && <OpenDisputeButton purchaseId={purchase.id} />}
           </div>
 
-          {purchase.status === "DISPUTED" && (
-            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              Спор открыт. Модератор рассматривает обращение и переписку — ответ в течение 24 часов.
-            </div>
-          )}
-
           <p className="text-xs text-muted-foreground">
-            Не запускается или есть вопрос по настройке? Напишите автору — это быстрее, чем спор.
+            Не запускается или есть вопрос по настройке? Напишите автору.
             Обмен контактами и оплата мимо платформы запрещены.
           </p>
 

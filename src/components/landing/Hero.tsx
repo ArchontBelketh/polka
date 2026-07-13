@@ -21,7 +21,7 @@ export function Hero() {
 
         <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
           Telegram-боты, парсеры, Excel- и 1С-скрипты, автоматизация. Код каждого продукта проходит
-          автосканирование и ручную модерацию. Деньги — под защитой эскроу на 7 дней.
+          автосканирование и ручную модерацию до публикации в каталоге.
         </p>
 
         {/* поиск → каталог */}

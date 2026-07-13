@@ -147,7 +147,7 @@ export function MessageThread({
         </form>
       ) : (
         <p className="border-t border-border p-3 text-center text-xs text-muted-foreground">
-          Переписка закрыта (покупка завершена возвратом).
+          Переписка закрыта.
         </p>
       )}
     </div>

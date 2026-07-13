@@ -452,13 +452,13 @@ set -a; . /opt/polka/backup.env; set +a
 
 ### Cron-задачи (§1.3)
 
-Без этого **деньги разработчикам не разблокируются** (эскроу) и **оплаченные AI-ревью
-висят в PROCESSING**. `CRON_SECRET` — тот же, что в `.env`.
+Без этого **оплаченные AI-ревью висят в PROCESSING**. (Эскроу отключён — выплаты
+разработчику зачисляются сразу при оплате, отдельный cron для этого не нужен.)
+`CRON_SECRET` — тот же, что в `.env`.
 
 ```cron
 # crontab -e на сервере
 0 3 * * *   set -a; . /opt/polka/backup.env; set +a; /opt/polka/scripts/backup.sh   >> /var/log/polka-backup.log 2>&1
-0 * * * *   curl -fsS -H "x-cron-secret: $CRON_SECRET" https://your-domain.com/api/cron/escrow    >> /var/log/polka-cron.log 2>&1
 */5 * * * * curl -fsS -H "x-cron-secret: $CRON_SECRET" https://your-domain.com/api/cron/ai-review >> /var/log/polka-cron.log 2>&1
 0 * * * *   set -a; . /opt/polka/backup.env; set +a; /opt/polka/scripts/monitor.sh  >> /var/log/polka-monitor.log 2>&1
 ```
@@ -496,7 +496,7 @@ set -a; . /opt/polka/backup.env; set +a
 - [ ] `GET /api/health` отвечает `{ ok: true }`; внешний uptime-мониторинг настроен на него
 - [ ] Security-заголовки присутствуют (`curl -I https://your-domain.com` → HSTS, X-Frame-Options и т.д.)
 - [ ] Порт Postgres не проброшен наружу (прод-override), пароль БД сменён, `ufw` включён
-- [ ] **Cron настроен**: эскроу (раз в час) + AI-ревью (раз в 5 мин); в `/var/log/polka-cron.log` есть успешные вызовы
+- [ ] **Cron настроен**: AI-ревью (раз в 5 мин); в `/var/log/polka-cron.log` есть успешные вызовы
 - [ ] **Бэкапы**: ночной `backup.sh` в отдельный бакет; **проведён проверочный `restore.sh`**; versioning на `polka-files`
 - [ ] `monitor.sh` (ежечасно) шлёт тест-алерт в Telegram при просрочке бэкапа/cron
 

@@ -14,7 +14,7 @@ const STEPS: { n: string; tint: "cyan" | "violet"; title: string; desc: string; 
     n: "2",
     tint: "cyan",
     title: "Оплатили",
-    desc: "Деньги замораживаются в эскроу на 7 дней. Не заработало — оформляете возврат, не теряя ни рубля.",
+    desc: "Оплата картой через защищённую форму ЮKassa — данные карты остаются у платёжной системы.",
     icon: <CreditCard className="h-5 w-5" />,
   },
   {

@@ -2,7 +2,7 @@
 
 Платформа для продажи и покупки готовых программных решений: Telegram-боты, парсеры,
 Excel-скрипты, автоматизация, веб-сервисы. Площадка выступает агентом-посредником между
-разработчиком и покупателем: берёт на себя оплату, доставку файлов, эскроу и споры.
+разработчиком и покупателем: берёт на себя оплату и доставку файлов. Продажи финальные (без эскроу и возвратов).
 
 > Прод: `https://cyberpolka.store`. Раньше проект назывался «ПОЛКА» — в коде и старых
 > документах местами встречается прежнее имя.
@@ -72,8 +72,8 @@ npm run dev                             # http://localhost:3000
 | `AI_REVIEW_PROVIDER` | `gemini` \| `ollama` \| `yandexgpt` \| `disabled` (+ ключ провайдера) |
 | `VIRUSTOTAL_API_KEY` | Опционально: hash-lookup в сканере |
 | `ACCESS_GUARD_*` | Анти-VPN/прокси/гео (главный рубильник `ACCESS_GUARD_ENABLED`) — см. [модуль](src/lib/access-guard/README.md) |
-| `CRON_SECRET` | Секрет для cron-эндпоинтов (эскроу, AI-ревью); ≥32 символов |
-| `COMMISSION_RATE`, `ESCROW_DAYS` | Комиссия (`0.20`) и срок эскроу (`7`) |
+| `CRON_SECRET` | Секрет для cron-эндпоинта AI-ревью; ≥32 символов |
+| `COMMISSION_RATE` | Комиссия площадки (`0.20`) |
 | `SENTRY_*` | Мониторинг (опционально) |
 
 ---
@@ -117,11 +117,12 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 **Платежи и доставка**
 - ЮKassa: создание платежа, верификация webhook по CIDR + `X-Real-IP`
-- Эскроу (7 дней), споры, возвраты, отзывы (только после покупки)
-- Скачивание через одноразовый presigned S3 URL
+- Продажи финальные: деньги за вычетом комиссии зачисляются разработчику **сразу** после оплаты (без эскроу и возвратов)
+- Отзывы (только после покупки)
+- Скачивание через отдельную страницу с инструктажем + одноразовый presigned S3 URL
 
 **Коммуникации**
-- Приватный чат покупатель ↔ разработчик (тред на покупку) + эскалация в спор
+- Приватный чат покупатель ↔ разработчик (тред на покупку)
 - Публичный Q&A до покупки
 - **Фильтр контактов** ([src/lib/contact-filter.ts](src/lib/contact-filter.ts)) — блокирует
   обмен телефоном/email/мессенджерами в Q&A и приватном чате, ловит обходы
@@ -157,11 +158,10 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 | POST | `/api/payment/webhook` | Webhook ЮKassa (CIDR + X-Real-IP) | System |
 | GET | `/api/download/[purchaseId]` | Одноразовый signed S3 URL | Buyer |
 | GET/POST | `/api/reviews` | Отзывы | Все / Buyer |
-| GET/POST | `/api/disputes` | Споры | Buyer / Moderator |
 | GET/POST | `/api/payouts` | Вывод средств | Developer |
 | POST | `/api/developer/slots` \| `/pro` \| `/upgrade` | Слоты / Pro / апгрейд роли | Developer/Buyer |
 | POST | `/api/ai-review` | Заказать AI-ревью | Buyer |
-| POST | `/api/cron/escrow` \| `/api/cron/ai-review` | Cron-задачи | Cron (secret) |
+| POST | `/api/cron/ai-review` | Cron-задача (очередь AI-ревью) | Cron (secret) |
 | GET | `/api/health` | Healthcheck (`SELECT 1`) | Все |
 
 ---

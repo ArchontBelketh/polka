@@ -15,16 +15,14 @@ export const metadata = { title: "Кабинет покупателя" }
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Ожидает оплаты",
   PAID: "Оплачено",
-  DELIVERED: "Доставлено",
-  REFUNDED: "Возврат",
-  DISPUTED: "Спор",
+  DELIVERED: "Оплачено",
+  REFUNDED: "Отменено",
 }
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PENDING: "outline",
   PAID: "default",
-  DELIVERED: "secondary",
+  DELIVERED: "default",
   REFUNDED: "destructive",
-  DISPUTED: "destructive",
 }
 
 interface PageProps {
@@ -205,9 +203,6 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
                       {CATEGORY_LABELS[p.product.category as keyof typeof CATEGORY_LABELS]} ·{" "}
                       {formatPrice(p.amount)} ·{" "}
                       {new Date(p.createdAt).toLocaleDateString("ru-RU")}
-                      {p.escrowUntil && p.status === "PAID" && (
-                        <> · Возврат до {new Date(p.escrowUntil).toLocaleDateString("ru-RU")}</>
-                      )}
                     </p>
                     {canDownload && (
                       <Link

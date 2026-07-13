@@ -12,8 +12,8 @@ const sendSchema = z.object({
   text: z.string().trim().min(1, "Пустое сообщение").max(2000),
 })
 
-const PARTICIPANT_STATUSES = ["PAID", "DELIVERED", "DISPUTED", "REFUNDED"]
-const WRITABLE_STATUSES = ["PAID", "DELIVERED", "DISPUTED"]
+const PARTICIPANT_STATUSES = ["PAID", "DELIVERED"]
+const WRITABLE_STATUSES = ["PAID", "DELIVERED"]
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 async function loadThread(id: string) {

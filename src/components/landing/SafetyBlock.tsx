@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { ScanLine, UserCheck, RotateCcw, Sparkles } from "lucide-react"
+import { ScanLine, UserCheck, ShieldAlert, Sparkles } from "lucide-react"
 import { SectionHead } from "./SectionHead"
 
 const ITEMS: { tint: "cyan" | "violet"; title: string; desc: string; icon: ReactNode }[] = [
@@ -18,9 +18,9 @@ const ITEMS: { tint: "cyan" | "violet"; title: string; desc: string; icon: React
   },
   {
     tint: "cyan",
-    title: "Споры и возвраты",
-    desc: "Оплата держится в эскроу 7 дней. Не соответствует описанию — открываете спор, модератор разбирает переписку и возвращает деньги.",
-    icon: <RotateCcw className="h-5 w-5" />,
+    title: "Снимаем небезопасное",
+    desc: "Если проблема всплывает уже после публикации, продукт сразу снимается с площадки, а покупатели получают предупреждение с рекомендациями.",
+    icon: <ShieldAlert className="h-5 w-5" />,
   },
   {
     tint: "violet",

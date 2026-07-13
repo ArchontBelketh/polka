@@ -92,8 +92,8 @@ export async function BuyPanel({
 
       <ul className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border">
         <li>✓ Мгновенная доставка после оплаты</li>
-        <li>✓ 7 дней на возврат</li>
         <li>✓ Код проверен модератором</li>
+        <li>✓ Оплата через защищённую форму ЮKassa</li>
       </ul>
     </div>
   )

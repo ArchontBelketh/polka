@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/utils"
-import { developerPayout } from "@/lib/escrow"
+import { developerPayout } from "@/lib/earnings"
 import { getPlanInfo } from "@/lib/developer-plan"
 import { PlanSection } from "./PlanSection"
 
@@ -31,9 +31,7 @@ export default async function DashboardPage() {
   const productIds = products.map((p) => p.id)
   const approvedCount = products.filter((p) => p.status === "APPROVED").length
 
-  const now = new Date()
-
-  const [paidPurchases, deliveredPurchases, pendingEscrow, unansweredQuestions, unreadMessages] = await Promise.all([
+  const [paidPurchases, salesCount, unansweredQuestions, unreadMessages] = await Promise.all([
     db.purchase.findMany({
       where: { productId: { in: productIds }, status: { in: ["PAID", "DELIVERED"] } },
       include: {
@@ -43,11 +41,7 @@ export default async function DashboardPage() {
       orderBy: { paidAt: "desc" },
       take: 10,
     }),
-    db.purchase.count({ where: { productId: { in: productIds }, status: "DELIVERED" } }),
-    db.purchase.findMany({
-      where: { productId: { in: productIds }, status: "PAID", escrowUntil: { gt: now } },
-      select: { amount: true, escrowUntil: true },
-    }),
+    db.purchase.count({ where: { productId: { in: productIds }, status: { in: ["PAID", "DELIVERED"] } } }),
     db.productQuestion.count({
       where: { productId: { in: productIds }, isHidden: false, answer: null },
     }),
@@ -60,8 +54,7 @@ export default async function DashboardPage() {
     }),
   ])
 
-  const totalSales = paidPurchases.filter((p) => p.status === "PAID" || p.status === "DELIVERED").length
-  const escrowAmount = pendingEscrow.reduce((sum, p) => sum + developerPayout(p.amount), 0)
+  const totalSales = salesCount
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
@@ -74,8 +67,7 @@ export default async function DashboardPage() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Баланс" value={formatPrice(user.balance)} />
-        <StatCard label="В ожидании" value={formatPrice(escrowAmount)} hint="удержание 7 дней" />
+        <StatCard label="Баланс" value={formatPrice(user.balance)} hint="доступно к выводу" />
         <StatCard label="Продажи" value={String(totalSales)} />
         <StatCard label="Активных продуктов" value={String(approvedCount)} />
       </div>
@@ -127,9 +119,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-medium">{formatPrice(developerPayout(p.amount))}</p>
-                  <Badge variant={p.status === "DELIVERED" ? "secondary" : "outline"} className="text-xs">
-                    {p.status === "DELIVERED" ? "Выплачено" : "В ожидании"}
-                  </Badge>
+                  <Badge variant="secondary" className="text-xs">Зачислено</Badge>
                 </div>
               </div>
             ))}

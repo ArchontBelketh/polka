@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { getPayment } from "@/lib/yookassa"
-import { escrowUntilDate } from "@/lib/escrow"
+import { developerPayout } from "@/lib/earnings"
 import { notifyNewSale } from "@/lib/notify"
 import { ipInCidr, clientIp } from "@/lib/ip"
 
@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
         return new Response("OK", { status: 200 })
       }
 
+      // Без эскроу: продажа финальная, деньги разработчику зачисляются сразу.
       await db.$transaction(async (tx) => {
         await tx.purchase.update({
           where: { id: purchaseId },
@@ -99,12 +100,15 @@ export async function POST(req: NextRequest) {
             status: "PAID",
             paymentId: payment.id,
             paidAt: new Date(),
-            escrowUntil: escrowUntilDate(),
           },
         })
         await tx.product.update({
           where: { id: purchase.productId },
           data: { salesCount: { increment: 1 } },
+        })
+        await tx.user.update({
+          where: { id: purchase.product.authorId },
+          data: { balance: { increment: developerPayout(purchase.amount) } },
         })
       })
 

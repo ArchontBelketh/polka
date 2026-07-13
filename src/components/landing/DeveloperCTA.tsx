@@ -19,7 +19,7 @@ export function DeveloperCTA() {
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-pretty leading-relaxed text-muted-foreground">
             Уже есть бот, парсер или 1С-обработка, которую вы писали для себя? Выложите её на ПОЛКУ — и она будет
-            продаваться сама. Загрузка занимает 15 минут, площадка берёт на себя оплату, доставку и возвраты.
+            продаваться сама. Загрузка занимает 15 минут, площадка берёт на себя оплату и доставку.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
             <Link href="/sell" className="inline-flex items-center gap-2 rounded-xl bg-deep px-6 py-3 font-semibold text-white transition-colors hover:bg-violet">

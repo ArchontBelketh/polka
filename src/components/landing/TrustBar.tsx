@@ -25,7 +25,7 @@ export function TrustBar({ productCount, scanCount, salesCount }: TrustBarProps)
       <section className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 pb-16 sm:grid-cols-3">
         <TrustItem tint="cyan" label="Автосканирование кода каждого продукта" icon={<ScanLine className="h-5 w-5" />} />
         <TrustItem tint="violet" label="Ручная модерация перед публикацией" icon={<ShieldCheck className="h-5 w-5" />} />
-        <TrustItem tint="cyan" label="Эскроу 7 дней и возврат при проблеме" icon={<ShoppingBag className="h-5 w-5" />} />
+        <TrustItem tint="cyan" label="Мгновенная доставка файлов после оплаты" icon={<ShoppingBag className="h-5 w-5" />} />
       </section>
     )
   }

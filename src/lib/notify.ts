@@ -132,31 +132,6 @@ export async function notifyProductRejected(params: {
   ])
 }
 
-export async function notifyDisputeOpened(params: {
-  developerTelegramId: string | null
-  developerEmail?: string | null
-  productTitle: string
-  reason: string
-}): Promise<void> {
-  const tgText =
-    `⚠️ <b>Открыт спор</b>\n\n` +
-    `Покупатель открыл спор по продукту «${params.productTitle}».\n` +
-    `Причина: ${params.reason}\n\n` +
-    `Наша команда свяжется с вами в течение 24 часов.`
-
-  const emailHtml = `
-    <h2>⚠️ Открыт спор</h2>
-    <p>Покупатель открыл спор по продукту «${params.productTitle}».</p>
-    <p><b>Причина:</b> ${params.reason}</p>
-    <p>Наша команда свяжется с вами в течение 24 часов.</p>
-  `
-
-  await Promise.all([
-    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
-    params.developerEmail ? sendEmail(params.developerEmail, `Открыт спор: ${params.productTitle}`, emailHtml) : Promise.resolve(),
-  ])
-}
-
 export async function notifyVersionRejected(params: {
   developerTelegramId: string | null
   developerEmail?: string | null

@@ -35,7 +35,7 @@ export function PricingStep({ value, category, onChange }: PricingStepProps) {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Цена и лицензия</h2>
         <p className="text-sm text-muted-foreground">
-          Комиссия платформы — 20%. Выплата происходит через 7 дней после покупки.
+          Комиссия платформы — 20%. Сумма зачисляется на ваш баланс сразу после оплаты покупателем.
         </p>
       </div>
 

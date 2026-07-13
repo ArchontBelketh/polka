@@ -11,9 +11,8 @@ type RouteParams = { params: Promise<{ id: string }> }
 
 const STATUS_LABELS: Record<string, string> = {
   PAID: "Оплачено",
-  DELIVERED: "Доставлено",
-  REFUNDED: "Возврат",
-  DISPUTED: "Спор",
+  DELIVERED: "Оплачено",
+  REFUNDED: "Отменено",
 }
 
 export const metadata = { title: "Диалог" }
@@ -35,10 +34,10 @@ export default async function DeveloperThreadPage({ params }: RouteParams) {
   // Only the product's author may open this developer-side thread
   if (!purchase || purchase.product.authorId !== userId) notFound()
 
-  const THREAD_STATUSES = ["PAID", "DELIVERED", "DISPUTED", "REFUNDED"]
+  const THREAD_STATUSES = ["PAID", "DELIVERED"]
   if (!THREAD_STATUSES.includes(purchase.status)) notFound()
 
-  const canWrite = ["PAID", "DELIVERED", "DISPUTED"].includes(purchase.status)
+  const canWrite = ["PAID", "DELIVERED"].includes(purchase.status)
   const buyerName = purchase.buyer.name ?? purchase.buyer.email ?? "Покупатель"
 
   // Mark buyer's messages as read, then load the thread
@@ -74,7 +73,7 @@ export default async function DeveloperThreadPage({ params }: RouteParams) {
           <Link href={`/product/${purchase.product.slug}`} className="font-semibold hover:underline">
             {purchase.product.title}
           </Link>
-          <Badge variant={purchase.status === "DISPUTED" ? "destructive" : "outline"} className="text-xs">
+          <Badge variant="outline" className="text-xs">
             {STATUS_LABELS[purchase.status] ?? purchase.status}
           </Badge>
         </div>
@@ -82,12 +81,6 @@ export default async function DeveloperThreadPage({ params }: RouteParams) {
           Покупатель: {buyerName} · {formatPrice(purchase.amount)}
         </p>
       </div>
-
-      {purchase.status === "DISPUTED" && (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-          По этой покупке открыт спор. Помогите покупателю решить проблему — это учитывается модератором.
-        </div>
-      )}
 
       <MessageThread
         purchaseId={purchase.id}

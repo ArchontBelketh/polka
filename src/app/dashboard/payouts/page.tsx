@@ -55,7 +55,7 @@ export default async function PayoutsPage() {
         </section>
       ) : (
         <div className="rounded-lg border border-border bg-card px-5 py-8 text-center text-muted-foreground text-sm">
-          Баланс пуст. Средства появятся после завершения периода удержания (7 дней с момента покупки).
+          Баланс пуст. Средства зачисляются на баланс сразу после оплаты продукта покупателем.
         </div>
       )}
 
