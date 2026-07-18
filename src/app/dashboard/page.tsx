@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/utils"
 import { developerPayout } from "@/lib/earnings"
 import { getPlanInfo } from "@/lib/developer-plan"
+import { isProfileComplete } from "@/lib/payout-profile"
 import { PlanSection } from "./PlanSection"
 
 export const metadata = { title: "Кабинет" }
@@ -21,15 +22,17 @@ export default async function DashboardPage() {
   if (user.role === "MODERATOR") redirect("/admin")
   if (!["DEVELOPER", "ADMIN"].includes(user.role)) redirect("/purchases")
 
-  const [products, planInfo] = await Promise.all([
+  const [products, planInfo, payoutProfile] = await Promise.all([
     db.product.findMany({
       where: { authorId: session.user.id },
       select: { id: true, status: true },
     }),
     getPlanInfo(session.user.id!),
+    db.payoutProfile.findUnique({ where: { userId: session.user.id } }),
   ])
   const productIds = products.map((p) => p.id)
   const approvedCount = products.filter((p) => p.status === "APPROVED").length
+  const requisitesComplete = isProfileComplete(payoutProfile)
 
   const [paidPurchases, salesCount, unansweredQuestions, unreadMessages] = await Promise.all([
     db.purchase.findMany({
@@ -65,6 +68,16 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
+      {/* Гейт реквизитов */}
+      {!requisitesComplete && (
+        <Link
+          href="/dashboard/requisites"
+          className="block rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 hover:bg-amber-500/15"
+        >
+          <b>Заполните правовой статус и реквизиты</b> — без них нельзя опубликовать продукт. Указать →
+        </Link>
+      )}
+
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Баланс" value={formatPrice(user.balance)} hint="доступно к выводу" />
@@ -99,6 +112,11 @@ export default async function DashboardPage() {
         <Button variant="outline" asChild>
           <Link href="/dashboard/messages">
             Сообщения {unreadMessages > 0 && `(${unreadMessages})`}
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/requisites">
+            Реквизиты {!requisitesComplete && "⚠"}
           </Link>
         </Button>
       </div>

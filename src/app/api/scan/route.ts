@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { runScan } from "@/lib/scanner"
+import { isProfileComplete } from "@/lib/payout-profile"
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -26,6 +27,21 @@ export async function POST(req: NextRequest) {
 
   if (!isOwner && !isAdmin) {
     return Response.json({ error: "Нет доступа" }, { status: 403 })
+  }
+
+  // Гейт публикации: разработчик обязан заполнить правовой статус и реквизиты
+  // (оферта, п. 6). Админ/модератор — в обход.
+  if (isOwner && !isAdmin) {
+    const profile = await db.payoutProfile.findUnique({ where: { userId: session.user.id } })
+    if (!isProfileComplete(profile)) {
+      return Response.json(
+        {
+          error: "Заполните правовой статус и реквизиты, чтобы опубликовать продукт.",
+          code: "REQUISITES_REQUIRED",
+        },
+        { status: 403 },
+      )
+    }
   }
 
   // Fire and forget — response returns immediately

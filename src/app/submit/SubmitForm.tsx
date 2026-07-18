@@ -119,8 +119,17 @@ export function SubmitForm() {
         await uploadFile(productId, form.screenshots[i], "screenshot", i)
       }
 
-      // 4. Trigger scan
-      await fetch(`/api/scan?productId=${productId}`, { method: "POST" })
+      // 4. Trigger scan (гейт: без реквизитов вернётся 403)
+      const scanRes = await fetch(`/api/scan?productId=${productId}`, { method: "POST" })
+      if (!scanRes.ok) {
+        const d = await scanRes.json().catch(() => ({}))
+        if (d.code === "REQUISITES_REQUIRED") {
+          setError("Заполните правовой статус и реквизиты в разделе «Реквизиты» — продукт сохранён как черновик.")
+          return
+        }
+        setError(typeof d.error === "string" ? d.error : "Не удалось отправить на проверку.")
+        return
+      }
 
       router.push(`/dashboard/products?submitted=${productId}`)
     } catch {

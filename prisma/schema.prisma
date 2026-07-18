@@ -81,6 +81,12 @@ enum ProductVersionStatus {
   SUSPENDED
 }
 
+enum PayerKind {
+  SELF_EMPLOYED // самозанятый (НПД)
+  ENTREPRENEUR  // ИП
+  COMPANY       // ООО / юрлицо
+}
+
 model User {
   id             String     @id @default(cuid())
   email          String?    @unique
@@ -114,6 +120,7 @@ model User {
   supportTickets  SupportTicket[]
   ticketMessages  TicketMessage[]
   developerPlan   DeveloperPlan?
+  payoutProfile   PayoutProfile?
   slotPurchases   SlotPurchase[]
   aiReviews       AiReview[]
   questions       ProductQuestion[]
@@ -390,6 +397,24 @@ model DeveloperPlan {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Правовой статус и платёжные/учётные данные Разработчика (оферта, п. 6).
+// Сырые реквизиты карты/счёта НЕ храним — получателя онбордит платёжный сервис,
+// а мы держим только ссылку на него (providerRecipientId) при подключении сплита.
+model PayoutProfile {
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  kind               PayerKind
+  displayName        String    // ФИО (самозанятый/ИП) или наименование (ООО)
+  inn                String    // 12 цифр (самозанятый/ИП) или 10 (ООО)
+  attestedAt         DateTime  // момент принятия заверений п. 6 оферты
+  attestVersion      String    @default("v1")
+  providerRecipientId String?  // id получателя у платёжного сервиса (заполнится со сплитом)
+  verified           Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SlotPurchase {
