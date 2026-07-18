@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Markdown } from "@/components/ui/Markdown"
 import { MessageThread, type ThreadMessage } from "@/components/messages/MessageThread"
+import { FileClaimButton } from "./FileClaimButton"
 import { formatPrice, formatFileSize } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 import { Download, Monitor, FileText, ArrowLeft, MessageSquare } from "lucide-react"
@@ -26,6 +27,12 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
 }
 
 export const metadata = { title: "Покупка" }
+
+// Вынесено из компонента: чтение текущего времени нельзя делать в теле рендера
+// (react-hooks/purity). Здесь, в обычной функции, это допустимо.
+function isWithinClaimWindow(start: Date, days: number): boolean {
+  return Date.now() <= start.getTime() + days * 24 * 60 * 60 * 1000
+}
 
 export default async function PurchaseDetailPage({ params }: RouteParams) {
   const session = await auth()
@@ -65,6 +72,20 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
   const THREAD_STATUSES = ["PAID", "DELIVERED"]
   const showThread = isBuyer && THREAD_STATUSES.includes(purchase.status)
   const canWrite = ["PAID", "DELIVERED"].includes(purchase.status)
+
+  // Претензия (оферта п. 10): окно 7 дней с покупки, одна на покупку
+  const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
+  const claimStart = purchase.paidAt ?? purchase.createdAt
+  const withinClaimWindow =
+    isBuyer &&
+    (purchase.status === "PAID" || purchase.status === "DELIVERED") &&
+    isWithinClaimWindow(claimStart, CLAIM_WINDOW_DAYS)
+  const existingClaim = isBuyer
+    ? await db.supportTicket.findFirst({
+        where: { purchaseId: purchase.id, category: "CLAIM" },
+        select: { id: true },
+      })
+    : null
 
   let initialMessages: ThreadMessage[] = []
   if (showThread) {
@@ -149,6 +170,18 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
             initialMessages={initialMessages}
             canWrite={canWrite}
           />
+
+          {/* Претензия по покупке */}
+          {existingClaim ? (
+            <Link
+              href={`/support/${existingClaim.id}`}
+              className="inline-block text-xs text-primary underline underline-offset-2 hover:no-underline"
+            >
+              По этой покупке открыта претензия — перейти →
+            </Link>
+          ) : (
+            withinClaimWindow && <FileClaimButton purchaseId={purchase.id} />
+          )}
         </section>
       )}
 

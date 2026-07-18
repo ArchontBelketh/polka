@@ -24,6 +24,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   PURCHASE: "Вопрос по покупке",
   BUG: "Ошибка на сайте",
   OTHER: "Общий вопрос",
+  CLAIM: "Претензия по покупке",
 }
 
 export default async function SupportThreadPage({ params }: RouteParams) {

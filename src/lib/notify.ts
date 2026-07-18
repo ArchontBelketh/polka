@@ -238,6 +238,39 @@ export async function notifySecurityRecall(params: {
   )
 }
 
+/**
+ * Уведомление разработчику о поданной претензии по его продукту.
+ * Претензию ведёт поддержка (оператор-посредник), но разработчик должен знать
+ * и вправе решить вопрос с покупателем напрямую (возврат — на его стороне).
+ */
+export async function notifyClaimFiled(params: {
+  developerTelegramId: string | null
+  developerEmail?: string | null
+  productTitle: string
+  threadUrl: string
+  preview: string
+}): Promise<void> {
+  const tgText =
+    `📩 <b>Претензия по продукту «${params.productTitle}»</b>\n\n` +
+    `Покупатель сообщил о проблеме:\n«${params.preview}»\n\n` +
+    `Свяжитесь с покупателем и решите вопрос: ${params.threadUrl}\n` +
+    `Претензию сопровождает поддержка площадки.`
+
+  const emailHtml = `
+    <h2>📩 Претензия по продукту «${params.productTitle}»</h2>
+    <p>Покупатель сообщил о проблеме:</p>
+    <blockquote style="white-space:pre-wrap">${params.preview}</blockquote>
+    <p><a href="${params.threadUrl}">Связаться с покупателем</a>. Претензию сопровождает поддержка площадки.</p>
+  `
+
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail
+      ? sendEmail(params.developerEmail, `Претензия по продукту: ${params.productTitle}`, emailHtml)
+      : Promise.resolve(),
+  ])
+}
+
 export async function notifyProductAutoApproved(params: {
   developerTelegramId: string | null
   developerEmail?: string | null

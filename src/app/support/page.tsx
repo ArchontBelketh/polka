@@ -23,6 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   PURCHASE: "Покупка",
   BUG: "Ошибка",
   OTHER: "Вопрос",
+  CLAIM: "Претензия",
 }
 
 export default async function SupportPage() {

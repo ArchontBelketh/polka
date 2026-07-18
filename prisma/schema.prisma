@@ -58,6 +58,7 @@ enum TicketCategory {
   PURCHASE
   BUG
   OTHER
+  CLAIM
 }
 
 enum TicketStatus {
@@ -324,6 +325,7 @@ model SupportTicket {
   subject   String
   category  TicketCategory
   productId String?
+  purchaseId String?       // для претензий (category CLAIM) — привязка к покупке
   status    TicketStatus   @default(OPEN)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
@@ -333,6 +335,7 @@ model SupportTicket {
 
   @@index([authorId])
   @@index([status])
+  @@index([purchaseId])
 }
 
 model TicketMessage {
