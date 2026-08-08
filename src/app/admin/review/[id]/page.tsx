@@ -9,6 +9,7 @@ import { Markdown } from "@/components/ui/Markdown"
 import { VerifiedBadge } from "@/components/product/VerifiedBadge"
 import { ModerationActions } from "./ModerationActions"
 import { VerifyButton } from "./VerifyButton"
+import { CodeViewer } from "@/components/moderation/CodeViewer"
 import type { ScanFinding } from "@/types"
 
 const VERIFIABLE_STATUSES = ["APPROVED", "PENDING", "SCAN_FAILED"]
@@ -243,8 +244,10 @@ export default async function AdminReviewPage({ params }: RouteParams) {
 
       {/* Files */}
       {product.files.length > 0 && (
-        <section className="rounded-lg border border-border bg-card p-5 space-y-3">
-          <h2 className="font-semibold">Файлы ({product.files.length})</h2>
+        <section className="rounded-lg border border-border bg-card p-5 space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold">Файлы ({product.files.length})</h2>
+          </div>
           <ul className="space-y-2">
             {product.files.map((f) => (
               <li key={f.id} className="flex items-center justify-between text-sm">
@@ -255,6 +258,14 @@ export default async function AdminReviewPage({ params }: RouteParams) {
               </li>
             ))}
           </ul>
+
+          {/* Просмотр кода без ручного скачивания */}
+          <div className="border-t border-border pt-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-medium">Исходный код</h3>
+            </div>
+            <CodeViewer productId={product.id} />
+          </div>
         </section>
       )}
 
