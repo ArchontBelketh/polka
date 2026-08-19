@@ -5,8 +5,10 @@ import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
+import { saleModelForKopecks, SALE_MODEL_LABELS, listingFeeKopecks, LISTING_FEE_PCT } from "@/lib/tariffs"
 import { TechBadge } from "@/components/catalog/TechBadge"
 import { ProductActions } from "./ProductActions"
+import { ListingFeeButton } from "./ListingFeeButton"
 import { NewVersionForm } from "./NewVersionForm"
 import { VersionActions } from "./VersionActions"
 
@@ -152,11 +154,39 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           {CATEGORY_LABELS[product.category as keyof typeof CATEGORY_LABELS]} · {formatPrice(product.price)} ·{" "}
-          {product._count.purchases} продаж
+          {product._count.purchases} продаж · {SALE_MODEL_LABELS[product.saleModel ?? saleModelForKopecks(product.price)]}
         </p>
       </div>
 
       <StatusBanner status={product.status} reason={lastReasonLog?.comment} />
+
+      {/* Тариф за размещение (модель LISTING_FEE) */}
+      {(product.saleModel ?? saleModelForKopecks(product.price)) === "LISTING_FEE" && (
+        <section className="rounded-lg border border-border bg-card p-5 space-y-3">
+          <h2 className="font-semibold">Тариф за размещение</h2>
+          {product.listingFeePaidAt ? (
+            <p className="text-sm text-green-500">
+              Тариф оплачен — продукт можно публиковать и продавать. Оплату покупатели вносят
+              напрямую вам по указанным реквизитам, вы подтверждаете её в разделе «Подтверждения».
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Чтобы опубликовать этот продукт, оплатите единоразовый тариф за размещение:{" "}
+                <b>{LISTING_FEE_PCT}% = {formatPrice(listingFeeKopecks(product.price))}</b>. После оплаты
+                продукт можно отправить на проверку.
+              </p>
+              <ListingFeeButton productId={product.id} />
+            </div>
+          )}
+          <div className="border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground mb-1">Реквизиты для оплаты покупателем</p>
+            <p className="text-sm whitespace-pre-wrap">
+              {product.developerPaymentInfo || <span className="text-red-400">не указаны — отредактируйте продукт</span>}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Description */}
       <section className="rounded-lg border border-border bg-card p-5 space-y-4">

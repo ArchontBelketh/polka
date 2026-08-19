@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
-import { BanButton, UnbanButton } from "./UserBanActions"
+import { BanButton, UnbanButton, FreezePayoutsButton } from "./UserBanActions"
 import Link from "next/link"
 
 export const metadata = { title: "Пользователи" }
@@ -61,6 +61,7 @@ export default async function UsersPage({
         isBanned: true,
         bannedAt: true,
         banReason: true,
+        payoutsFrozen: true,
         createdAt: true,
         _count: { select: { products: true, purchases: true } },
       },
@@ -167,9 +168,14 @@ export default async function UsersPage({
                   </td>
                   <td className="px-4 py-3">
                     {u.role !== "ADMIN" && (
-                      u.isBanned
-                        ? <UnbanButton id={u.id} />
-                        : <BanButton id={u.id} name={u.name} />
+                      <div className="flex flex-wrap gap-2">
+                        {u.isBanned
+                          ? <UnbanButton id={u.id} />
+                          : <BanButton id={u.id} name={u.name} />}
+                        {(u.role === "DEVELOPER") && (
+                          <FreezePayoutsButton id={u.id} frozen={u.payoutsFrozen} />
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>

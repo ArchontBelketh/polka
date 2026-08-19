@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
   if (!user || !["DEVELOPER", "ADMIN"].includes(user.role)) {
     return Response.json({ error: "Только разработчики могут запрашивать вывод" }, { status: 403 })
   }
+  if (user.payoutsFrozen) {
+    return Response.json({ error: "Выплаты по вашему аккаунту приостановлены. Обратитесь в поддержку." }, { status: 403 })
+  }
 
   const body = await req.json()
   const parsed = requestSchema.safeParse(body)

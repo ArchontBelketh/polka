@@ -13,6 +13,8 @@ async function requireAdmin() {
 const patchSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("ban"), reason: z.string().max(500).optional() }),
   z.object({ action: z.literal("unban") }),
+  z.object({ action: z.literal("freezePayouts") }),
+  z.object({ action: z.literal("unfreezePayouts") }),
 ])
 
 export async function PATCH(
@@ -40,11 +42,15 @@ export async function PATCH(
         banReason: parsed.data.reason ?? null,
       },
     })
-  } else {
+  } else if (parsed.data.action === "unban") {
     await db.user.update({
       where: { id },
       data: { isBanned: false, bannedAt: null, banReason: null },
     })
+  } else if (parsed.data.action === "freezePayouts") {
+    await db.user.update({ where: { id }, data: { payoutsFrozen: true } })
+  } else {
+    await db.user.update({ where: { id }, data: { payoutsFrozen: false } })
   }
 
   return Response.json({ ok: true })

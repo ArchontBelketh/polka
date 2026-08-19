@@ -34,10 +34,10 @@ export default async function DeveloperThreadPage({ params }: RouteParams) {
   // Only the product's author may open this developer-side thread
   if (!purchase || purchase.product.authorId !== userId) notFound()
 
-  const THREAD_STATUSES = ["PAID", "DELIVERED"]
+  const THREAD_STATUSES = ["AWAITING", "PAID", "DELIVERED"]
   if (!THREAD_STATUSES.includes(purchase.status)) notFound()
 
-  const canWrite = ["PAID", "DELIVERED"].includes(purchase.status)
+  const canWrite = THREAD_STATUSES.includes(purchase.status)
   const buyerName = purchase.buyer.name ?? purchase.buyer.email ?? "Покупатель"
 
   // Mark buyer's messages as read, then load the thread

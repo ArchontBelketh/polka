@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
-import { createPayment } from "@/lib/yookassa"
+import { createPayment } from "@/lib/tbank"
 import { ensurePlanRecord, PRO_AMOUNT_KOPECKS } from "@/lib/developer-plan"
 
 export async function POST(_req: NextRequest) {

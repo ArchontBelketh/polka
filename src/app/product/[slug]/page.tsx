@@ -337,6 +337,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
               authorName={authorName}
               demoUrl={product.demoUrl}
               isOwnProduct={isOwnProduct}
+              saleModel={product.saleModel}
+              developerPaymentInfo={product.developerPaymentInfo}
             />
           </div>
         </div>

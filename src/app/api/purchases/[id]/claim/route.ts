@@ -3,6 +3,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { notifyClaimFiled } from "@/lib/notify"
+import { saleModelForKopecks } from "@/lib/tariffs"
 
 // Окно подачи претензии — по умолчанию 7 дней с момента покупки (оферта, п. 10).
 const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
@@ -30,6 +31,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         select: {
           title: true,
           authorId: true,
+          price: true,
+          saleModel: true,
           author: { select: { telegramId: true, email: true } },
         },
       },
@@ -43,6 +46,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   }
   if (purchase.status !== "PAID" && purchase.status !== "DELIVERED") {
     return Response.json({ error: "Претензию можно подать только по оплаченной покупке" }, { status: 400 })
+  }
+  // По модели «Тариф за размещение» претензии решаются напрямую с разработчиком (оферта 10.6).
+  const model = purchase.product.saleModel ?? saleModelForKopecks(purchase.product.price)
+  if (model !== "COMMISSION") {
+    return Response.json(
+      { error: "По этому продукту вопросы решаются напрямую с разработчиком." },
+      { status: 400 },
+    )
   }
 
   // Проверка окна подачи

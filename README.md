@@ -17,7 +17,7 @@ Excel-скрипты, автоматизация, веб-сервисы. Пло�
 | База данных | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`, клиент в `src/generated/prisma`) |
 | Аутентификация | NextAuth v5 (JWT): credentials (email+пароль) + Telegram Login |
 | Хранилище файлов | Yandex Object Storage (S3-совместимый) |
-| Платежи | ЮKassa (REST API) |
+| Платежи | Т-Банк (интернет-эквайринг, API v2) |
 | Стили | Tailwind CSS v4 (`@theme inline`), самостоятельно захостенные шрифты |
 | Сканер кода | bandit, semgrep, oletools (`olevba`), BSL-паттерны (1С) |
 | AI-ревью / автомодерация | Gemini / Ollama / YandexGPT (провайдер через env) |
@@ -66,7 +66,7 @@ npm run dev                             # http://localhost:3000
 | `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL` | Базовый и публичный URL |
 | `ALLOWED_EMAIL_DOMAINS` | Ограничение доменов при регистрации (напр. `yandex.ru, gmail.com`); пусто — любые |
 | `YANDEX_S3_*` | Ключи и настройки Yandex Object Storage |
-| `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` | Реквизиты ЮKassa |
+| `TBANK_TERMINAL_KEY`, `TBANK_PASSWORD` | Реквизиты терминала Т-Банка |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_SECRET` | Бот для входа и уведомлений |
 | `SMTP_*` | Почта (host/port/user/pass/from) |
 | `AI_REVIEW_PROVIDER` | `gemini` \| `ollama` \| `yandexgpt` \| `disabled` (+ ключ провайдера) |
@@ -116,7 +116,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 - Версионирование продуктов с отдельной модерацией версий
 
 **Платежи и доставка**
-- ЮKassa: создание платежа, верификация webhook по CIDR + `X-Real-IP`
+- Т-Банк: создание платежа (Init), верификация webhook по подписи Token
 - Продажи финальные: деньги за вычетом комиссии зачисляются разработчику **сразу** после оплаты (без эскроу и возвратов)
 - Отзывы (только после покупки)
 - Скачивание через отдельную страницу с инструктажем + одноразовый presigned S3 URL
@@ -154,8 +154,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 | POST | `/api/products/[id]/versions` | Загрузить новую версию | Author |
 | GET/POST | `/api/products/[id]/questions` | Q&A по продукту | Все / Auth |
 | GET/POST | `/api/purchases/[id]/messages` | Приватный чат по покупке | Buyer / Author |
-| POST | `/api/payment/create` | Создать платёж ЮKassa | Buyer |
-| POST | `/api/payment/webhook` | Webhook ЮKassa (CIDR + X-Real-IP) | System |
+| POST | `/api/payment/create` | Создать платёж (Т-Банк Init) | Buyer |
+| POST | `/api/payment/webhook` | Webhook Т-Банка (проверка Token) | System |
 | GET | `/api/download/[purchaseId]` | Одноразовый signed S3 URL | Buyer |
 | GET/POST | `/api/reviews` | Отзывы | Все / Buyer |
 | GET/POST | `/api/payouts` | Вывод средств | Developer |

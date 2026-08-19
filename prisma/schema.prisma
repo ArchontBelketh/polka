@@ -40,6 +40,7 @@ enum ScanStatus {
 
 enum PurchaseStatus {
   PENDING
+  AWAITING   // покупка LISTING_FEE: покупатель оформил заявку, ждём подтверждения оплаты разработчиком
   PAID
   DELIVERED
   REFUNDED
@@ -87,6 +88,14 @@ enum PayerKind {
   COMPANY       // ООО / юрлицо
 }
 
+// Модель продажи по ценовому порогу (Приложение №1):
+//  COMMISSION   — дешевле порога: оплата через оператора-агента, комиссия;
+//  LISTING_FEE  — от порога: прямая оплата разработчику, единоразовый тариф за размещение.
+enum SaleModel {
+  COMMISSION
+  LISTING_FEE
+}
+
 model User {
   id             String     @id @default(cuid())
   email          String?    @unique
@@ -104,6 +113,7 @@ model User {
   agreedToTerms  Boolean    @default(false)
   agreedAt       DateTime?
   balance        Int        @default(0)
+  payoutsFrozen  Boolean    @default(false)
   bio            String?    @db.Text
   isBanned       Boolean    @default(false)
   bannedAt       DateTime?
@@ -165,6 +175,7 @@ model Product {
   category            Category
   price               Int
   status              ProductStatus   @default(DRAFT)
+  saleModel           SaleModel?      // снапшот модели на момент публикации (по цене и порогу)
   authorId            String
   features            String[]
   screenshots         String[]
@@ -174,6 +185,8 @@ model Product {
   techStack           String[]        @default([])
   license             String          @default("personal")
   telegramBotUsername String?
+  developerPaymentInfo String?        @db.Text // реквизиты/инструкция оплаты напрямую (LISTING_FEE)
+  listingFeePaidAt    DateTime?               // когда оплачен тариф за размещение (LISTING_FEE)
   installGuide        String?         @db.Text
   requirements        String[]        @default([])
   manuallyVerified    Boolean         @default(false)
@@ -264,6 +277,9 @@ model Purchase {
   status        PurchaseStatus @default(PENDING)
   paymentId     String?
   escrowUntil   DateTime?
+  developerAmount Int?                    // сумма к зачислению разработчику (цена − комиссия), «Комиссия»
+  holdUntil     DateTime?                 // удержание ≥ порога до конца окна претензии (8.5)
+  creditedAt    DateTime?                 // когда сумма зачислена на баланс разработчика
   downloadCount Int            @default(0)
   lastMessageAt DateTime?
   createdAt     DateTime       @default(now())

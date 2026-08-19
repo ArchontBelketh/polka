@@ -192,6 +192,55 @@ export async function notifyNewVersion(params: {
 }
 
 /**
+ * Заявка на покупку продукта на «Тарифе за размещение» — оператор в расчётах не
+ * участвует, покупатель платит напрямую; разработчик должен подтвердить оплату.
+ */
+export async function notifyListingPurchaseRequested(params: {
+  developerTelegramId: string | null
+  developerEmail?: string | null
+  productTitle: string
+  confirmUrl: string
+}): Promise<void> {
+  const tgText =
+    `🧾 <b>Новая заявка на покупку: ${params.productTitle}</b>\n\n` +
+    `Покупатель оформил заявку. Получите оплату по вашим реквизитам и подтвердите её — ` +
+    `после этого покупателю откроется скачивание.\n${params.confirmUrl}`
+  const emailHtml = `
+    <h2>🧾 Новая заявка на покупку «${params.productTitle}»</h2>
+    <p>Покупатель оформил заявку. Получите оплату по вашим реквизитам и
+       <a href="${params.confirmUrl}">подтвердите её</a> — после этого покупателю откроется скачивание.</p>
+  `
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tgText) : Promise.resolve(),
+    params.developerEmail
+      ? sendEmail(params.developerEmail, `Заявка на покупку: ${params.productTitle}`, emailHtml)
+      : Promise.resolve(),
+  ])
+}
+
+/** Разработчик подтвердил оплату — продукт доступен покупателю. */
+export async function notifyListingPurchaseConfirmed(params: {
+  buyerTelegramId: string | null
+  buyerEmail?: string | null
+  productTitle: string
+  purchaseUrl: string
+}): Promise<void> {
+  const tgText =
+    `✅ <b>Оплата подтверждена: ${params.productTitle}</b>\n\n` +
+    `Разработчик подтвердил оплату. Продукт доступен для скачивания: ${params.purchaseUrl}`
+  const emailHtml = `
+    <h2>✅ Оплата подтверждена — «${params.productTitle}»</h2>
+    <p>Разработчик подтвердил оплату. <a href="${params.purchaseUrl}">Скачать продукт</a>.</p>
+  `
+  await Promise.all([
+    params.buyerTelegramId ? sendTelegram(params.buyerTelegramId, tgText) : Promise.resolve(),
+    params.buyerEmail
+      ? sendEmail(params.buyerEmail, `Оплата подтверждена: ${params.productTitle}`, emailHtml)
+      : Promise.resolve(),
+  ])
+}
+
+/**
  * Отзыв по безопасности — предупреждение всем покупателям продукта о том, что
  * приобретённый продукт снят с площадки из-за вопросов к безопасности.
  * Текст выверенный: без обвинений, с конкретными действиями.

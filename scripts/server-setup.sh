@@ -38,9 +38,9 @@ CFG_YANDEX_S3_BUCKET="cyberpolka"
 CFG_YANDEX_S3_ENDPOINT="https://storage.yandexcloud.net"
 CFG_YANDEX_S3_REGION="ru-central1"
 
-# ── Платежи (ЮKassa) ──────────────────────────────────────────────────────────
-CFG_YOOKASSA_SHOP_ID=""
-CFG_YOOKASSA_SECRET_KEY=""
+# ── Платежи (Т-Банк, интернет-эквайринг) ──────────────────────────────────────
+CFG_TBANK_TERMINAL_KEY=""
+CFG_TBANK_PASSWORD=""
 
 # ── Telegram (Login Widget + уведомления) ─────────────────────────────────────
 CFG_TELEGRAM_BOT_TOKEN=""
@@ -176,8 +176,8 @@ apply YANDEX_S3_SECRET_KEY               "$CFG_YANDEX_S3_SECRET_KEY"
 apply YANDEX_S3_BUCKET                   "$CFG_YANDEX_S3_BUCKET"
 apply YANDEX_S3_ENDPOINT                 "$CFG_YANDEX_S3_ENDPOINT"
 apply YANDEX_S3_REGION                   "$CFG_YANDEX_S3_REGION"
-apply YOOKASSA_SHOP_ID                   "$CFG_YOOKASSA_SHOP_ID"
-apply YOOKASSA_SECRET_KEY                "$CFG_YOOKASSA_SECRET_KEY"
+apply TBANK_TERMINAL_KEY                 "$CFG_TBANK_TERMINAL_KEY"
+apply TBANK_PASSWORD                     "$CFG_TBANK_PASSWORD"
 apply TELEGRAM_BOT_TOKEN                 "$CFG_TELEGRAM_BOT_TOKEN"
 apply TELEGRAM_BOT_SECRET                "$CFG_TELEGRAM_BOT_SECRET"
 apply NEXT_PUBLIC_TELEGRAM_BOT_USERNAME  "$CFG_NEXT_PUBLIC_TELEGRAM_BOT_USERNAME"

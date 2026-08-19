@@ -17,6 +17,7 @@ const createSchema = z.object({
   techStack: z.array(z.string().max(50)).max(10).default([]),
   license: z.string().default("personal"),
   telegramBotUsername: z.string().optional(),
+  developerPaymentInfo: z.string().max(2000).optional(),
   demoUrl: z.string().url().optional().or(z.literal("")),
   videoUrl: z.string().url().optional().or(z.literal("")),
 })

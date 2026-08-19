@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { createPayment } from "@/lib/yookassa"
+import { createPayment } from "@/lib/tbank"
 import { limits } from "@/lib/ratelimit"
 
 const schema = z.object({

@@ -10,6 +10,7 @@ import { VerifiedBadge } from "@/components/product/VerifiedBadge"
 import { ModerationActions } from "./ModerationActions"
 import { VerifyButton } from "./VerifyButton"
 import { CodeViewer } from "@/components/moderation/CodeViewer"
+import { saleModelForKopecks, SALE_MODEL_LABELS } from "@/lib/tariffs"
 import type { ScanFinding } from "@/types"
 
 const VERIFIABLE_STATUSES = ["APPROVED", "PENDING", "SCAN_FAILED"]
@@ -201,6 +202,10 @@ export default async function AdminReviewPage({ params }: RouteParams) {
           <div>
             <p className="text-muted-foreground">Лицензия</p>
             <p>{product.license}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Модель продажи</p>
+            <p>{SALE_MODEL_LABELS[product.saleModel ?? saleModelForKopecks(product.price)]}</p>
           </div>
         </div>
         <div>

@@ -8,6 +8,7 @@ import { Markdown } from "@/components/ui/Markdown"
 import { MessageThread, type ThreadMessage } from "@/components/messages/MessageThread"
 import { FileClaimButton } from "./FileClaimButton"
 import { formatPrice, formatFileSize } from "@/lib/utils"
+import { saleModelForKopecks } from "@/lib/tariffs"
 import { CATEGORY_LABELS } from "@/types"
 import { Download, Monitor, FileText, ArrowLeft, MessageSquare } from "lucide-react"
 
@@ -15,12 +16,14 @@ type RouteParams = { params: Promise<{ id: string }> }
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Ожидает оплаты",
+  AWAITING: "Ожидает подтверждения оплаты",
   PAID: "Оплачено",
   DELIVERED: "Оплачено",
   REFUNDED: "Отменено",
 }
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PENDING: "outline",
+  AWAITING: "secondary",
   PAID: "default",
   DELIVERED: "default",
   REFUNDED: "destructive",
@@ -69,15 +72,18 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
 
   // Messaging — only for the buyer; load thread and mark incoming as read
   const isBuyer = purchase.buyerId === session.user.id
-  const THREAD_STATUSES = ["PAID", "DELIVERED"]
+  const THREAD_STATUSES = ["AWAITING", "PAID", "DELIVERED"]
   const showThread = isBuyer && THREAD_STATUSES.includes(purchase.status)
-  const canWrite = ["PAID", "DELIVERED"].includes(purchase.status)
+  const canWrite = THREAD_STATUSES.includes(purchase.status)
 
-  // Претензия (оферта п. 10): окно 7 дней с покупки, одна на покупку
+  // Претензия (оферта п. 10): только для модели «Комиссия» (по LISTING_FEE — вне площадки).
+  // Окно 7 дней с покупки, одна на покупку.
+  const isCommission = (product.saleModel ?? saleModelForKopecks(product.price)) === "COMMISSION"
   const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
   const claimStart = purchase.paidAt ?? purchase.createdAt
   const withinClaimWindow =
     isBuyer &&
+    isCommission &&
     (purchase.status === "PAID" || purchase.status === "DELIVERED") &&
     isWithinClaimWindow(claimStart, CLAIM_WINDOW_DAYS)
   const existingClaim = isBuyer

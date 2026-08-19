@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   const approvedCount = products.filter((p) => p.status === "APPROVED").length
   const requisitesComplete = isProfileComplete(payoutProfile)
 
-  const [paidPurchases, salesCount, unansweredQuestions, unreadMessages] = await Promise.all([
+  const [paidPurchases, salesCount, unansweredQuestions, unreadMessages, awaitingConfirmations, heldAgg] = await Promise.all([
     db.purchase.findMany({
       where: { productId: { in: productIds }, status: { in: ["PAID", "DELIVERED"] } },
       include: {
@@ -55,7 +55,18 @@ export default async function DashboardPage() {
         purchase: { productId: { in: productIds } },
       },
     }),
+    db.purchase.count({ where: { status: "AWAITING", product: { authorId: session.user.id } } }),
+    db.purchase.aggregate({
+      where: {
+        productId: { in: productIds },
+        status: { in: ["PAID", "DELIVERED"] },
+        creditedAt: null,
+        holdUntil: { not: null },
+      },
+      _sum: { developerAmount: true },
+    }),
   ])
+  const heldAmount = heldAgg._sum.developerAmount ?? 0
 
   const totalSales = salesCount
 
@@ -81,6 +92,9 @@ export default async function DashboardPage() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Баланс" value={formatPrice(user.balance)} hint="доступно к выводу" />
+        {heldAmount > 0 && (
+          <StatCard label="В ожидании" value={formatPrice(heldAmount)} hint="удержание до конца окна претензии" />
+        )}
         <StatCard label="Продажи" value={String(totalSales)} />
         <StatCard label="Активных продуктов" value={String(approvedCount)} />
       </div>
@@ -114,6 +128,13 @@ export default async function DashboardPage() {
             Сообщения {unreadMessages > 0 && `(${unreadMessages})`}
           </Link>
         </Button>
+        {awaitingConfirmations > 0 && (
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/confirmations">
+              Подтверждения ({awaitingConfirmations})
+            </Link>
+          </Button>
+        )}
         <Button variant="outline" asChild>
           <Link href="/dashboard/requisites">
             Реквизиты {!requisitesComplete && "⚠"}
@@ -136,8 +157,10 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-medium">{formatPrice(developerPayout(p.amount))}</p>
-                  <Badge variant="secondary" className="text-xs">Зачислено</Badge>
+                  <p className="text-sm font-medium">{formatPrice(p.developerAmount ?? developerPayout(p.amount))}</p>
+                  <Badge variant={p.creditedAt ? "secondary" : "outline"} className="text-xs">
+                    {p.creditedAt ? "Зачислено" : "В ожидании"}
+                  </Badge>
                 </div>
               </div>
             ))}

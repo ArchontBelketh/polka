@@ -74,7 +74,7 @@ nano /opt/polka/.env
 | Блок | Переменные |
 |------|-----------|
 | Хранилище файлов (S3) | `YANDEX_S3_ACCESS_KEY`, `YANDEX_S3_SECRET_KEY`, `YANDEX_S3_BUCKET` |
-| Платежи (ЮKassa) | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` |
+| Платежи (Т-Банк) | `TBANK_TERMINAL_KEY`, `TBANK_PASSWORD` |
 | Письма (SMTP) | `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` |
 | Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_SECRET`, `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` |
 | Ограничение почты при регистрации | `ALLOWED_EMAIL_DOMAINS`, `NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS` |

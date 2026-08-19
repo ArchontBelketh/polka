@@ -13,7 +13,7 @@ const cspReportOnly = [
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "connect-src 'self' https://*.ingest.sentry.io",
-  "frame-src https://oauth.telegram.org https://yookassa.ru https://yoomoney.ru",
+  "frame-src https://oauth.telegram.org https://securepay.tinkoff.ru",
   "frame-ancestors 'none'",
 ].join("; ")
 

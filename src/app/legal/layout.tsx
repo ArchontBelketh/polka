@@ -2,6 +2,7 @@ import Link from "next/link"
 
 const DOCS = [
   { href: "/legal/offer", label: "Оферта" },
+  { href: "/legal/tariffs", label: "Тарифы" },
   { href: "/legal/terms", label: "Соглашение" },
   { href: "/legal/privacy", label: "Политика ПДн" },
 ]

@@ -79,3 +79,31 @@ export function UnbanButton({ id }: { id: string }) {
     </Button>
   )
 }
+
+export function FreezePayoutsButton({ id, frozen }: { id: string; frozen: boolean }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  function toggle() {
+    startTransition(async () => {
+      await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: frozen ? "unfreezePayouts" : "freezePayouts" }),
+      })
+      router.refresh()
+    })
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className={`h-8 ${frozen ? "" : "text-amber-500 hover:text-amber-500"}`}
+      onClick={toggle}
+      disabled={isPending}
+    >
+      {isPending ? "…" : frozen ? "Разморозить выплаты" : "Заморозить выплаты"}
+    </Button>
+  )
+}

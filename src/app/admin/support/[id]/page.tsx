@@ -5,6 +5,9 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { ReplyForm } from "@/components/support/ReplyForm"
 import { TicketStatusControl } from "@/components/support/TicketStatusControl"
+import { RefundButton } from "./RefundButton"
+import { formatPrice } from "@/lib/utils"
+import { saleModelForKopecks } from "@/lib/tariffs"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -25,6 +28,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   PURCHASE: "Вопрос по покупке",
   BUG: "Ошибка на сайте",
   OTHER: "Общий вопрос",
+  CLAIM: "Претензия по покупке",
 }
 const ROLE_LABELS: Record<string, string> = {
   BUYER: "Покупатель",
@@ -55,6 +59,27 @@ export default async function AdminSupportThreadPage({ params }: RouteParams) {
   })
 
   if (!ticket) notFound()
+
+  // Для претензии — подгружаем покупку, чтобы предложить операторский возврат
+  let claimPurchase: {
+    id: string; amount: number; status: string
+    product: { title: string; price: number; saleModel: string | null }
+  } | null = null
+  if (ticket.category === "CLAIM" && ticket.purchaseId) {
+    claimPurchase = await db.purchase.findUnique({
+      where: { id: ticket.purchaseId },
+      select: {
+        id: true, amount: true, status: true,
+        product: { select: { title: true, price: true, saleModel: true } },
+      },
+    })
+  }
+  const claimModel = claimPurchase
+    ? (claimPurchase.product.saleModel ?? saleModelForKopecks(claimPurchase.product.price))
+    : null
+  const canRefund =
+    !!claimPurchase && claimModel === "COMMISSION" &&
+    (claimPurchase.status === "PAID" || claimPurchase.status === "DELIVERED")
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -87,6 +112,25 @@ export default async function AdminSupportThreadPage({ params }: RouteParams) {
         <span className="text-sm text-muted-foreground">Изменить статус:</span>
         <TicketStatusControl ticketId={ticket.id} status={ticket.status} />
       </div>
+
+      {/* Претензия — операторский возврат */}
+      {claimPurchase && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+          <p className="text-sm font-medium">Претензия по покупке</p>
+          <p className="text-xs text-muted-foreground">
+            {claimPurchase.product.title} · {formatPrice(claimPurchase.amount)}
+          </p>
+          {claimPurchase.status === "REFUNDED" ? (
+            <p className="text-sm text-green-500">Возврат оформлен.</p>
+          ) : canRefund ? (
+            <RefundButton purchaseId={claimPurchase.id} />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Возврат через площадку недоступен (модель не «Комиссия» или неподходящий статус покупки).
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="space-y-4">

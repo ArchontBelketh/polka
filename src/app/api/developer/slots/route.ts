@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { createPayment } from "@/lib/yookassa"
+import { createPayment } from "@/lib/tbank"
 import { SLOT_PACKAGES, ensurePlanRecord } from "@/lib/developer-plan"
 
 const body = z.object({ slots: z.union([z.literal(1), z.literal(5), z.literal(15)]) })

@@ -1,12 +1,23 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Category } from "@/types"
+import {
+  PRICE_THRESHOLD_RUB,
+  COMMISSION_RATE,
+  COMMISSION_PCT,
+  LISTING_FEE_RATE,
+  LISTING_FEE_PCT,
+  saleModelForRub,
+  formatRub,
+} from "@/lib/tariffs"
 
 interface PricingData {
   price: string
   license: string
   telegramBotUsername: string
+  developerPaymentInfo: string
 }
 
 interface PricingStepProps {
@@ -27,15 +38,20 @@ export function PricingStep({ value, category, onChange }: PricingStepProps) {
   }
 
   const priceNum = parseFloat(value.price)
-  const commission = isNaN(priceNum) ? 0 : Math.round(priceNum * 0.2)
-  const payout = isNaN(priceNum) ? 0 : priceNum - commission
+  const validPrice = !isNaN(priceNum) && priceNum > 0
+  const model = validPrice ? saleModelForRub(priceNum) : null
+  const commission = validPrice ? Math.round(priceNum * COMMISSION_RATE) : 0
+  const payout = validPrice ? priceNum - commission : 0
+  const listingFee = validPrice ? Math.round(priceNum * LISTING_FEE_RATE) : 0
 
   return (
     <div className="space-y-5">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Цена и лицензия</h2>
         <p className="text-sm text-muted-foreground">
-          Комиссия платформы — 20%. Сумма зачисляется на ваш баланс сразу после оплаты покупателем.
+          Модель продажи зависит от цены. Порог — {formatRub(PRICE_THRESHOLD_RUB)}: дешевле —
+          оплата через площадку с комиссией {COMMISSION_PCT}%; от порога — прямая продажа с
+          единоразовым тарифом за размещение {LISTING_FEE_PCT}%.
         </p>
       </div>
 
@@ -58,14 +74,18 @@ export function PricingStep({ value, category, onChange }: PricingStepProps) {
             ₽
           </span>
         </div>
-        {!isNaN(priceNum) && priceNum > 0 && (
+        {validPrice && model === "COMMISSION" && (
           <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+            <div className="flex justify-between text-primary text-xs font-medium mb-1">
+              <span>Модель: Комиссия</span>
+              <span>оплата через площадку</span>
+            </div>
             <div className="flex justify-between text-muted-foreground">
               <span>Цена</span>
               <span>{priceNum.toLocaleString("ru-RU")} ₽</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Комиссия ПОЛКИ (20%)</span>
+              <span>Комиссия ПОЛКИ ({COMMISSION_PCT}%)</span>
               <span>−{commission.toLocaleString("ru-RU")} ₽</span>
             </div>
             <div className="flex justify-between font-medium text-foreground border-t border-border pt-1 mt-1">
@@ -74,7 +94,46 @@ export function PricingStep({ value, category, onChange }: PricingStepProps) {
             </div>
           </div>
         )}
+
+        {validPrice && model === "LISTING_FEE" && (
+          <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+            <div className="flex justify-between text-primary text-xs font-medium mb-1">
+              <span>Модель: Тариф за размещение</span>
+              <span>прямая продажа</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Цена</span>
+              <span>{priceNum.toLocaleString("ru-RU")} ₽</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Тариф за размещение ({LISTING_FEE_PCT}%, единоразово)</span>
+              <span>{listingFee.toLocaleString("ru-RU")} ₽</span>
+            </div>
+            <p className="text-xs text-muted-foreground border-t border-border pt-1 mt-1">
+              Оплату от покупателя вы получаете <b>напрямую</b> по своим реквизитам; площадка в
+              расчётах не участвует. Тариф уплачивается один раз до старта продаж.
+            </p>
+          </div>
+        )}
       </div>
+
+      {validPrice && model === "LISTING_FEE" && (
+        <div className="space-y-2">
+          <Label htmlFor="paymentInfo">Реквизиты для оплаты покупателем *</Label>
+          <Textarea
+            id="paymentInfo"
+            rows={3}
+            placeholder="Например: перевод на карту 0000 0000 0000 0000 (Иван И.), или ссылка на вашу форму оплаты…"
+            value={value.developerPaymentInfo}
+            onChange={(e) => set("developerPaymentInfo", e.target.value)}
+            maxLength={2000}
+          />
+          <p className="text-xs text-muted-foreground">
+            Как покупатель оплатит продукт напрямую вам. Показывается на странице продукта. Оплату
+            вы подтверждаете вручную в кабинете, после чего покупателю открывается скачивание.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>Тип лицензии</Label>

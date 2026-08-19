@@ -1,77 +1,57 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
-import { getPayment } from "@/lib/yookassa"
+import { getPayment, verifyNotificationToken } from "@/lib/tbank"
 import { developerPayout } from "@/lib/earnings"
+import { payoutHoldThresholdKopecks } from "@/lib/tariffs"
 import { notifyNewSale } from "@/lib/notify"
-import { ipInCidr, clientIp } from "@/lib/ip"
 
-// YooKassa notification source ranges (CIDR) — enforced in application code,
-// not only at nginx. Verify against the current list in the YooKassa docs
-// (Webhooks → Безопасность) on deploy.
-const YOOKASSA_CIDRS = [
-  "185.71.76.0/27",
-  "185.71.77.0/27",
-  "77.75.153.0/25",
-  "77.75.156.11/32",
-  "77.75.156.35/32",
-  "77.75.154.128/25",
-]
+const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
 
-interface WebhookBody {
-  type: string
-  event: string
-  object: {
-    id: string
-    status: string
-    metadata?: Record<string, string>
-  }
-}
+// Нотификация Т-Банка: подпись проверяется Token'ом (а не белым списком IP).
+// Метаданные приходят в DATA. Успех платежа — Status = CONFIRMED.
+const FAIL_STATUSES = new Set(["REJECTED", "CANCELED", "DEADLINE_EXPIRED", "AUTH_FAIL"])
 
 export async function POST(req: NextRequest) {
-  // Enforce YooKassa CIDR allowlist against a trusted IP source
-  const ip = clientIp(req)
-  const allowed = ip !== "" && YOOKASSA_CIDRS.some((cidr) => ipInCidr(ip, cidr))
-  if (!allowed) {
-    console.warn("Webhook: rejected request from non-YooKassa IP:", ip || "(none)")
-    return new Response("Forbidden", { status: 403 })
+  if (!process.env.TBANK_PASSWORD) {
+    console.error("Webhook: TBANK_PASSWORD not set")
+    return new Response("Service unavailable", { status: 503 })
   }
 
-  let body: WebhookBody
+  let body: Record<string, unknown>
   try {
     body = await req.json()
   } catch {
     return new Response("Bad Request", { status: 400 })
   }
 
-  if (body.type !== "notification") {
-    return new Response("OK", { status: 200 })
+  if (!verifyNotificationToken(body)) {
+    console.warn("Webhook: invalid T-Bank token")
+    return new Response("Forbidden", { status: 403 })
   }
 
-  const { event, object: payment } = body
+  const status = String(body.Status ?? "")
+  const paymentId = String(body.PaymentId ?? "")
+  const meta = (body.DATA ?? {}) as Record<string, string>
+  const metaType = meta.type ?? "purchase"
 
-  if (event === "payment.succeeded") {
-    // Re-fetch from YooKassa to verify the status
-    let verified
+  if (status === "CONFIRMED" && body.Success === true) {
+    // Повторная проверка статуса через GetState (авторитетный источник)
+    let state
     try {
-      verified = await getPayment(payment.id)
+      state = await getPayment(paymentId)
     } catch (err) {
       console.error("Webhook: failed to verify payment", err)
       return new Response("Error", { status: 502 })
     }
-
-    if (verified.status !== "succeeded") {
+    if (state.status !== "CONFIRMED") {
       return new Response("OK", { status: 200 })
     }
-
-    // Use verified.metadata (authoritative from YooKassa) — never trust request body metadata
-    const meta = verified.metadata ?? {}
-    const metaType = meta.type ?? "purchase"
 
     // --- Product purchase ---
     if (metaType === "purchase" || !meta.type) {
       const purchaseId = meta.purchaseId
       if (!purchaseId) {
-        console.error("Webhook: missing purchaseId in metadata", payment.id)
+        console.error("Webhook: missing purchaseId in DATA", paymentId)
         return new Response("OK", { status: 200 })
       }
 
@@ -87,29 +67,47 @@ export async function POST(req: NextRequest) {
         console.error("Webhook: purchase not found", purchaseId)
         return new Response("OK", { status: 200 })
       }
-
       if (purchase.status !== "PENDING") {
         return new Response("OK", { status: 200 })
       }
 
-      // Без эскроу: продажа финальная, деньги разработчику зачисляются сразу.
+      // Pro-статус разработчика для ставки комиссии
+      const devPlan = await db.developerPlan.findUnique({
+        where: { userId: purchase.product.authorId },
+        select: { plan: true, proUntil: true },
+      })
+      const isPro = devPlan?.plan === "PRO" && !!devPlan.proUntil && devPlan.proUntil > new Date()
+      const developerAmount = developerPayout(purchase.amount, isPro)
+
+      // Удержание ≥ порога (8.5): дорогие продажи придерживаем до конца окна претензии.
+      const now = new Date()
+      const hold = purchase.amount >= payoutHoldThresholdKopecks
+      const holdUntil = hold
+        ? new Date(now.getTime() + CLAIM_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+        : null
+
       await db.$transaction(async (tx) => {
         await tx.purchase.update({
           where: { id: purchaseId },
           data: {
             status: "PAID",
-            paymentId: payment.id,
-            paidAt: new Date(),
+            paymentId,
+            paidAt: now,
+            developerAmount,
+            holdUntil,
+            creditedAt: hold ? null : now,
           },
         })
         await tx.product.update({
           where: { id: purchase.productId },
           data: { salesCount: { increment: 1 } },
         })
-        await tx.user.update({
-          where: { id: purchase.product.authorId },
-          data: { balance: { increment: developerPayout(purchase.amount) } },
-        })
+        if (!hold) {
+          await tx.user.update({
+            where: { id: purchase.product.authorId },
+            data: { balance: { increment: developerAmount } },
+          })
+        }
       })
 
       const developer = await db.user.findUnique({
@@ -128,20 +126,13 @@ export async function POST(req: NextRequest) {
     if (metaType === "slots") {
       const { userId, slotsAdded } = meta
       if (!userId || !slotsAdded) return new Response("OK", { status: 200 })
-
       const slots = parseInt(slotsAdded, 10)
       if (isNaN(slots) || slots <= 0) return new Response("OK", { status: 200 })
 
-      await db.$transaction(async (tx) => {
-        await tx.slotPurchase.updateMany({
-          where: { paymentId: payment.id },
-          data: { paymentId: payment.id },
-        })
-        await tx.developerPlan.upsert({
-          where: { userId },
-          create: { userId, totalSlots: 2 + slots },
-          update: { totalSlots: { increment: slots } },
-        })
+      await db.developerPlan.upsert({
+        where: { userId },
+        create: { userId, totalSlots: 2 + slots },
+        update: { totalSlots: { increment: slots } },
       })
     }
 
@@ -149,7 +140,6 @@ export async function POST(req: NextRequest) {
     if (metaType === "pro") {
       const { userId } = meta
       if (!userId) return new Response("OK", { status: 200 })
-
       const proUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       await db.developerPlan.upsert({
         where: { userId },
@@ -162,36 +152,34 @@ export async function POST(req: NextRequest) {
     if (metaType === "ai_review") {
       const { aiReviewId } = meta
       if (!aiReviewId) return new Response("OK", { status: 200 })
-
       await db.aiReview.updateMany({
         where: { id: aiReviewId, status: "PENDING" },
-        data: { status: "PROCESSING", paymentId: payment.id },
+        data: { status: "PROCESSING", paymentId },
+      })
+    }
+
+    // --- Listing fee (тариф за размещение) ---
+    if (metaType === "listing_fee") {
+      const { productId } = meta
+      if (!productId) return new Response("OK", { status: 200 })
+      await db.product.updateMany({
+        where: { id: productId, listingFeePaidAt: null },
+        data: { listingFeePaidAt: new Date() },
       })
     }
   }
 
-  if (event === "payment.canceled") {
-    // Re-fetch to get authoritative metadata
-    let canceledMeta: Record<string, string> = {}
-    try {
-      const canceledPayment = await getPayment(payment.id)
-      canceledMeta = canceledPayment.metadata ?? {}
-    } catch {
-      canceledMeta = {}
-    }
-
-    const purchaseId = canceledMeta.purchaseId
-    if (purchaseId) {
+  // Неуспешные статусы — отменяем незавершённые записи
+  if (FAIL_STATUSES.has(status)) {
+    if (meta.purchaseId) {
       await db.purchase.updateMany({
-        where: { id: purchaseId, status: "PENDING" },
+        where: { id: meta.purchaseId, status: "PENDING" },
         data: { status: "REFUNDED" },
       })
     }
-
-    const aiReviewId = canceledMeta.aiReviewId
-    if (aiReviewId) {
+    if (meta.aiReviewId) {
       await db.aiReview.updateMany({
-        where: { id: aiReviewId, status: "PENDING" },
+        where: { id: meta.aiReviewId, status: "PENDING" },
         data: { status: "FAILED" },
       })
     }

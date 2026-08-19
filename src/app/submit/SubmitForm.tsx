@@ -29,6 +29,7 @@ interface FormState {
   price: string
   license: string
   telegramBotUsername: string
+  developerPaymentInfo: string
 }
 
 const INITIAL: FormState = {
@@ -38,7 +39,7 @@ const INITIAL: FormState = {
   features: [],
   installGuide: "", requirements: [],
   productFile: null, screenshots: [], demoUrl: "", videoUrl: "",
-  price: "", license: "personal", telegramBotUsername: "",
+  price: "", license: "personal", telegramBotUsername: "", developerPaymentInfo: "",
 }
 
 const MIN_GUIDE = 200
@@ -97,6 +98,7 @@ export function SubmitForm() {
           techStack: form.techStack.length > 0 ? form.techStack : undefined,
           license: form.license,
           telegramBotUsername: form.telegramBotUsername || undefined,
+          developerPaymentInfo: form.developerPaymentInfo || undefined,
           demoUrl: form.demoUrl || undefined,
           videoUrl: form.videoUrl || undefined,
         }),
@@ -205,7 +207,7 @@ export function SubmitForm() {
         )}
         {step === 5 && (
           <PricingStep
-            value={{ price: form.price, license: form.license, telegramBotUsername: form.telegramBotUsername }}
+            value={{ price: form.price, license: form.license, telegramBotUsername: form.telegramBotUsername, developerPaymentInfo: form.developerPaymentInfo }}
             category={form.category}
             onChange={(v) => setForm({ ...form, ...v })}
           />

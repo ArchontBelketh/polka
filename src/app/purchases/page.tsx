@@ -14,12 +14,14 @@ export const metadata = { title: "Кабинет покупателя" }
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Ожидает оплаты",
+  AWAITING: "Ожидает подтверждения",
   PAID: "Оплачено",
   DELIVERED: "Оплачено",
   REFUNDED: "Отменено",
 }
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PENDING: "outline",
+  AWAITING: "secondary",
   PAID: "default",
   DELIVERED: "default",
   REFUNDED: "destructive",

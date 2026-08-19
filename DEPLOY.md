@@ -138,8 +138,8 @@ VIRUSTOTAL_API_KEY="..."   # оставить пустым — VirusTotal отк
 ### Платежи, Telegram, Email
 
 ```env
-YOOKASSA_SHOP_ID="..."
-YOOKASSA_SECRET_KEY="..."
+TBANK_TERMINAL_KEY="..."
+TBANK_PASSWORD="..."
 
 TELEGRAM_BOT_TOKEN="..."
 TELEGRAM_BOT_SECRET="..."
@@ -410,11 +410,14 @@ docker exec polka npx tsx scripts/create-admin.ts --email admin@your-domain
 3. Создать статический ключ → заполнить `YANDEX_S3_ACCESS_KEY` и `YANDEX_S3_SECRET_KEY`
 4. Настроить CORS в настройках бакета (разрешить `PUT`/`GET` с вашего домена)
 
-### YooKassa
+### Т-Банк (интернет-эквайринг)
 
-1. Зарегистрироваться на [yookassa.ru](https://yookassa.ru)
-2. В настройках магазина получить `shopId` и создать `secretKey`
-3. Настроить webhook URL: `https://your-domain.com/api/payment/webhook`
+1. Подключить интернет-эквайринг в Т-Банке, получить **TerminalKey** и **Password** терминала.
+2. Прописать `TBANK_TERMINAL_KEY` и `TBANK_PASSWORD` в `.env`.
+3. В кабинете терминала указать **Notification URL**: `https://your-domain.com/api/payment/webhook`
+   (подпись нотификации проверяется по Token, IP-allowlist не нужен).
+4. Фискализация (чек 54-ФЗ) пока не передаётся — терминал должен быть без обязательной
+   фискализации (чеки добавим отдельно, Фаза 4 гибридной модели).
 
 ### VirusTotal
 
@@ -459,9 +462,12 @@ set -a; . /opt/polka/backup.env; set +a
 ```cron
 # crontab -e на сервере
 0 3 * * *   set -a; . /opt/polka/backup.env; set +a; /opt/polka/scripts/backup.sh   >> /var/log/polka-backup.log 2>&1
-*/5 * * * * curl -fsS -H "x-cron-secret: $CRON_SECRET" https://your-domain.com/api/cron/ai-review >> /var/log/polka-cron.log 2>&1
+*/5 * * * * curl -fsS -H "x-cron-secret: $CRON_SECRET" https://your-domain.com/api/cron/ai-review    >> /var/log/polka-cron.log 2>&1
+0 * * * *   curl -fsS -H "x-cron-secret: $CRON_SECRET" https://your-domain.com/api/cron/hold-release  >> /var/log/polka-cron.log 2>&1
 0 * * * *   set -a; . /opt/polka/backup.env; set +a; /opt/polka/scripts/monitor.sh  >> /var/log/polka-monitor.log 2>&1
 ```
+> `hold-release` зачисляет удержанные суммы (продажи ≥ порога) после окончания окна
+> претензии — раз в час достаточно.
 
 > Используйте `crontab -e` с переменной `CRON_SECRET` в окружении cron (или подставьте
 > значение явно). Каждый успешный вызов cron-эндпоинта пишет heartbeat в таблицу
@@ -484,15 +490,14 @@ set -a; . /opt/polka/backup.env; set +a
 - [ ] Сканирование запускается после отправки продукта
 - [ ] Страница `/admin/queue` доступна модератору, очередь отображается
 - [ ] Telegram webhook принимает сообщения (проверить в логах бота)
-- [ ] Платёжный webhook настроен в личном кабинете YooKassa
+- [ ] Notification URL настроен в кабинете Т-Банка (`/api/payment/webhook`); тест-платёж на ₽1 прошёл
 - [ ] `NEXTAUTH_SECRET` содержит случайную строку (не пример из `.env.example`)
 - [ ] `NEXTAUTH_URL` и `NEXT_PUBLIC_APP_URL` указывают на продакшн-домен
 - [ ] HTTPS включён; HTTP редиректит на HTTPS
 - [ ] Sentry DSN установлен, тестовая ошибка видна в дашборде (опционально)
 - [ ] **В таблице `User` нет аккаунтов `*@polka.test`** (демо-сиды не запускались на проде)
 - [ ] **Реальный админ создан** через `create-admin.ts` со стойким паролем
-- [ ] nginx прокидывает `X-Real-IP $remote_addr`; вебхук ЮKassa проверяет CIDR (§1.1 readiness)
-- [ ] Домен вебхука не публикует AAAA-запись (ЮKassa шлёт только по IPv4)
+- [ ] Вебхук Т-Банка проверяется по Token (`TBANK_PASSWORD` задан); IP-allowlist не требуется
 - [ ] `GET /api/health` отвечает `{ ok: true }`; внешний uptime-мониторинг настроен на него
 - [ ] Security-заголовки присутствуют (`curl -I https://your-domain.com` → HSTS, X-Frame-Options и т.д.)
 - [ ] Порт Postgres не проброшен наружу (прод-override), пароль БД сменён, `ufw` включён
