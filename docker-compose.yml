@@ -45,19 +45,20 @@ services:
       retries: 3
       start_period: 30s
 
-  # One-off tasks (schema push, admin creation). Built from the `builder` stage,
-  # which has the full node_modules + prisma CLI + tsx-runnable scripts. Never
-  # starts on `up` (profile "tools"); invoked via `docker compose run --rm migrate ...`.
+  # One-off schema tasks (prisma db push). Built from the lightweight `migrator`
+  # stage (prisma CLI + schema only) — a fraction of the `builder` image, so the
+  # deploy doesn't run out of disk building a second full image. Never starts on
+  # `up` (profile "tools"); invoked via `docker compose run --rm migrate`.
   migrate:
     build:
       context: .
-      target: builder
+      target: migrator
     env_file: .env.local
     profiles: ["tools"]
     depends_on:
       db:
         condition: service_healthy
-    command: ["npx", "prisma", "db", "push", "--skip-generate"]
+    command: ["npx", "prisma", "db", "push"]
 
 volumes:
   pgdata:

@@ -60,3 +60,16 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
+
+# ── Migrator ──────────────────────────────────────────────────────────────────
+# Лёгкий образ ТОЛЬКО для одноразовых задач схемы (`prisma db push`). Содержит
+# лишь prisma CLI + dotenv + схему — на порядок меньше стадии builder, чтобы
+# сборка второго образа не упиралась в диск. Полный node_modules не нужен:
+# db push работает от схемы, клиент не генерируется (--skip-generate).
+FROM node:22-slim AS migrator
+WORKDIR /app
+RUN apt-get update && apt-get install -y openssl --no-install-recommends && rm -rf /var/lib/apt/lists/* && \
+    npm init -y >/dev/null 2>&1 && npm install --no-audit --no-fund prisma@7 dotenv@17
+COPY prisma.config.ts ./prisma.config.ts
+COPY prisma ./prisma
+CMD ["npx", "prisma", "db", "push"]
