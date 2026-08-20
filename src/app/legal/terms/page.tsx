@@ -1,12 +1,14 @@
 import type { Metadata } from "next"
+import { getOperatorInfo, operatorRequisitesLine, operatorRevision } from "@/lib/operator"
 
 export const metadata: Metadata = { title: "Пользовательское соглашение" }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const op = await getOperatorInfo()
   return (
     <>
       <h1>Пользовательское соглашение</h1>
-      <p>Редакция от [ДАТА]. Использование Площадки означает согласие с настоящим Соглашением, Офертой и Политикой обработки персональных данных.</p>
+      <p>Редакция от {operatorRevision(op)}. Использование Площадки означает согласие с настоящим Соглашением, Офертой и Политикой обработки персональных данных.</p>
 
       <h2>1. Аккаунт</h2>
       <ul>
@@ -50,7 +52,7 @@ export default function TermsPage() {
       <p>Оператор вправе изменять Соглашение; актуальная редакция публикуется на этой странице.</p>
 
       <h2>8. Контакты</h2>
-      <p>[РЕКВИЗИТЫ Оператора и email поддержки.]</p>
+      <p>Реквизиты Оператора и email поддержки: {operatorRequisitesLine(op)}.</p>
     </>
   )
 }

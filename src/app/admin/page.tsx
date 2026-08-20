@@ -104,6 +104,9 @@ export default async function AdminPage() {
                 <Link href="/admin/coupons">Купоны</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
+                <Link href="/admin/settings">Реквизиты</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
                 <Link href="/admin/payouts">
                   Выплаты{adminStats && adminStats.payoutsPending > 0 ? ` (${adminStats.payoutsPending})` : ""}
                 </Link>

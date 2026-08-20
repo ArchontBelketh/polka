@@ -1,13 +1,15 @@
 import type { Metadata } from "next"
+import { getOperatorInfo, operatorRequisitesLine, operatorRevision } from "@/lib/operator"
 
 export const metadata: Metadata = { title: "Политика обработки персональных данных" }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const op = await getOperatorInfo()
   return (
     <>
       <h1>Политика обработки персональных данных</h1>
       <p>
-        Редакция от [ДАТА]. Оператор персональных данных: [РЕКВИЗИТЫ: ИП/ООО, ИНН, адрес, email].
+        Редакция от {operatorRevision(op)}. Оператор персональных данных: {operatorRequisitesLine(op)}.
         Политика составлена в соответствии с Федеральным законом № 152-ФЗ «О персональных данных».
       </p>
 
@@ -61,7 +63,7 @@ export default function PrivacyPage() {
       </p>
 
       <h2>8. Контакты Оператора</h2>
-      <p>[РЕКВИЗИТЫ и email для обращений по вопросам персональных данных.]</p>
+      <p>Обращения по вопросам персональных данных: {operatorRequisitesLine(op)}.</p>
     </>
   )
 }

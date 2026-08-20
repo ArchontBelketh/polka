@@ -7,15 +7,17 @@ import {
   LISTING_FEE_PCT,
   formatRub,
 } from "@/lib/tariffs"
+import { getOperatorInfo, operatorRevision } from "@/lib/operator"
 
 export const metadata: Metadata = { title: "Приложение №1. Тарифы" }
 
-export default function TariffsPage() {
+export default async function TariffsPage() {
+  const op = await getOperatorInfo()
   return (
     <>
       <h1>Приложение №1. Тарифы</h1>
       <p>
-        Действует с [ДАТА]. Является неотъемлемой частью Публичной оферты (п. 14.4). Значения ниже
+        Действует с {operatorRevision(op)}. Является неотъемлемой частью Публичной оферты (п. 14.4). Значения ниже
         применяются к продажам и продуктам, размещённым после публикации соответствующей редакции.
       </p>
 

@@ -450,6 +450,21 @@ model CronHeartbeat {
   ranAt DateTime
 }
 
+// Реквизиты Оператора площадки (единственная строка). Подставляются в оферту,
+// политику, соглашение и футер вместо хардкод-плейсхолдеров.
+model OperatorSettings {
+  id           String   @id @default("singleton")
+  name         String?  // ИП «…» / ООО «…»
+  inn          String?
+  ogrn         String?  // ОГРН / ОГРНИП
+  bankAccount  String?  // расчётный счёт
+  address      String?
+  email        String?
+  phone        String?
+  revisionDate String?  // дата редакции документов (напр. «1 сентября 2026 г.»)
+  updatedAt    DateTime @updatedAt
+}
+
 model AiReview {
   id          String    @id @default(cuid())
   productId   String

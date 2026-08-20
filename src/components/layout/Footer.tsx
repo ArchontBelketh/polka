@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { getOperatorInfo, operatorShortLine } from "@/lib/operator"
 
 const COLUMNS = [
   {
@@ -35,7 +36,8 @@ const COLUMNS = [
   },
 ]
 
-export function Footer() {
+export async function Footer() {
+  const op = await getOperatorInfo()
   return (
     <footer className="mt-24 border-t border-border bg-[#0b0a12]">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-14 sm:grid-cols-3 lg:grid-cols-5">
@@ -81,7 +83,7 @@ export function Footer() {
 
       <div className="border-t border-border/60">
         <div className="mx-auto max-w-7xl space-y-1 px-4 py-6 font-mono text-xs text-muted-foreground">
-          <p>[РЕКВИЗИТЫ: ИП/ООО «…», ИНН …, ОГРН(ИП) …, email …] — заменить перед запуском</p>
+          <p>{operatorShortLine(op)}</p>
           <p>© {new Date().getFullYear()} CYBERПОЛКА — маркетплейс готовых программ</p>
         </div>
       </div>

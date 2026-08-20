@@ -20,6 +20,7 @@ services:
   app:
     build:
       context: .
+      target: runner
       args:
         # NEXT_PUBLIC_* must be baked in at build time. compose reads these from
         # the .env file next to this compose file (prod) — empty in dev is fine.

@@ -18,12 +18,6 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         ))}
       </nav>
 
-      <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
-        ⚠️ Черновик-шаблон. Перед запуском замените тексты на согласованные с юристом
-        (модель «площадка-агент»: ПОЛКА — посредник между разработчиком и покупателем).
-        Подставьте реквизиты ИП/ООО.
-      </div>
-
       <article
         className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground
           [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-foreground [&_h1]:mb-1
