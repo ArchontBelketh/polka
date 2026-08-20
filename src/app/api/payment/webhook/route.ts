@@ -31,10 +31,19 @@ export async function POST(req: NextRequest) {
 
   const status = String(body.Status ?? "")
   const paymentId = String(body.PaymentId ?? "")
-  const meta = (body.DATA ?? {}) as Record<string, string>
+  // ВАЖНО: в Init объект зовётся DATA, а в нотификации Т-Банк присылает его как Data
+  // (регистр отличается). Читаем оба варианта, иначе meta всегда пустой → покупка
+  // навсегда зависает в PENDING (деньги списаны, продавец их не видит).
+  const meta = (body.Data ?? body.DATA ?? {}) as Record<string, string>
   const metaType = meta.type ?? "purchase"
+  const success = body.Success === true || body.Success === "true"
 
-  if (status === "CONFIRMED" && body.Success === true) {
+  if (Object.keys(meta).length === 0) {
+    // Диагностика: если метаданные не пришли — увидим фактические ключи тела в логах
+    console.warn("Webhook: empty metadata; body keys:", Object.keys(body).join(","))
+  }
+
+  if (status === "CONFIRMED" && success) {
     // Повторная проверка статуса через GetState (авторитетный источник)
     let state
     try {

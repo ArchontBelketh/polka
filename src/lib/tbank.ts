@@ -122,7 +122,8 @@ export function verifyNotificationToken(body: Record<string, unknown>): boolean 
 
   const scalar: Record<string, string | number | boolean> = {}
   for (const [k, v] of Object.entries(body)) {
-    if (k === "Token" || k === "DATA" || k === "Receipt") continue
+    // DATA/Data и Receipt в подпись не входят (Т-Банк присылает Data с другим регистром)
+    if (k === "Token" || k === "DATA" || k === "Data" || k === "Receipt") continue
     if (v === null || v === undefined) continue
     if (typeof v === "object") continue
     scalar[k] = v as string | number | boolean
