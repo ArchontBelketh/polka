@@ -49,7 +49,7 @@ export async function createPayment(params: {
     TerminalKey: terminalKey(),
     Amount: params.amountKopecks,
     OrderId: params.idempotencyKey,
-    Description: params.description.slice(0, 250),
+    Description: params.description.slice(0, 140), // лимит Т-Банка
     SuccessURL: params.returnUrl,
     FailURL: params.returnUrl,
   }
