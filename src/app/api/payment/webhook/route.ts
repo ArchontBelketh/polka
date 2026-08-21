@@ -24,6 +24,12 @@ export async function POST(req: NextRequest) {
     return new Response("Bad Request", { status: 400 })
   }
 
+  // Диагностика: логируем КАЖДЫЙ входящий вебхук (до проверки токена), чтобы
+  // видеть, доходит ли уведомление, с каким статусом и в каком регистре Data.
+  console.log(
+    `Webhook in: Status=${body.Status} PaymentId=${body.PaymentId} Success=${body.Success} keys=[${Object.keys(body).join(",")}]`,
+  )
+
   if (!verifyNotificationToken(body)) {
     console.warn("Webhook: invalid T-Bank token")
     return new Response("Forbidden", { status: 403 })
@@ -38,9 +44,13 @@ export async function POST(req: NextRequest) {
   const metaType = meta.type ?? "purchase"
   const success = body.Success === true || body.Success === "true"
 
-  if (Object.keys(meta).length === 0) {
-    // Диагностика: если метаданные не пришли — увидим фактические ключи тела в логах
-    console.warn("Webhook: empty metadata; body keys:", Object.keys(body).join(","))
+  // T-Bank НЕ возвращает объект DATA в нотификации, поэтому meta.purchaseId
+  // обычно пуст. Находим покупку по PaymentId — он сохранён в purchase при
+  // создании платежа и это надёжный ключ, не зависящий от эха метаданных.
+  let purchaseId = meta.purchaseId as string | undefined
+  if (!purchaseId && paymentId) {
+    const byPayment = await db.purchase.findFirst({ where: { paymentId }, select: { id: true } })
+    purchaseId = byPayment?.id
   }
 
   if (status === "CONFIRMED" && success) {
@@ -58,9 +68,8 @@ export async function POST(req: NextRequest) {
 
     // --- Product purchase ---
     if (metaType === "purchase" || !meta.type) {
-      const purchaseId = meta.purchaseId
       if (!purchaseId) {
-        console.error("Webhook: missing purchaseId in DATA", paymentId)
+        console.error("Webhook: purchase not found for PaymentId", paymentId)
         return new Response("OK", { status: 200 })
       }
 
@@ -180,9 +189,9 @@ export async function POST(req: NextRequest) {
 
   // Неуспешные статусы — отменяем незавершённые записи
   if (FAIL_STATUSES.has(status)) {
-    if (meta.purchaseId) {
+    if (purchaseId) {
       await db.purchase.updateMany({
-        where: { id: meta.purchaseId, status: "PENDING" },
+        where: { id: purchaseId, status: "PENDING" },
         data: { status: "REFUNDED" },
       })
     }

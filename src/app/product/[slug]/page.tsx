@@ -178,9 +178,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-3">Описание</h2>
-              <div className="text-muted-foreground whitespace-pre-line text-sm leading-relaxed">
-                {product.fullDesc}
-              </div>
+              <Markdown content={product.fullDesc} />
             </div>
 
             <div>

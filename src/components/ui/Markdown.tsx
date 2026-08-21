@@ -103,7 +103,9 @@ function parseBlocks(src: string): Block[] {
       buf.push(lines[i])
       i++
     }
-    blocks.push({ type: "p", text: buf.join(" ") })
+    // Одиночные переносы строк сохраняем (\n) — при рендере станут <br/>, чтобы
+    // обычный текст не «слипался» в один абзац. Пустая строка = новый абзац.
+    blocks.push({ type: "p", text: buf.join("\n") })
   }
 
   return blocks
@@ -149,8 +151,19 @@ function renderBlock(block: Block, key: number): React.ReactNode {
           ))}
         </ol>
       )
-    case "p":
-      return <p key={key}>{renderInline(block.text, `p${key}`)}</p>
+    case "p": {
+      const lines = block.text.split("\n")
+      return (
+        <p key={key}>
+          {lines.map((ln, j) => (
+            <React.Fragment key={j}>
+              {j > 0 && <br />}
+              {renderInline(ln, `p${key}-${j}`)}
+            </React.Fragment>
+          ))}
+        </p>
+      )
+    }
   }
 }
 

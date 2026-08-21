@@ -58,7 +58,7 @@ export function DescriptionStep({ value, onChange }: DescriptionStepProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="fullDesc">Полное описание *</Label>
+        <Label htmlFor="fullDesc">Полное описание * <span className="font-normal text-muted-foreground">(можно Markdown)</span></Label>
         <Textarea
           id="fullDesc"
           placeholder="Подробно опишите функционал, кейсы использования, что входит в поставку..."

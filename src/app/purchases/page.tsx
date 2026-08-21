@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS } from "@/types"
 import { Download, Heart, ShoppingBag } from "lucide-react"
 import { ProductCard } from "@/components/catalog/ProductCard"
+import { PaidRefresher } from "./PaidRefresher"
 import { cn } from "@/lib/utils"
 
 export const metadata = { title: "Кабинет покупателя" }
@@ -82,6 +83,11 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
 
   const purchasedIds = new Set(purchases.map((p) => p.product.id))
 
+  // Покупка, на которую мы только что вернулись с оплаты (?paid=<id>).
+  // Пока она PENDING — ждём вебхук и авто-обновляем страницу.
+  const paidPurchase = paid ? purchases.find((p) => p.id === paid) : undefined
+  const awaitingPayment = paidPurchase?.status === "PENDING"
+
   // Unread message counts per purchase (messages from the developer)
   const unreadRows = await db.purchaseMessage.groupBy({
     by: ["purchaseId"],
@@ -117,12 +123,23 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Success banner */}
-      {paid && (
+      {/* Баннер результата оплаты (зависит от фактического статуса покупки) */}
+      {paidPurchase && awaitingPayment && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
+          ⏳ Проверяем оплату… Статус обновится автоматически.
+        </div>
+      )}
+      {paidPurchase && (paidPurchase.status === "PAID" || paidPurchase.status === "DELIVERED") && (
         <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
           ✓ Оплата прошла успешно. Файл доступен для скачивания.
         </div>
       )}
+      {paidPurchase && paidPurchase.status === "REFUNDED" && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          ✕ Оплата не прошла. Попробуйте ещё раз.
+        </div>
+      )}
+      <PaidRefresher pending={!!awaitingPayment} />
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
