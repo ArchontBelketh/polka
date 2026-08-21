@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { createPayment } from "@/lib/tbank"
+import { initPayment } from "@/lib/payments"
 import { saleModelForKopecks, listingFeeKopecks } from "@/lib/tariffs"
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -31,19 +31,20 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
 
   let payment
   try {
-    payment = await createPayment({
+    payment = await initPayment({
+      type: "listing_fee",
+      payload: { productId: id },
       amountKopecks: amount,
       description: `ПОЛКА: тариф за размещение «${product.title}»`,
       returnUrl: `${appUrl}/dashboard/products/${id}`,
-      metadata: { type: "listing_fee", productId: id },
-      idempotencyKey: `listingfee-${id}-${Date.now()}`,
+      userId: session.user.id,
     })
   } catch (err) {
     console.error("[listing-fee] createPayment failed:", err)
     return Response.json({ error: "Платёжная система недоступна" }, { status: 503 })
   }
 
-  const confirmationUrl = payment.confirmation?.confirmation_url
+  const confirmationUrl = payment.confirmationUrl
   if (!confirmationUrl) {
     return Response.json({ error: "Не удалось получить ссылку на оплату" }, { status: 502 })
   }

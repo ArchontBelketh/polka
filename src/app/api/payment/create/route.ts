@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { createPayment } from "@/lib/tbank"
+import { initPayment } from "@/lib/payments"
 import { limits } from "@/lib/ratelimit"
 
 const schema = z.object({
@@ -74,16 +74,15 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  const idempotencyKey = crypto.randomUUID()
-
   let payment
   try {
-    payment = await createPayment({
+    payment = await initPayment({
+      type: "purchase",
+      payload: { purchaseId: purchase.id },
       amountKopecks: finalPrice,
       description: `Покупка: ${product.title}`,
       returnUrl: `${appUrl}/purchases?paid=${purchase.id}`,
-      metadata: { purchaseId: purchase.id },
-      idempotencyKey,
+      userId: session.user.id,
     })
   } catch (err) {
     await db.purchase.delete({ where: { id: purchase.id } })
@@ -95,7 +94,7 @@ export async function POST(req: NextRequest) {
   await db.$transaction(async (tx) => {
     await tx.purchase.update({
       where: { id: purchase.id },
-      data: { paymentId: payment!.id },
+      data: { paymentId: payment.paymentId },
     })
     if (appliedCoupon) {
       await tx.coupon.update({
@@ -105,10 +104,9 @@ export async function POST(req: NextRequest) {
     }
   })
 
-  const confirmationUrl = payment.confirmation?.confirmation_url
   return Response.json({
     purchaseId: purchase.id,
-    confirmationUrl,
+    confirmationUrl: payment.confirmationUrl,
     ...(appliedCoupon ? { discountPct: appliedCoupon.discountPct, finalPrice } : {}),
   })
 }

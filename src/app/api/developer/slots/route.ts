@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { createPayment } from "@/lib/tbank"
+import { initPayment } from "@/lib/payments"
 import { SLOT_PACKAGES, ensurePlanRecord } from "@/lib/developer-plan"
 
 const body = z.object({ slots: z.union([z.literal(1), z.literal(5), z.literal(15)]) })
@@ -23,27 +23,23 @@ export async function POST(req: NextRequest) {
   await ensurePlanRecord(session.user.id)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-  const idempotencyKey = `slots-${session.user.id}-${Date.now()}`
 
   let payment
   try {
-    payment = await createPayment({
+    payment = await initPayment({
+      type: "slots",
+      payload: { userId: session.user.id, slotsAdded: String(pkg.slots) },
       amountKopecks: pkg.amountKopecks,
       description: `ПОЛКА: ${pkg.label} для разработчика`,
       returnUrl: `${appUrl}/dashboard`,
-      metadata: {
-        type: "slots",
-        userId: session.user.id,
-        slotsAdded: String(pkg.slots),
-      },
-      idempotencyKey,
+      userId: session.user.id,
     })
   } catch (err) {
     console.error("[developer/slots] createPayment failed:", err)
     return Response.json({ error: "Платёжная система недоступна" }, { status: 503 })
   }
 
-  const confirmationUrl = payment.confirmation?.confirmation_url
+  const confirmationUrl = payment.confirmationUrl
   if (!confirmationUrl) {
     return Response.json({ error: "Не удалось получить ссылку на оплату" }, { status: 502 })
   }
@@ -53,7 +49,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       slotsAdded: pkg.slots,
       amount: pkg.amountKopecks,
-      paymentId: payment.id,
+      paymentId: payment.paymentId,
     },
   })
 

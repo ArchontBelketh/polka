@@ -481,3 +481,24 @@ model AiReview {
   @@index([requestedBy])
   @@index([status])
 }
+
+// Намерение платежа: что именно оплачивается. Создаётся ДО обращения к Т-Банку и
+// привязывается к OrderId (Т-Банк всегда возвращает его в нотификации). Вебхук по
+// нему понимает, за что платёж, — не полагаясь на DATA, которую Т-Банк не эхонит.
+// Добавление новой платной услуги = новый `type` + обработчик, без правки вебхука.
+model PaymentIntent {
+  id         String   @id @default(cuid())
+  orderId    String   @unique                // = OrderId в T-Bank Init
+  paymentId  String?                         // = T-Bank PaymentId (после Init)
+  type       String                          // purchase | slots | pro | ai_review | listing_fee | …
+  payload    Json                            // данные для выдачи услуги при подтверждении
+  status     String   @default("PENDING")    // PENDING | CONFIRMED | FAILED
+  amount     Int                             // копейки
+  userId     String?                         // инициатор платежа (для журнала)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([createdAt])
+}

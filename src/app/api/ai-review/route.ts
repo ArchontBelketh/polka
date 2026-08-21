@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { createPayment } from "@/lib/tbank"
+import { initPayment } from "@/lib/payments"
 
 const AI_REVIEW_PRICE = 39000 // 390 RUB in kopecks
 
@@ -51,12 +51,13 @@ export async function POST(req: NextRequest) {
 
   let payment
   try {
-    payment = await createPayment({
+    payment = await initPayment({
+      type: "ai_review",
+      payload: { aiReviewId: aiReview.id },
       amountKopecks: AI_REVIEW_PRICE,
       description: `ПОЛКА: AI-ревью «${product.title}»`,
       returnUrl: `${appUrl}/ai-reviews`,
-      metadata: { type: "ai_review", aiReviewId: aiReview.id },
-      idempotencyKey: `ai-review-${aiReview.id}`,
+      userId: session.user.id,
     })
   } catch (err) {
     await db.aiReview.delete({ where: { id: aiReview.id } })
@@ -66,10 +67,10 @@ export async function POST(req: NextRequest) {
 
   await db.aiReview.update({
     where: { id: aiReview.id },
-    data: { paymentId: payment.id },
+    data: { paymentId: payment.paymentId },
   })
 
-  return Response.json({ confirmationUrl: payment.confirmation?.confirmation_url })
+  return Response.json({ confirmationUrl: payment.confirmationUrl })
 }
 
 export async function GET() {

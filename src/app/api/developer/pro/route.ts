@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
-import { createPayment } from "@/lib/tbank"
+import { initPayment } from "@/lib/payments"
 import { ensurePlanRecord, PRO_AMOUNT_KOPECKS } from "@/lib/developer-plan"
 
 export async function POST(_req: NextRequest) {
@@ -12,26 +12,23 @@ export async function POST(_req: NextRequest) {
   await ensurePlanRecord(session.user.id)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-  const idempotencyKey = `pro-${session.user.id}-${Date.now()}`
 
   let payment
   try {
-    payment = await createPayment({
+    payment = await initPayment({
+      type: "pro",
+      payload: { userId: session.user.id },
       amountKopecks: PRO_AMOUNT_KOPECKS,
       description: "ПОЛКА: Pro подписка (1 месяц)",
       returnUrl: `${appUrl}/dashboard`,
-      metadata: {
-        type: "pro",
-        userId: session.user.id,
-      },
-      idempotencyKey,
+      userId: session.user.id,
     })
   } catch (err) {
     console.error("[developer/pro] createPayment failed:", err)
     return Response.json({ error: "Платёжная система недоступна" }, { status: 503 })
   }
 
-  const confirmationUrl = payment.confirmation?.confirmation_url
+  const confirmationUrl = payment.confirmationUrl
   if (!confirmationUrl) {
     return Response.json({ error: "Не удалось получить ссылку на оплату" }, { status: 502 })
   }
