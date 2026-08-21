@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
 
   const idempotencyKey = crypto.randomUUID()
 
-  let yooPayment
+  let payment
   try {
-    yooPayment = await createPayment({
+    payment = await createPayment({
       amountKopecks: finalPrice,
       description: `Покупка: ${product.title}`,
       returnUrl: `${appUrl}/purchases?paid=${purchase.id}`,
@@ -87,14 +87,15 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     await db.purchase.delete({ where: { id: purchase.id } })
-    console.error("YooKassa create payment error:", err)
+    // cause содержит настоящую причину при "fetch failed" (DNS/сеть/TLS)
+    console.error("T-Bank create payment error:", err, "| cause:", (err as { cause?: unknown }).cause)
     return Response.json({ error: "Ошибка платёжной системы" }, { status: 502 })
   }
 
   await db.$transaction(async (tx) => {
     await tx.purchase.update({
       where: { id: purchase.id },
-      data: { paymentId: yooPayment!.id },
+      data: { paymentId: payment!.id },
     })
     if (appliedCoupon) {
       await tx.coupon.update({
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
     }
   })
 
-  const confirmationUrl = yooPayment.confirmation?.confirmation_url
+  const confirmationUrl = payment.confirmation?.confirmation_url
   return Response.json({
     purchaseId: purchase.id,
     confirmationUrl,

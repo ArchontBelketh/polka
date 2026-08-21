@@ -77,10 +77,14 @@ export function CodeViewer({ productId }: { productId: string }) {
       )}
 
       {data && data.files.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,220px)_1fr] gap-3">
+        <div
+          className={`grid gap-3 ${
+            data.files.length > 1 ? "grid-cols-1 md:grid-cols-[minmax(0,220px)_1fr]" : "grid-cols-1"
+          }`}
+        >
           {/* Список файлов (для архива) */}
           {data.files.length > 1 && (
-            <div className="rounded-md border border-border bg-card max-h-[520px] overflow-auto">
+            <div className="rounded-md border border-border bg-card max-h-[70vh] overflow-auto">
               <ul className="text-xs">
                 {data.files.map((f, i) => (
                   <li key={i}>
@@ -126,7 +130,7 @@ export function CodeViewer({ productId }: { productId: string }) {
 function CodeBlock({ content, truncated }: { content: string; truncated?: boolean }) {
   const lines = content.split("\n")
   return (
-    <div className="overflow-auto max-h-[520px] text-xs leading-relaxed">
+    <div className="overflow-auto max-h-[70vh] text-xs leading-relaxed">
       <pre className="min-w-full w-max">
         <code className="grid grid-cols-[auto_1fr]">
           {lines.map((line, i) => (

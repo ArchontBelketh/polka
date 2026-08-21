@@ -56,6 +56,15 @@ RUN apt-get update && apt-get install -y python3 python3-pip git --no-install-re
     pip3 install --no-cache-dir --break-system-packages bandit semgrep oletools && \
     rm -rf /var/lib/apt/lists/*
 
+# Russian Trusted CA (Минцифры): securepay.tinkoff.ru отдаёт сертификат,
+# выпущенный российским УЦ, которого НЕТ в стандартном bundle → без него fetch к
+# Т-Банку падает с SELF_SIGNED_CERT_IN_CHAIN. Сертификат берём из проверенного
+# PEM, закоммиченного в репозиторий (certs/russian_trusted_ca.pem), а не качаем
+# на этапе сборки — так его можно отревьюить и он не зависит от внешних URL.
+# Node доверяет ему через NODE_EXTRA_CA_CERTS (только для исходящего TLS Node).
+COPY certs/russian_trusted_ca.pem /etc/ssl/russian_trusted_ca.pem
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/russian_trusted_ca.pem
+
 # v8unpack (1С .epf unpacker) — compiled from source if available
 # RUN git clone --depth=1 https://github.com/e8tools/v8unpack /tmp/v8unpack && \
 #     cd /tmp/v8unpack && cmake . && make && cp v8unpack /usr/local/bin/ && rm -rf /tmp/v8unpack

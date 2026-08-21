@@ -49,12 +49,16 @@ async function main() {
   const passwordHash = await bcrypt.hash(password, 12)
   const user = await db.user.upsert({
     where: { email },
-    update: { role: "ADMIN", passwordHash },
+    // Админ создаётся доверенным лицом из CLI — сразу помечаем почту
+    // подтверждённой, чтобы не требовать верификации (и не слать письмо на
+    // возможно несуществующий ящик вроде admin@<домен>).
+    update: { role: "ADMIN", passwordHash, emailVerified: new Date() },
     create: {
       email,
       name: "Администратор",
       role: "ADMIN",
       passwordHash,
+      emailVerified: new Date(),
       agreedToTerms: true,
       agreedAt: new Date(),
     },
