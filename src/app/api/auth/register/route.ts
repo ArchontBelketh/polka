@@ -5,6 +5,10 @@ import { Prisma } from "@/generated/prisma/client"
 import { db } from "@/lib/db"
 import { issueEmailVerification } from "@/lib/email-verify"
 import { isEmailDomainAllowed, emailDomainError } from "@/lib/email-domains"
+import { normalizeEmail } from "@/lib/email-normalize"
+import { clientIp } from "@/lib/ip"
+import { limits } from "@/lib/ratelimit"
+import { verifySmartCaptcha } from "@/lib/smartcaptcha"
 
 const schema = z.object({
   name: z.string().min(2).max(100),
@@ -17,6 +21,17 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  // Регистрация не покрыта middleware (matcher исключает /api/auth), поэтому
+  // лимитируем здесь: не более 5 регистраций в час с одного IP — иначе боты
+  // забивают БД фейковыми аккаунтами.
+  const ip = clientIp(req) || "anonymous"
+  if (!limits.register(ip)) {
+    return Response.json(
+      { error: "Слишком много попыток регистрации. Попробуйте позже." },
+      { status: 429, headers: { "Retry-After": "3600" } },
+    )
+  }
+
   const body = await req.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
@@ -24,10 +39,19 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: msg ?? "Проверьте введённые данные" }, { status: 422 })
   }
 
+  // Проверка капчи (Yandex SmartCaptcha). Если ключ не настроен —
+  // verifySmartCaptcha пропускает; при включённой капче невалидный/отсутствующий
+  // токен = отказ.
+  const captchaToken = typeof body?.captchaToken === "string" ? body.captchaToken : null
+  if (!(await verifySmartCaptcha(captchaToken, ip))) {
+    return Response.json({ error: "Не пройдена проверка «я не робот». Попробуйте ещё раз." }, { status: 403 })
+  }
+
   const { name, password, asDeveloper } = parsed.data
-  // Нормализуем email: уникальный индекс в БД регистрозависим, поэтому без
-  // приведения к нижнему регистру User@x и user@x = два разных аккаунта.
-  const email = parsed.data.email.trim().toLowerCase()
+  // Каноникализируем email: приводим к нижнему регистру (индекс регистрозависим,
+  // иначе User@x и user@x — два аккаунта) и схлопываем gmail-алиасы (точки/+tag),
+  // чтобы один ящик не плодил бесконечные регистрации.
+  const email = normalizeEmail(parsed.data.email)
 
   if (!isEmailDomainAllowed(email)) {
     return Response.json({ error: emailDomainError() }, { status: 422 })

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SmartCaptcha, smartCaptchaEnabled, type SmartCaptchaHandle } from "@/components/ui/smartcaptcha"
 import { cn } from "@/lib/utils"
 
 // Подсказка о разрешённых доменах (опционально). Проверка — на сервере;
@@ -25,15 +26,17 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+  const captchaRef = useRef<SmartCaptchaHandle>(null)
+  const pendingSubmit = useRef(false)
+
+  // Собственно регистрация. Вызывается либо сразу (капча выключена), либо из
+  // колбэка капчи, когда невидимая проверка вернула токен.
+  async function doRegister(captchaToken: string | null) {
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, asDeveloper, agreedToTerms: agreed }),
+        body: JSON.stringify({ name, email, password, asDeveloper, agreedToTerms: agreed, captchaToken }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -46,7 +49,35 @@ export default function RegisterPage() {
       router.refresh()
     } finally {
       setLoading(false)
+      captchaRef.current?.reset()
     }
+  }
+
+  // Колбэк невидимой капчи: приходит после execute(). token === null — сбой/
+  // истечение проверки.
+  function handleCaptchaToken(token: string | null) {
+    if (!pendingSubmit.current) return
+    pendingSubmit.current = false
+    if (!token) {
+      setLoading(false)
+      setError("Не удалось пройти проверку «я не робот». Попробуйте ещё раз.")
+      captchaRef.current?.reset()
+      return
+    }
+    void doRegister(token)
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    if (!smartCaptchaEnabled) {
+      void doRegister(null)
+      return
+    }
+    // Невидимая капча: запускаем проверку, регистрация продолжится в колбэке.
+    pendingSubmit.current = true
+    captchaRef.current?.execute()
   }
 
   return (
@@ -130,6 +161,8 @@ export default function RegisterPage() {
               <Link href="/legal/privacy" target="_blank" className="text-primary hover:underline">обработку персональных данных</Link>.
             </span>
           </label>
+
+          <SmartCaptcha ref={captchaRef} onToken={handleCaptchaToken} />
 
           {error && <p className={cn("text-sm text-red-500")}>{error}</p>}
 

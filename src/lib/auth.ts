@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { z } from "zod"
 import { verifyTelegramAuth, type TelegramUser } from "@/lib/telegram-auth"
+import { normalizeEmail } from "@/lib/email-normalize"
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -33,9 +34,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const parsed = credentialsSchema.safeParse(credentials)
         if (!parsed.success) return null
 
-        const user = await db.user.findUnique({
-          where: { email: parsed.data.email.trim().toLowerCase() },
-        })
+        // Сначала ищем по адресу как введён (старые аккаунты хранят email так,
+        // как ввёл пользователь), затем — по каноническому виду (новые аккаунты
+        // с gmail хранятся каноникализированными: без точек и +tag).
+        const emailLower = parsed.data.email.trim().toLowerCase()
+        let user = await db.user.findUnique({ where: { email: emailLower } })
+        if (!user) {
+          const canonical = normalizeEmail(parsed.data.email)
+          if (canonical !== emailLower) {
+            user = await db.user.findUnique({ where: { email: canonical } })
+          }
+        }
 
         if (!user?.passwordHash) return null
 

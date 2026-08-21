@@ -14,7 +14,7 @@ const STEPS: { n: string; tint: "cyan" | "violet"; title: string; desc: string; 
     n: "2",
     tint: "cyan",
     title: "Оплатили",
-    desc: "Оплата картой через защищённую форму ЮKassa — данные карты остаются у платёжной системы.",
+    desc: "Оплата картой через защищённую форму Т-Банка — данные карты остаются у платёжной системы.",
     icon: <CreditCard className="h-5 w-5" />,
   },
   {
