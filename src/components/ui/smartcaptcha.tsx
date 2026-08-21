@@ -2,8 +2,10 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react"
 
-// Yandex SmartCaptcha, невидимый режим. Клиентский ключ публичный (NEXT_PUBLIC_*).
-// Если ключ не задан — виджет не рендерится, капча считается выключенной.
+// Yandex SmartCaptcha, видимый режим (чекбокс «Я не робот»). Клиентский ключ
+// публичный (NEXT_PUBLIC_*). Если ключ не задан — виджет не рендерится, капча
+// считается выключенной. Токен приходит в onToken, когда пользователь проходит
+// проверку; onToken(null) — при истечении/сбросе/ошибке.
 const SITE_KEY = process.env.NEXT_PUBLIC_SMARTCAPTCHA_SITE_KEY
 
 interface SmartCaptchaApi {
@@ -12,12 +14,9 @@ interface SmartCaptchaApi {
     params: {
       sitekey: string
       callback?: (token: string) => void
-      invisible?: boolean
       hl?: string
-      hideShield?: boolean
     },
   ) => string
-  execute: (widgetId?: string) => void
   reset: (widgetId?: string) => void
   destroy: (widgetId?: string) => void
   subscribe: (widgetId: string, event: string, cb: (...args: unknown[]) => void) => () => void
@@ -32,17 +31,10 @@ declare global {
 export const smartCaptchaEnabled = !!SITE_KEY
 
 export interface SmartCaptchaHandle {
-  /** Запустить невидимую проверку. Токен придёт в onToken. */
-  execute: () => void
-  /** Сбросить виджет (получить свежий токен при следующем execute). */
+  /** Сбросить виджет (получить свежий токен — токен одноразовый). */
   reset: () => void
 }
 
-/**
- * Невидимая капча. Токен НЕ появляется сам — родитель вызывает execute()
- * (например, при сабмите формы); успех приходит в onToken(token), а сбой/
- * истечение — в onToken(null).
- */
 export const SmartCaptcha = forwardRef<SmartCaptchaHandle, { onToken: (token: string | null) => void }>(
   function SmartCaptcha({ onToken }, ref) {
     const containerRef = useRef<HTMLDivElement>(null)
@@ -51,9 +43,6 @@ export const SmartCaptcha = forwardRef<SmartCaptchaHandle, { onToken: (token: st
     useImperativeHandle(
       ref,
       () => ({
-        execute() {
-          if (window.smartCaptcha && widgetId.current) window.smartCaptcha.execute(widgetId.current)
-        },
         reset() {
           if (window.smartCaptcha && widgetId.current) window.smartCaptcha.reset(widgetId.current)
         },
@@ -68,7 +57,6 @@ export const SmartCaptcha = forwardRef<SmartCaptchaHandle, { onToken: (token: st
         if (!containerRef.current || !window.smartCaptcha || widgetId.current) return
         const id = window.smartCaptcha.render(containerRef.current, {
           sitekey: SITE_KEY!,
-          invisible: true,
           hl: "ru",
           callback: (token) => onToken(token),
         })
@@ -110,6 +98,8 @@ export const SmartCaptcha = forwardRef<SmartCaptchaHandle, { onToken: (token: st
     }, [onToken])
 
     if (!SITE_KEY) return null
-    return <div ref={containerRef} />
+    // Видимый виджет сам показывает брендинг и уведомление об обработке данных
+    // (в отличие от невидимого «щита», который висел бы поверх всего сайта).
+    return <div ref={containerRef} className="flex justify-center" />
   },
 )

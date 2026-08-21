@@ -23,15 +23,20 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
   const [asDeveloper, setAsDeveloper] = useState(false)
   const [agreed, setAgreed] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const captchaRef = useRef<SmartCaptchaHandle>(null)
-  const pendingSubmit = useRef(false)
 
-  // Собственно регистрация. Вызывается либо сразу (капча выключена), либо из
-  // колбэка капчи, когда невидимая проверка вернула токен.
-  async function doRegister(captchaToken: string | null) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (smartCaptchaEnabled && !captchaToken) {
+      setError("Подтвердите, что вы не робот.")
+      return
+    }
+    setLoading(true)
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -49,35 +54,10 @@ export default function RegisterPage() {
       router.refresh()
     } finally {
       setLoading(false)
+      // Токен капчи одноразовый — сбрасываем, чтобы повторная попытка получила свежий.
       captchaRef.current?.reset()
+      setCaptchaToken(null)
     }
-  }
-
-  // Колбэк невидимой капчи: приходит после execute(). token === null — сбой/
-  // истечение проверки.
-  function handleCaptchaToken(token: string | null) {
-    if (!pendingSubmit.current) return
-    pendingSubmit.current = false
-    if (!token) {
-      setLoading(false)
-      setError("Не удалось пройти проверку «я не робот». Попробуйте ещё раз.")
-      captchaRef.current?.reset()
-      return
-    }
-    void doRegister(token)
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-    if (!smartCaptchaEnabled) {
-      void doRegister(null)
-      return
-    }
-    // Невидимая капча: запускаем проверку, регистрация продолжится в колбэке.
-    pendingSubmit.current = true
-    captchaRef.current?.execute()
   }
 
   return (
@@ -162,11 +142,15 @@ export default function RegisterPage() {
             </span>
           </label>
 
-          <SmartCaptcha ref={captchaRef} onToken={handleCaptchaToken} />
+          <SmartCaptcha ref={captchaRef} onToken={setCaptchaToken} />
 
           {error && <p className={cn("text-sm text-red-500")}>{error}</p>}
 
-          <Button type="submit" className="w-full" disabled={loading || !agreed}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || !agreed || (smartCaptchaEnabled && !captchaToken)}
+          >
             {loading ? "Создаём аккаунт…" : "Создать аккаунт"}
           </Button>
         </form>
