@@ -1,14 +1,43 @@
 import { randomUUID } from "crypto"
 import { Prisma } from "@/generated/prisma/client"
 import { db } from "@/lib/db"
-import { createPayment } from "@/lib/tbank"
+import { createPayment, type TBankReceipt } from "@/lib/tbank"
 import { developerPayout } from "@/lib/earnings"
 import { payoutHoldThresholdKopecks } from "@/lib/tariffs"
 import { notifyNewSale } from "@/lib/notify"
 
 const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
 
+// Фискализация оператора (ИП, УСН «Доходы», ФФД 1.05). Переопределяется через
+// env при смене СНО. Для УСН НДС не выделяется → Tax = "none".
+const RECEIPT_TAXATION = process.env.RECEIPT_TAXATION ?? "usn_income"
+const RECEIPT_VAT = process.env.RECEIPT_VAT ?? "none"
+
+// Платежи за СОБСТВЕННЫЕ услуги оператора — обычный чек (продавец = оператор).
+// Покупка товара (purchase) — агентский чек с реквизитами разработчика, делается
+// отдельно (Фаза Ч2), поэтому здесь чек для неё НЕ формируется.
+const OWN_SERVICE_TYPES = new Set<string>(["slots", "pro", "ai_review", "listing_fee"])
+
 export type PaymentType = "purchase" | "slots" | "pro" | "ai_review" | "listing_fee"
+
+/** Обычный чек за услугу оператора: одна позиция, продавец — оператор (данные в кассе). */
+function buildServiceReceipt(name: string, amountKopecks: number, email: string): TBankReceipt {
+  return {
+    Email: email,
+    Taxation: RECEIPT_TAXATION,
+    Items: [
+      {
+        Name: name.slice(0, 128),
+        Price: amountKopecks,
+        Quantity: 1,
+        Amount: amountKopecks,
+        Tax: RECEIPT_VAT,
+        PaymentMethod: "full_payment",
+        PaymentObject: "service",
+      },
+    ],
+  }
+}
 
 /**
  * Единая точка создания платежа. Сначала пишем PaymentIntent (что оплачивается),
@@ -38,6 +67,19 @@ export async function initPayment(params: {
   })
 
   try {
+    // Чек за собственные услуги оператора (Pro/слоты/AI-ревью/тариф). Для покупки
+    // товара чек агентский и формируется отдельно (Фаза Ч2) — здесь его нет.
+    let receipt: TBankReceipt | undefined
+    if (OWN_SERVICE_TYPES.has(params.type) && params.userId) {
+      const user = await db.user.findUnique({
+        where: { id: params.userId },
+        select: { email: true },
+      })
+      if (user?.email) {
+        receipt = buildServiceReceipt(params.description, params.amountKopecks, user.email)
+      }
+    }
+
     const payment = await createPayment({
       amountKopecks: params.amountKopecks,
       description: params.description,
@@ -45,6 +87,7 @@ export async function initPayment(params: {
       // DATA всё ещё шлём (не мешает), но полагаемся на PaymentIntent по OrderId.
       metadata: params.payload,
       idempotencyKey: orderId,
+      receipt,
     })
     await db.paymentIntent.update({ where: { id: intent.id }, data: { paymentId: payment.id } })
     return {

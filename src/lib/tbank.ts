@@ -36,6 +36,23 @@ export interface TBankPayment {
   confirmation: { confirmation_url?: string }
 }
 
+// Чек для онлайн-кассы (ФФД 1.05). Receipt в подпись Token НЕ входит.
+export interface TBankReceiptItem {
+  Name: string // наименование предмета расчёта, ≤ 128 символов
+  Price: number // цена за единицу, копейки
+  Quantity: number
+  Amount: number // Price * Quantity, копейки
+  Tax: string // ставка НДС: none | vat0 | vat10 | vat20 | ...
+  PaymentMethod?: string // full_payment | prepayment | ...
+  PaymentObject?: string // service | commodity | payment | ...
+}
+export interface TBankReceipt {
+  Email?: string
+  Phone?: string
+  Taxation: string // usn_income | osn | ...
+  Items: TBankReceiptItem[]
+}
+
 // createPayment сохраняет прежнюю сигнатуру. metadata передаётся в DATA
 // (Т-Банк возвращает DATA в нотификации), а OrderId = idempotencyKey (уникален).
 export async function createPayment(params: {
@@ -44,6 +61,7 @@ export async function createPayment(params: {
   returnUrl: string
   metadata: Record<string, string>
   idempotencyKey: string
+  receipt?: TBankReceipt
 }): Promise<TBankPayment> {
   const root = {
     TerminalKey: terminalKey(),
@@ -53,7 +71,9 @@ export async function createPayment(params: {
     SuccessURL: params.returnUrl,
     FailURL: params.returnUrl,
   }
-  const body = { ...root, DATA: params.metadata, Token: genToken(root) }
+  // Receipt добавляем отдельно — он (как и DATA) не входит в подпись Token.
+  const body: Record<string, unknown> = { ...root, DATA: params.metadata, Token: genToken(root) }
+  if (params.receipt) body.Receipt = params.receipt
 
   const resp = await fetch(`${BASE_URL}/Init`, {
     method: "POST",
