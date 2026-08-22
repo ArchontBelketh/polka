@@ -1,9 +1,10 @@
+import type { Metadata } from "next"
 import { Suspense } from "react"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { CatalogFilters } from "@/components/catalog/CatalogFilters"
 import { ProductCard } from "@/components/catalog/ProductCard"
-import type { Category } from "@/types"
+import { CATEGORY_LABELS, type Category } from "@/types"
 
 interface CatalogPageProps {
   searchParams: Promise<{
@@ -18,22 +19,44 @@ interface CatalogPageProps {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
-export const metadata = {
-  title: "Каталог",
-  description: "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация",
-  openGraph: {
-    title: "Каталог",
-    description: "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация",
-    url: `${APP_URL}/catalog`,
-    images: [{ url: `${APP_URL}/og-default.svg`, width: 1200, height: 630 }],
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Каталог",
-    description: "Готовые программные продукты для бизнеса",
-    images: [`${APP_URL}/og-default.svg`],
-  },
+export async function generateMetadata({ searchParams }: CatalogPageProps): Promise<Metadata> {
+  const { category, q, page, sort, minPrice, maxPrice } = await searchParams
+  const catLabel = category ? CATEGORY_LABELS[category as Category] : undefined
+
+  // Индексируем только «чистый» каталог и НЕпустую категорию. Поиск/сортировка/
+  // цены/пагинация — фасеты: закрываем от индекса (дубли и тонкие страницы).
+  let noindex = !!q || !!sort || !!minPrice || !!maxPrice || parseInt(page ?? "1", 10) > 1
+  if (category) {
+    const count = await db.product.count({
+      where: { status: "APPROVED", category: category as Category },
+    })
+    if (count === 0) noindex = true // пустая/«скоро» категория
+  }
+
+  // Canonical схлопывает все фасеты к базовому каталогу или к странице категории.
+  const canonical = "/catalog" + (category ? `?category=${category}` : "")
+  const title = catLabel ?? "Каталог"
+  const description = "Готовые программные продукты: Telegram-боты, парсеры, Excel-скрипты, автоматизация"
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    ...(noindex ? { robots: { index: false, follow: true } } : {}),
+    openGraph: {
+      title,
+      description,
+      url: `${APP_URL}${canonical}`,
+      images: [{ url: `${APP_URL}/og-default.svg`, width: 1200, height: 630 }],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: "Готовые программные продукты для бизнеса",
+      images: [`${APP_URL}/og-default.svg`],
+    },
+  }
 }
 
 const ORDER_BY_MAP: Record<string, object> = {

@@ -7,6 +7,9 @@ import { EmailVerifyBar } from "@/components/layout/EmailVerifyBar"
 import { FeedbackWidgetWrapper } from "@/components/layout/FeedbackWidgetWrapper"
 
 export const metadata: Metadata = {
+  // База для относительных URL (canonical, OG-картинки). Без неё Next ругается
+  // и не может строить абсолютные ссылки для canonical/og.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"),
   // Вкладка: по умолчанию (и на главной) — просто «CYBERПОЛКА»;
   // внутренние страницы добавляют свой раздел: «Каталог — CYBERПОЛКА».
   title: {

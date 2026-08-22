@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   title: { absolute: "CYBERПОЛКА" },
   description:
     "Telegram-боты, парсеры, Excel- и 1С-скрипты, автоматизация. Код каждого продукта проходит сканирование и ручную модерацию до публикации.",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "CYBERПОЛКА — маркетплейс готовых программ с проверкой кода",
     description:

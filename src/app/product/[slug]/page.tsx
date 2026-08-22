@@ -40,6 +40,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   return {
     title: `${product.title}`,
     description: product.shortDesc,
+    alternates: { canonical: `/product/${slug}` },
     openGraph: {
       title: product.title,
       description: product.shortDesc,
@@ -111,12 +112,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
+  const jsonLdImage = product.screenshots[0]
+    ? `${appUrl}/api/og?key=${encodeURIComponent(product.screenshots[0])}`
+    : `${appUrl}/og-default.svg`
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: product.title,
     description: product.shortDesc,
     url: `${appUrl}/product/${product.slug}`,
+    image: jsonLdImage,
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     offers: {
