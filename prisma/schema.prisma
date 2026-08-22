@@ -424,6 +424,8 @@ model PayoutProfile {
   kind               PayerKind
   displayName        String    // ФИО (самозанятый/ИП) или наименование (ООО)
   inn                String    // 12 цифр (самозанятый/ИП) или 10 (ООО)
+  phone              String?   // телефон поставщика для агентского чека (SupplierInfo), формат +7…
+  phoneVerified      Boolean   @default(false)  // подтверждён по СМС (Фаза СМС; пока не используется)
   attestedAt         DateTime  // момент принятия заверений п. 6 оферты
   attestVersion      String    @default("v1")
   providerRecipientId String?  // id получателя у платёжного сервиса (заполнится со сплитом)

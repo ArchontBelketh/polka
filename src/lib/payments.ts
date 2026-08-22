@@ -5,6 +5,7 @@ import { createPayment, type TBankReceipt } from "@/lib/tbank"
 import { developerPayout } from "@/lib/earnings"
 import { payoutHoldThresholdKopecks } from "@/lib/tariffs"
 import { notifyNewSale } from "@/lib/notify"
+import { hasAgentReceiptData, normalizePhone } from "@/lib/payout-profile"
 
 const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
 
@@ -13,9 +14,23 @@ const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
 const RECEIPT_TAXATION = process.env.RECEIPT_TAXATION ?? "usn_income"
 const RECEIPT_VAT = process.env.RECEIPT_VAT ?? "none"
 
+// Агентский чек покупателю за товар (Чек А). Выключен по умолчанию — включать
+// ТОЛЬКО после подтверждения у Т-Банка версии ФФД (1.05 vs 1.2 → тег 1057/1222)
+// и проверки на DEMO-терминале, иначе риск «бракованного» чека.
+const RECEIPT_AGENT_ENABLED = process.env.RECEIPT_AGENT_ENABLED === "true"
+// Признак предмета расчёта для товара. По умолчанию безопасный "service"
+// (валиден везде). Спек рекомендует "property_right" (передача имущ. права) —
+// поставить, когда касса/ФФД это подтвердят.
+const RECEIPT_PRODUCT_PAYMENT_OBJECT = process.env.RECEIPT_PRODUCT_PAYMENT_OBJECT ?? "service"
+// Признак агента (тег 1057). Для нашей модели — «поверенный».
+const RECEIPT_AGENT_SIGN = process.env.RECEIPT_AGENT_SIGN ?? "attorney"
+
+/** Включён ли агентский чек покупателю за товар. */
+export function agentReceiptEnabled(): boolean {
+  return RECEIPT_AGENT_ENABLED
+}
+
 // Платежи за СОБСТВЕННЫЕ услуги оператора — обычный чек (продавец = оператор).
-// Покупка товара (purchase) — агентский чек с реквизитами разработчика, делается
-// отдельно (Фаза Ч2), поэтому здесь чек для неё НЕ формируется.
 const OWN_SERVICE_TYPES = new Set<string>(["slots", "pro", "ai_review", "listing_fee"])
 
 export type PaymentType = "purchase" | "slots" | "pro" | "ai_review" | "listing_fee"
@@ -34,6 +49,53 @@ function buildServiceReceipt(name: string, amountKopecks: number, email: string)
         Tax: RECEIPT_VAT,
         PaymentMethod: "full_payment",
         PaymentObject: "service",
+      },
+    ],
+  }
+}
+
+/**
+ * Агентский чек покупателю за Продукт (Чек А, оферта 3.2/8.7). Оператор —
+ * поверенный, поставщик — Разработчик (ИНН/наименование/телефон из PayoutProfile).
+ * Возвращает null, если данных поставщика недостаточно (тогда продавать нельзя).
+ */
+async function buildPurchaseAgentReceipt(purchaseId: string): Promise<TBankReceipt | null> {
+  const purchase = await db.purchase.findUnique({
+    where: { id: purchaseId },
+    select: {
+      amount: true,
+      buyer: { select: { email: true } },
+      product: {
+        select: { title: true, author: { select: { payoutProfile: true } } },
+      },
+    },
+  })
+  if (!purchase) return null
+
+  const profile = purchase.product.author.payoutProfile
+  if (!hasAgentReceiptData(profile)) return null
+  const phone = normalizePhone(profile!.phone!)
+  const email = purchase.buyer.email
+  if (!phone || !email) return null
+
+  return {
+    Email: email,
+    Taxation: RECEIPT_TAXATION, // СНО оператора (кассу держит оператор)
+    Items: [
+      {
+        Name: purchase.product.title.slice(0, 128),
+        Price: purchase.amount,
+        Quantity: 1,
+        Amount: purchase.amount,
+        Tax: RECEIPT_VAT, // НДС поставщика (самозанятый/УСН → none)
+        PaymentMethod: "full_payment",
+        PaymentObject: RECEIPT_PRODUCT_PAYMENT_OBJECT,
+        AgentData: { AgentSign: RECEIPT_AGENT_SIGN },
+        SupplierInfo: {
+          Phones: [phone],
+          Name: profile!.displayName,
+          Inn: profile!.inn,
+        },
       },
     ],
   }
@@ -78,6 +140,8 @@ export async function initPayment(params: {
       if (user?.email) {
         receipt = buildServiceReceipt(params.description, params.amountKopecks, user.email)
       }
+    } else if (params.type === "purchase" && RECEIPT_AGENT_ENABLED && params.payload.purchaseId) {
+      receipt = (await buildPurchaseAgentReceipt(params.payload.purchaseId)) ?? undefined
     }
 
     const payment = await createPayment({

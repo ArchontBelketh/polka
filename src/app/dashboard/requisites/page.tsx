@@ -54,6 +54,7 @@ export default async function RequisitesPage() {
                 kind: profile.kind,
                 displayName: profile.displayName,
                 inn: profile.inn,
+                phone: profile.phone ?? "",
                 attested: !!profile.attestedAt,
               }
             : null

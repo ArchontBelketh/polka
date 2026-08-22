@@ -18,6 +18,7 @@ interface Props {
     kind: Kind
     displayName: string
     inn: string
+    phone: string
     attested: boolean
   } | null
 }
@@ -27,6 +28,7 @@ export function RequisitesForm({ initial }: Props) {
   const [kind, setKind] = useState<Kind>(initial?.kind ?? "SELF_EMPLOYED")
   const [displayName, setDisplayName] = useState(initial?.displayName ?? "")
   const [inn, setInn] = useState(initial?.inn ?? "")
+  const [phone, setPhone] = useState(initial?.phone ?? "")
   // Уже принятые заверения не требуют повторной галочки, но при изменении данных — да
   const [attest, setAttest] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -41,6 +43,7 @@ export function RequisitesForm({ initial }: Props) {
     setError(null)
     if (displayName.trim().length < 2) { setError("Укажите ФИО или наименование"); return }
     if (!isInnValidForKind(inn, kind)) { setError(`Некорректный ИНН (${innHint.toLowerCase()})`); return }
+    if (phone.replace(/\D/g, "").length < 10) { setError("Укажите корректный телефон"); return }
     if (!attest) { setError("Необходимо принять заверения"); return }
 
     setLoading(true)
@@ -48,7 +51,7 @@ export function RequisitesForm({ initial }: Props) {
       const res = await fetch("/api/developer/requisites", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, displayName: displayName.trim(), inn: inn.trim(), attest: true }),
+        body: JSON.stringify({ kind, displayName: displayName.trim(), inn: inn.trim(), phone: phone.trim(), attest: true }),
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -99,6 +102,20 @@ export function RequisitesForm({ initial }: Props) {
         />
         <p className={`text-xs ${innLooksValid ? "text-muted-foreground" : "text-destructive"}`}>
           {innLooksValid ? innHint : `Проверьте ИНН — ожидается ${innLength(kind)} цифр с корректной контрольной суммой`}
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Телефон</label>
+        <Input
+          value={phone}
+          onChange={(e) => { setPhone(e.target.value); setSaved(false) }}
+          placeholder="+7 900 000-00-00"
+          inputMode="tel"
+          maxLength={20}
+        />
+        <p className="text-xs text-muted-foreground">
+          Нужен для чека покупателю (данные поставщика). Виден только площадке и в чеке.
         </p>
       </div>
 

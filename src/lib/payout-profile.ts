@@ -48,6 +48,28 @@ export function isProfileComplete(profile: PayoutProfile | null | undefined): bo
   )
 }
 
+/**
+ * Нормализует телефон РФ к формату +7XXXXXXXXXX. Возвращает null, если не похоже
+ * на корректный номер (нужно для SupplierInfo в агентском чеке).
+ */
+export function normalizePhone(raw: string): string | null {
+  const d = raw.replace(/\D/g, "")
+  let n = d
+  if (n.length === 11 && (n[0] === "7" || n[0] === "8")) n = "7" + n.slice(1)
+  else if (n.length === 10) n = "7" + n
+  else return null
+  return "+" + n
+}
+
+/**
+ * Профиль готов для формирования АГЕНТСКОГО чека покупателю: полный профиль +
+ * телефон поставщика (обязателен для SupplierInfo). Без этого продавать Продукт
+ * на Комиссии нельзя — иначе чек будет «браком» (доход припишут Оператору).
+ */
+export function hasAgentReceiptData(profile: PayoutProfile | null | undefined): boolean {
+  return isProfileComplete(profile) && !!profile?.phone && !!normalizePhone(profile.phone)
+}
+
 // Текст заверений (оферта, п. 6). При изменении — поднять версию.
 export const ATTESTATION_VERSION = "v1"
 export const ATTESTATION_TEXT =
