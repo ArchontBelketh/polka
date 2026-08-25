@@ -60,8 +60,8 @@ export default function CyberHeader({ authed, role, unread, messagesHref }: Cybe
       }}
     >
       <div ref={headerRef} style={{ position: "relative", height: 84 }}>
-        {/* ── ДЕКОРАТИВНЫЙ СЛОЙ (обрезается по краям) ── */}
-        <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+        {/* ── ДЕКОРАТИВНЫЙ СЛОЙ (обрезается по краям; на мобиле скрыт) ── */}
+        <div className="cyber-decor" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
           <div style={layerBase}>
             <div className="amb" style={{ position: "absolute", inset: 0, background: ambBg }} />
             <svg

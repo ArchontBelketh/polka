@@ -152,6 +152,9 @@ body {
 @media (max-width: 900px) {
   .cyber-ui-desktop { display: none !important; }
   .cyber-ui-mobile { display: flex !important; }
+  /* Декор выровнен под десктопную сетку 2899px — на мобиле он «съезжает»
+     (кривые чипы у бургера). Скрываем: остаётся чистый бар лого + бургер. */
+  .cyber-decor { display: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
