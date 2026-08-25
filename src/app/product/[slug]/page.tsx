@@ -18,6 +18,7 @@ import { formatFileSize } from "@/lib/utils"
 import { TechBadge } from "@/components/catalog/TechBadge"
 import { VerifiedBadge } from "@/components/product/VerifiedBadge"
 import type { AiReviewResult } from "@/lib/ai-review/prompt"
+import { getAiSettings, isAiReviewEnabled } from "@/lib/ai-settings"
 import type { Metadata } from "next"
 
 interface ProductPageProps {
@@ -109,6 +110,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const hasPurchase = Boolean(purchaseRecord)
   const purchaseId = purchaseRecord?.id ?? null
+
+  // Услуга ИИ-ревью показывается только если провайдер настроен в админке.
+  const aiReviewEnabled = isAiReviewEnabled(await getAiSettings())
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
@@ -292,8 +296,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
 
-            {/* AI Review */}
-            {session?.user && !isOwnProduct && (
+            {/* AI Review — только если провайдер ИИ настроен в админке */}
+            {session?.user && !isOwnProduct && aiReviewEnabled && (
               <AiReviewOrder
                 productId={product.id}
                 existingReview={existingAiReview ? {

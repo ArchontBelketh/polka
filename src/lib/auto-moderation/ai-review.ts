@@ -1,5 +1,6 @@
 import { callAi } from "@/lib/ai-review/provider"
 import { db } from "@/lib/db"
+import { getAiSettings, isAiReviewEnabled } from "@/lib/ai-settings"
 
 export interface ContentFlags {
   mismatch: boolean
@@ -19,15 +20,10 @@ const SKIP: ContentFlags = {
   provider: "skipped",
 }
 
-function resolvedProvider(): ContentFlags["provider"] {
-  const p = process.env.AI_REVIEW_PROVIDER ?? "disabled"
-  if (p === "gemini" || p === "ollama" || p === "yandexgpt") return p
-  return "skipped"
-}
-
 export async function reviewProductContent(productId: string): Promise<ContentFlags> {
-  const provider = resolvedProvider()
-  if (provider === "skipped") return SKIP
+  const settings = await getAiSettings()
+  if (!isAiReviewEnabled(settings)) return SKIP
+  const provider = settings.provider as ContentFlags["provider"]
 
   const product = await db.product.findUnique({
     where: { id: productId },
@@ -131,7 +127,7 @@ export async function reviewProductContent(productId: string): Promise<ContentFl
 export async function reviewVersionChangelog(
   versionId: string,
 ): Promise<{ valid: boolean; reason?: string }> {
-  if (resolvedProvider() === "skipped") return { valid: true }
+  if (!isAiReviewEnabled(await getAiSettings())) return { valid: true }
 
   const version = await db.productVersion.findUnique({
     where: { id: versionId },

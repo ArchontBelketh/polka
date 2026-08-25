@@ -3,6 +3,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { initPayment } from "@/lib/payments"
+import { getAiSettings, isAiReviewEnabled } from "@/lib/ai-settings"
 
 const AI_REVIEW_PRICE = 39000 // 390 RUB in kopecks
 
@@ -12,6 +13,10 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
+  }
+
+  if (!isAiReviewEnabled(await getAiSettings())) {
+    return Response.json({ error: "Услуга ИИ-ревью временно недоступна" }, { status: 503 })
   }
 
   const parsed = postBody.safeParse(await req.json())
