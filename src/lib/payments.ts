@@ -1,111 +1,21 @@
 import { randomUUID } from "crypto"
 import { Prisma } from "@/generated/prisma/client"
 import { db } from "@/lib/db"
-import { createPayment, type TBankReceipt } from "@/lib/tbank"
+import { createPayment } from "@/lib/tbank"
 import { developerPayout } from "@/lib/earnings"
 import { payoutHoldThresholdKopecks } from "@/lib/tariffs"
 import { notifyNewSale } from "@/lib/notify"
-import { hasAgentReceiptData, normalizePhone } from "@/lib/payout-profile"
+import { fiscalizePurchase, fiscalizeService } from "@/lib/receipts"
 
 const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
 
-// Фискализация оператора (ИП, УСН «Доходы», ФФД 1.05). Переопределяется через
-// env при смене СНО. Для УСН НДС не выделяется → Tax = "none".
-const RECEIPT_TAXATION = process.env.RECEIPT_TAXATION ?? "usn_income"
-const RECEIPT_VAT = process.env.RECEIPT_VAT ?? "none"
-
-// Агентский чек покупателю за товар (Чек А). Выключен по умолчанию — включать
-// ТОЛЬКО после подтверждения у Т-Банка версии ФФД (1.05 vs 1.2 → тег 1057/1222)
-// и проверки на DEMO-терминале, иначе риск «бракованного» чека.
-const RECEIPT_AGENT_ENABLED = process.env.RECEIPT_AGENT_ENABLED === "true"
-// Признак предмета расчёта для товара. По умолчанию безопасный "service"
-// (валиден везде). Спек рекомендует "property_right" (передача имущ. права) —
-// поставить, когда касса/ФФД это подтвердят.
-const RECEIPT_PRODUCT_PAYMENT_OBJECT = process.env.RECEIPT_PRODUCT_PAYMENT_OBJECT ?? "service"
-// Признак агента (тег 1057). Для нашей модели — «поверенный».
-const RECEIPT_AGENT_SIGN = process.env.RECEIPT_AGENT_SIGN ?? "attorney"
-
-/** Включён ли агентский чек покупателю за товар. */
-export function agentReceiptEnabled(): boolean {
-  return RECEIPT_AGENT_ENABLED
-}
-
-// Платежи за СОБСТВЕННЫЕ услуги оператора — обычный чек (продавец = оператор).
-const OWN_SERVICE_TYPES = new Set<string>(["slots", "pro", "ai_review", "listing_fee"])
-
 export type PaymentType = "purchase" | "slots" | "pro" | "ai_review" | "listing_fee"
-
-/** Обычный чек за услугу оператора: одна позиция, продавец — оператор (данные в кассе). */
-function buildServiceReceipt(name: string, amountKopecks: number, email: string): TBankReceipt {
-  return {
-    Email: email,
-    Taxation: RECEIPT_TAXATION,
-    Items: [
-      {
-        Name: name.slice(0, 128),
-        Price: amountKopecks,
-        Quantity: 1,
-        Amount: amountKopecks,
-        Tax: RECEIPT_VAT,
-        PaymentMethod: "full_payment",
-        PaymentObject: "service",
-      },
-    ],
-  }
-}
-
-/**
- * Агентский чек покупателю за Продукт (Чек А, оферта 3.2/8.7). Оператор —
- * поверенный, поставщик — Разработчик (ИНН/наименование/телефон из PayoutProfile).
- * Возвращает null, если данных поставщика недостаточно (тогда продавать нельзя).
- */
-async function buildPurchaseAgentReceipt(purchaseId: string): Promise<TBankReceipt | null> {
-  const purchase = await db.purchase.findUnique({
-    where: { id: purchaseId },
-    select: {
-      amount: true,
-      buyer: { select: { email: true } },
-      product: {
-        select: { title: true, author: { select: { payoutProfile: true } } },
-      },
-    },
-  })
-  if (!purchase) return null
-
-  const profile = purchase.product.author.payoutProfile
-  if (!hasAgentReceiptData(profile)) return null
-  const phone = normalizePhone(profile!.phone!)
-  const email = purchase.buyer.email
-  if (!phone || !email) return null
-
-  return {
-    Email: email,
-    Taxation: RECEIPT_TAXATION, // СНО оператора (кассу держит оператор)
-    Items: [
-      {
-        Name: purchase.product.title.slice(0, 128),
-        Price: purchase.amount,
-        Quantity: 1,
-        Amount: purchase.amount,
-        Tax: RECEIPT_VAT, // НДС поставщика (самозанятый/УСН → none)
-        PaymentMethod: "full_payment",
-        PaymentObject: RECEIPT_PRODUCT_PAYMENT_OBJECT,
-        AgentData: { AgentSign: RECEIPT_AGENT_SIGN },
-        SupplierInfo: {
-          Phones: [phone],
-          Name: profile!.displayName,
-          Inn: profile!.inn,
-        },
-      },
-    ],
-  }
-}
 
 /**
  * Единая точка создания платежа. Сначала пишем PaymentIntent (что оплачивается),
  * затем создаём платёж в Т-Банке с OrderId = intent.orderId. Т-Банк вернёт этот
- * OrderId в нотификации → вебхук найдёт намерение и выдаст услугу. Так решается
- * проблема «Т-Банк не эхонит DATA»: ничего не теряется, всё в PaymentIntent.
+ * OrderId в нотификации → вебхук найдёт намерение и выдаст услугу. Чеки бьёт касса
+ * (CloudKassir) уже после подтверждения оплаты — см. обработчики ниже.
  */
 export async function initPayment(params: {
   type: PaymentType
@@ -129,21 +39,6 @@ export async function initPayment(params: {
   })
 
   try {
-    // Чек за собственные услуги оператора (Pro/слоты/AI-ревью/тариф). Для покупки
-    // товара чек агентский и формируется отдельно (Фаза Ч2) — здесь его нет.
-    let receipt: TBankReceipt | undefined
-    if (OWN_SERVICE_TYPES.has(params.type) && params.userId) {
-      const user = await db.user.findUnique({
-        where: { id: params.userId },
-        select: { email: true },
-      })
-      if (user?.email) {
-        receipt = buildServiceReceipt(params.description, params.amountKopecks, user.email)
-      }
-    } else if (params.type === "purchase" && RECEIPT_AGENT_ENABLED && params.payload.purchaseId) {
-      receipt = (await buildPurchaseAgentReceipt(params.payload.purchaseId)) ?? undefined
-    }
-
     const payment = await createPayment({
       amountKopecks: params.amountKopecks,
       description: params.description,
@@ -151,7 +46,6 @@ export async function initPayment(params: {
       // DATA всё ещё шлём (не мешает), но полагаемся на PaymentIntent по OrderId.
       metadata: params.payload,
       idempotencyKey: orderId,
-      receipt,
     })
     await db.paymentIntent.update({ where: { id: intent.id }, data: { paymentId: payment.id } })
     return {
@@ -168,7 +62,7 @@ export async function initPayment(params: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Реестр обработчиков: подтверждение платежа выдаёт услугу по type.
+// Реестр обработчиков: подтверждение платежа выдаёт услугу + бьёт чек по type.
 // Добавить новую услугу = добавить ключ в CONFIRM_HANDLERS (+ создавать платёж
 // через initPayment с этим type). Вебхук трогать не нужно.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,6 +74,7 @@ interface Intent {
 }
 interface Ctx {
   paymentId: string
+  amount: number // копейки (из PaymentIntent)
 }
 
 type Payload = Record<string, string | undefined>
@@ -198,19 +93,24 @@ const FAIL_HANDLERS: Record<string, (p: Payload) => Promise<void>> = {
 }
 
 /** Выдать услугу по подтверждённому платежу. */
-export async function fulfillPayment(intent: Intent, ctx: Ctx): Promise<void> {
+export async function fulfillPayment(intent: Intent, ctx: { paymentId: string }): Promise<void> {
   const handler = CONFIRM_HANDLERS[intent.type]
   if (!handler) {
     console.warn("fulfillPayment: неизвестный тип платежа", intent.type)
     return
   }
-  await handler((intent.payload ?? {}) as Payload, ctx)
+  await handler((intent.payload ?? {}) as Payload, { paymentId: ctx.paymentId, amount: intent.amount })
 }
 
 /** Откатить незавершённые записи по неуспешному платежу. */
 export async function failPayment(intent: Intent): Promise<void> {
   const handler = FAIL_HANDLERS[intent.type]
   if (handler) await handler((intent.payload ?? {}) as Payload)
+}
+
+// Фискализация — fire-and-forget: сбой чека не должен ронять уже оплаченную операцию.
+function fiscalizeSafe(p: Promise<void>): void {
+  void p.catch((err) => console.error("[receipts] fiscalization error:", err))
 }
 
 // ── Обработчики ───────────────────────────────────────────────────────────────
@@ -271,6 +171,9 @@ async function fulfillPurchase(p: Payload, ctx: Ctx): Promise<void> {
     }
   })
 
+  // Чек А (агентский, покупателю) + Чек Б (комиссия оператора).
+  fiscalizeSafe(fiscalizePurchase(purchaseId, developerAmount))
+
   const developer = await db.user.findUnique({
     where: { id: purchase.product.authorId },
     select: { telegramId: true },
@@ -283,7 +186,7 @@ async function fulfillPurchase(p: Payload, ctx: Ctx): Promise<void> {
   })
 }
 
-async function fulfillSlots(p: Payload): Promise<void> {
+async function fulfillSlots(p: Payload, ctx: Ctx): Promise<void> {
   const { userId, slotsAdded } = p
   if (!userId || !slotsAdded) return
   const slots = parseInt(slotsAdded, 10)
@@ -294,9 +197,19 @@ async function fulfillSlots(p: Payload): Promise<void> {
     create: { userId, totalSlots: 2 + slots },
     update: { totalSlots: { increment: slots } },
   })
+
+  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } })
+  fiscalizeSafe(
+    fiscalizeService({
+      label: `Дополнительные слоты для размещения (${slots})`,
+      amountKopecks: ctx.amount,
+      email: user?.email ?? null,
+      invoiceId: ctx.paymentId,
+    }),
+  )
 }
 
-async function fulfillPro(p: Payload): Promise<void> {
+async function fulfillPro(p: Payload, ctx: Ctx): Promise<void> {
   const { userId } = p
   if (!userId) return
   const proUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -305,6 +218,16 @@ async function fulfillPro(p: Payload): Promise<void> {
     create: { userId, plan: "PRO", proUntil },
     update: { plan: "PRO", proUntil },
   })
+
+  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } })
+  fiscalizeSafe(
+    fiscalizeService({
+      label: "Тариф Pro для разработчика (1 месяц)",
+      amountKopecks: ctx.amount,
+      email: user?.email ?? null,
+      invoiceId: ctx.paymentId,
+    }),
+  )
 }
 
 async function fulfillAiReview(p: Payload, ctx: Ctx): Promise<void> {
@@ -314,15 +237,42 @@ async function fulfillAiReview(p: Payload, ctx: Ctx): Promise<void> {
     where: { id: aiReviewId, status: "PENDING" },
     data: { status: "PROCESSING", paymentId: ctx.paymentId },
   })
+
+  const review = await db.aiReview.findUnique({
+    where: { id: aiReviewId },
+    select: { user: { select: { email: true } }, product: { select: { title: true } } },
+  })
+  fiscalizeSafe(
+    fiscalizeService({
+      label: `ИИ-ревью кода «${review?.product.title ?? "продукт"}»`,
+      amountKopecks: ctx.amount,
+      email: review?.user.email ?? null,
+      invoiceId: ctx.paymentId,
+    }),
+  )
 }
 
-async function fulfillListingFee(p: Payload): Promise<void> {
+async function fulfillListingFee(p: Payload, ctx: Ctx): Promise<void> {
   const { productId } = p
   if (!productId) return
   await db.product.updateMany({
     where: { id: productId, listingFeePaidAt: null },
     data: { listingFeePaidAt: new Date() },
   })
+
+  // Чек В — разработчику за тариф за размещение.
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    select: { title: true, author: { select: { email: true } } },
+  })
+  fiscalizeSafe(
+    fiscalizeService({
+      label: `Тариф за размещение продукта «${product?.title ?? ""}»`,
+      amountKopecks: ctx.amount,
+      email: product?.author.email ?? null,
+      invoiceId: ctx.paymentId,
+    }),
+  )
 }
 
 async function failPurchase(p: Payload): Promise<void> {

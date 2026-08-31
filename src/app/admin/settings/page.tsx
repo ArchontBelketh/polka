@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { SettingsForm } from "./SettingsForm"
 import { AiSettingsForm } from "./AiSettingsForm"
+import { KassaSettingsForm } from "./KassaSettingsForm"
 import type { AiProvider } from "@/lib/ai-provider"
 
 export const metadata = { title: "Настройки" }
@@ -13,9 +14,10 @@ export default async function AdminSettingsPage() {
   const user = await db.user.findUnique({ where: { id: session.user.id } })
   if (!user || user.role !== "ADMIN") redirect("/")
 
-  const [row, ai] = await Promise.all([
+  const [row, ai, kassa] = await Promise.all([
     db.operatorSettings.findUnique({ where: { id: "singleton" } }),
     db.aiSettings.findUnique({ where: { id: "singleton" } }),
+    db.kassaSettings.findUnique({ where: { id: "singleton" } }),
   ])
 
   return (
@@ -48,6 +50,24 @@ export default async function AdminSettingsPage() {
             folderId: ai?.folderId ?? "",
             hasKey: !!ai?.apiKey,
           }}
+        />
+      </section>
+
+      <section className="space-y-4 border-t border-border pt-8">
+        <div>
+          <h2 className="text-xl font-semibold">Онлайн-касса (чеки)</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ключи кассы CloudKassir для фискализации. Пока выключено или не заполнено —
+            чеки не формируются. ИНН берётся из реквизитов оператора выше.
+          </p>
+        </div>
+        <KassaSettingsForm
+          initial={{
+            enabled: kassa?.enabled ?? false,
+            publicId: kassa?.publicId ?? "",
+            hasSecret: !!kassa?.apiSecret,
+          }}
+          innSet={!!row?.inn}
         />
       </section>
     </div>

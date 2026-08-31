@@ -36,42 +36,14 @@ export interface TBankPayment {
   confirmation: { confirmation_url?: string }
 }
 
-// Чек для онлайн-кассы (ФФД 1.05). Receipt в подпись Token НЕ входит.
-export interface TBankAgentData {
-  AgentSign?: string // attorney (поверенный) | commission_agent | agent | ...
-}
-export interface TBankSupplierInfo {
-  Phones?: string[] // телефон поставщика, формат +7…
-  Name?: string // наименование поставщика (тег 1225)
-  Inn?: string // ИНН поставщика (тег 1226) — обязателен для агентского чека
-}
-export interface TBankReceiptItem {
-  Name: string // наименование предмета расчёта, ≤ 128 символов
-  Price: number // цена за единицу, копейки
-  Quantity: number
-  Amount: number // Price * Quantity, копейки
-  Tax: string // ставка НДС: none | vat0 | vat10 | vat20 | ...
-  PaymentMethod?: string // full_payment | prepayment | ...
-  PaymentObject?: string // service | commodity | payment | ...
-  AgentData?: TBankAgentData // признак агента (для агентского чека)
-  SupplierInfo?: TBankSupplierInfo // данные поставщика (разработчика)
-}
-export interface TBankReceipt {
-  Email?: string
-  Phone?: string
-  Taxation: string // usn_income | osn | ...
-  Items: TBankReceiptItem[]
-}
-
-// createPayment сохраняет прежнюю сигнатуру. metadata передаётся в DATA
-// (Т-Банк возвращает DATA в нотификации), а OrderId = idempotencyKey (уникален).
+// createPayment: metadata передаётся в DATA, OrderId = idempotencyKey (уникален).
+// Чеки бьёт отдельная касса CloudKassir (@/lib/receipts), а НЕ Receipt в Init.
 export async function createPayment(params: {
   amountKopecks: number
   description: string
   returnUrl: string
   metadata: Record<string, string>
   idempotencyKey: string
-  receipt?: TBankReceipt
 }): Promise<TBankPayment> {
   const root = {
     TerminalKey: terminalKey(),
@@ -81,9 +53,7 @@ export async function createPayment(params: {
     SuccessURL: params.returnUrl,
     FailURL: params.returnUrl,
   }
-  // Receipt добавляем отдельно — он (как и DATA) не входит в подпись Token.
-  const body: Record<string, unknown> = { ...root, DATA: params.metadata, Token: genToken(root) }
-  if (params.receipt) body.Receipt = params.receipt
+  const body = { ...root, DATA: params.metadata, Token: genToken(root) }
 
   const resp = await fetch(`${BASE_URL}/Init`, {
     method: "POST",

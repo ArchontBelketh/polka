@@ -2,8 +2,9 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { initPayment, agentReceiptEnabled } from "@/lib/payments"
-import { hasAgentReceiptData } from "@/lib/payout-profile"
+import { initPayment } from "@/lib/payments"
+import { isProfileComplete } from "@/lib/payout-profile"
+import { getKassaSettings, isKassaReady } from "@/lib/kassa-settings"
 import { limits } from "@/lib/ratelimit"
 
 const schema = z.object({
@@ -39,12 +40,11 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Нельзя купить собственный продукт" }, { status: 400 })
   }
 
-  // Если агентские чеки включены — продавать можно только когда у продавца есть
-  // полные данные для чека (ИНН/наименование/телефон). Иначе агентский чек будет
-  // «браком», и весь платёж могут признать доходом Оператора.
-  if (agentReceiptEnabled()) {
+  // Если касса включена — агентский чек требует данных продавца (ИНН/наименование).
+  // Без них чек будет «браком», поэтому продавать нельзя.
+  if (isKassaReady(await getKassaSettings())) {
     const sellerProfile = await db.payoutProfile.findUnique({ where: { userId: product.authorId } })
-    if (!hasAgentReceiptData(sellerProfile)) {
+    if (!isProfileComplete(sellerProfile)) {
       return Response.json(
         { error: "Продавец ещё не завершил налоговый профиль — покупка временно недоступна." },
         { status: 409 },

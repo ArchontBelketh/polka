@@ -467,6 +467,16 @@ model OperatorSettings {
   updatedAt    DateTime @updatedAt
 }
 
+// Настройки онлайн-кассы CloudKassir (singleton). Ключи задаются в админке.
+// ИНН берётся из OperatorSettings. enabled=false или пустые ключи = чеки не бьются.
+model KassaSettings {
+  id        String   @id @default("singleton")
+  enabled   Boolean  @default(false)
+  publicId  String?                          // Public ID терминала кассы
+  apiSecret String?                          // API Secret (секрет)
+  updatedAt DateTime @updatedAt
+}
+
 // Настройки ИИ-ревью (singleton). Провайдер и ключ задаются в админке, а не в env.
 // apiKey — секрет, поэтому в отдельной модели (не в OperatorSettings, которая
 // частично публичная). provider="disabled" или пустой ключ = услуга выключена.
