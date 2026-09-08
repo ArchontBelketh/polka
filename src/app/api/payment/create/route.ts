@@ -3,8 +3,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { initPayment } from "@/lib/payments"
-import { isProfileComplete } from "@/lib/payout-profile"
-import { getKassaSettings, isKassaReady } from "@/lib/kassa-settings"
+import { hasAgentReceiptData } from "@/lib/payout-profile"
 import { limits } from "@/lib/ratelimit"
 
 const schema = z.object({
@@ -40,16 +39,14 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Нельзя купить собственный продукт" }, { status: 400 })
   }
 
-  // Если касса включена — агентский чек требует данных продавца (ИНН/наименование).
-  // Без них чек будет «браком», поэтому продавать нельзя.
-  if (isKassaReady(await getKassaSettings())) {
-    const sellerProfile = await db.payoutProfile.findUnique({ where: { userId: product.authorId } })
-    if (!isProfileComplete(sellerProfile)) {
-      return Response.json(
-        { error: "Продавец ещё не завершил налоговый профиль — покупка временно недоступна." },
-        { status: 409 },
-      )
-    }
+  // Чек обязателен (касса подключена к терминалу), а для агентского чека нужны
+  // данные продавца: ИНН, наименование и телефон (Т-Банк требует SupplierInfo.Phones).
+  const sellerProfile = await db.payoutProfile.findUnique({ where: { userId: product.authorId } })
+  if (!hasAgentReceiptData(sellerProfile)) {
+    return Response.json(
+      { error: "Продавец не завершил налоговый профиль (нужен телефон для чека) — покупка временно недоступна." },
+      { status: 409 },
+    )
   }
 
   const existing = await db.purchase.findFirst({

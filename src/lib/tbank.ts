@@ -36,14 +36,37 @@ export interface TBankPayment {
   confirmation: { confirmation_url?: string }
 }
 
-// createPayment: metadata передаётся в DATA, OrderId = idempotencyKey (уникален).
-// Чеки бьёт отдельная касса CloudKassir (@/lib/receipts), а НЕ Receipt в Init.
+// Чек для онлайн-кассы (ФФД 1.2). Касса CloudKassir привязана к терминалу →
+// Т-Банк требует Receipt в Init и сам передаёт его в кассу. Receipt в подпись
+// Token НЕ входит.
+export interface TBankReceiptItem {
+  Name: string // ≤ 128 символов
+  Price: number // копейки
+  Quantity: number
+  Amount: number // Price × Quantity, копейки
+  Tax: string // none | vat0 | vat5 | vat10 | vat20 | ...
+  PaymentMethod?: string // full_payment | ... (обязателен в ФФД 1.2)
+  PaymentObject?: string // service | commodity | property_rights | ... (обязателен в ФФД 1.2)
+  MeasurementUnit?: string // «шт» (обязателен в ФФД 1.2)
+  AgentData?: { AgentSign: string } // attorney (поверенный) | ...
+  SupplierInfo?: { Phones: string[]; Name: string; Inn: string } // поставщик (при агенте)
+}
+export interface TBankReceipt {
+  Email?: string
+  Phone?: string
+  Taxation: string // usn_income | osn | ...
+  Items: TBankReceiptItem[]
+}
+
+// createPayment: metadata → DATA, OrderId = idempotencyKey. При подключённой
+// кассе Receipt обязателен — передаём его (фискализирует касса через терминал).
 export async function createPayment(params: {
   amountKopecks: number
   description: string
   returnUrl: string
   metadata: Record<string, string>
   idempotencyKey: string
+  receipt?: TBankReceipt
 }): Promise<TBankPayment> {
   const root = {
     TerminalKey: terminalKey(),
@@ -53,7 +76,8 @@ export async function createPayment(params: {
     SuccessURL: params.returnUrl,
     FailURL: params.returnUrl,
   }
-  const body = { ...root, DATA: params.metadata, Token: genToken(root) }
+  const body: Record<string, unknown> = { ...root, DATA: params.metadata, Token: genToken(root) }
+  if (params.receipt) body.Receipt = params.receipt
 
   const resp = await fetch(`${BASE_URL}/Init`, {
     method: "POST",
