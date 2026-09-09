@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { EmailVerifyBar } from "@/components/layout/EmailVerifyBar"
 import { FeedbackWidgetWrapper } from "@/components/layout/FeedbackWidgetWrapper"
+import { YandexMetrica } from "@/components/analytics/YandexMetrica"
 
 export const metadata: Metadata = {
   // База для относительных URL (canonical, OG-картинки). Без неё Next ругается
@@ -39,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="ru" className="h-full antialiased dark">
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <YandexMetrica />
         {maintenance ? (
           children
         ) : (
