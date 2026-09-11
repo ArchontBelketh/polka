@@ -117,6 +117,9 @@ export default async function AdminPage() {
             </>
           )}
           <Button asChild variant="outline" size="sm">
+            <Link href="/admin/self-employed">Самозанятые</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
             <Link href="/admin/products">Продукты</Link>
           </Button>
           <Button asChild variant={queueTotal > 0 ? "default" : "outline"}>
