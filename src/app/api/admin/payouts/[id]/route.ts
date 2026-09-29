@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { fiscalizePayout } from "@/lib/payouts"
 
 const schema = z.object({
   status: z.enum(["PROCESSING", "PAID", "REJECTED"]),
@@ -44,17 +45,25 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }
 
   if (next === "REJECTED") {
-    // Funds were reserved (balance decremented) at request time — return them
+    // Средства зарезервированы при создании — возвращаем на баланс и отвязываем
+    // продажи от выплаты (снова станут доступны к выводу).
     await db.$transaction([
+      db.purchase.updateMany({ where: { payoutId: id }, data: { payoutId: null } }),
       db.user.update({ where: { id: payout.developerId }, data: { balance: { increment: payout.amount } } }),
       db.payout.update({ where: { id }, data: { status: "REJECTED" } }),
     ])
-  } else {
-    await db.payout.update({
-      where: { id },
-      data: { status: next, ...(next === "PAID" ? { paidAt: new Date() } : {}) },
-    })
+    return Response.json({ ok: true, status: next })
   }
 
+  if (next === "PAID") {
+    // Бьём расходный чек в кассе. Не блокируем выплату при сбое чека — деньги
+    // отправляются вручную; при ошибке вернём предупреждение, чек добьём позже.
+    const receipt = await fiscalizePayout(id)
+    await db.payout.update({ where: { id }, data: { status: "PAID", paidAt: new Date() } })
+    return Response.json({ ok: true, status: next, receipt })
+  }
+
+  // PROCESSING
+  await db.payout.update({ where: { id }, data: { status: "PROCESSING" } })
   return Response.json({ ok: true, status: next })
 }

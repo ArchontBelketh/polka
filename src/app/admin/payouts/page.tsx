@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import { PayoutActions } from "./PayoutActions"
+import { InitiatePayoutButton } from "./InitiatePayoutButton"
 import { ArrowLeft } from "lucide-react"
 
 export const metadata = { title: "Выплаты" }
@@ -28,11 +29,20 @@ export default async function AdminPayoutsPage() {
   const user = await db.user.findUnique({ where: { id: session.user.id } })
   if (!user || user.role !== "ADMIN") redirect("/")
 
-  const payouts = await db.payout.findMany({
-    orderBy: [{ status: "asc" }, { requestedAt: "desc" }],
-    take: 200,
-    include: { developer: { select: { name: true, email: true } } },
-  })
+  const [payouts, withBalance] = await Promise.all([
+    db.payout.findMany({
+      orderBy: [{ status: "asc" }, { requestedAt: "desc" }],
+      take: 200,
+      include: { developer: { select: { name: true, email: true } } },
+    }),
+    // Разработчики с положительным балансом — доступны к инициации выплаты.
+    db.user.findMany({
+      where: { role: "DEVELOPER", balance: { gt: 0 }, payoutsFrozen: false },
+      select: { id: true, name: true, email: true, balance: true },
+      orderBy: { balance: "desc" },
+      take: 100,
+    }),
+  ])
 
   const open = payouts.filter((p) => p.status === "PENDING" || p.status === "PROCESSING")
   const closed = payouts.filter((p) => p.status === "PAID" || p.status === "REJECTED")
@@ -54,6 +64,25 @@ export default async function AdminPayoutsPage() {
           запроса; отклонение возвращает её на баланс разработчика.
         </p>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="font-semibold">Доступно к выплате ({withBalance.length})</h2>
+        {withBalance.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Нет разработчиков с балансом к выплате.</p>
+        ) : (
+          <div className="rounded-lg border border-border divide-y divide-border">
+            {withBalance.map((d) => (
+              <div key={d.id} className="px-4 py-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{formatPrice(d.balance)}</p>
+                  <p className="text-xs text-muted-foreground truncate">{d.name ?? d.email}</p>
+                </div>
+                <InitiatePayoutButton developerId={d.id} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="space-y-3">
         <h2 className="font-semibold">К обработке ({open.length})</h2>

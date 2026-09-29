@@ -28,6 +28,13 @@ export function PayoutActions({ payoutId, status }: PayoutActionsProps) {
         setError(typeof data.error === "string" ? data.error : "Ошибка")
         return
       }
+      // Статус проставлен, но расходный чек в кассе не пробился — предупреждаем.
+      if (data.receipt && data.receipt.ok === false) {
+        setError(
+          `Отмечено «Выплачено», но чек НЕ пробит: ${data.receipt.message ?? "ошибка кассы"}. Пробейте вручную в ЛК кассы.`,
+        )
+        return
+      }
       router.refresh()
     } catch {
       setError("Ошибка соединения")

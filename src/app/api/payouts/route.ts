@@ -1,11 +1,6 @@
-import { NextRequest } from "next/server"
-import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-
-const requestSchema = z.object({
-  amount: z.number().int().positive(),
-})
+import { createPayoutForDeveloper } from "@/lib/payouts"
 
 export async function GET() {
   const session = await auth()
@@ -22,7 +17,9 @@ export async function GET() {
   return Response.json(payouts)
 }
 
-export async function POST(req: NextRequest) {
+// Вывод «всё или ничего»: суммы не выбираем — выводится весь доступный баланс
+// (все зачисленные, ещё не выплаченные продажи).
+export async function POST() {
   const session = await auth()
   if (!session?.user?.id) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
@@ -36,32 +33,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Выплаты по вашему аккаунту приостановлены. Обратитесь в поддержку." }, { status: 403 })
   }
 
-  const body = await req.json()
-  const parsed = requestSchema.safeParse(body)
-  if (!parsed.success) {
-    return Response.json({ error: parsed.error.flatten() }, { status: 422 })
+  const result = await createPayoutForDeveloper(session.user.id)
+  if ("error" in result) {
+    return Response.json({ error: result.error }, { status: 400 })
   }
-
-  const { amount } = parsed.data
-
-  if (user.balance < amount) {
-    return Response.json({ error: "Недостаточно средств на балансе" }, { status: 400 })
-  }
-
-  const userId = session.user.id
-  const payout = await db.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: userId },
-      data: { balance: { decrement: amount } },
-    })
-    return tx.payout.create({
-      data: {
-        developerId: userId,
-        amount,
-        status: "PENDING",
-      },
-    })
-  })
-
-  return Response.json(payout, { status: 201 })
+  return Response.json(result, { status: 201 })
 }

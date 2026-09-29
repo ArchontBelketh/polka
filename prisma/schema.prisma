@@ -280,17 +280,20 @@ model Purchase {
   developerAmount Int?                    // сумма к зачислению разработчику (цена − комиссия), «Комиссия»
   holdUntil     DateTime?                 // удержание ≥ порога до конца окна претензии (8.5)
   creditedAt    DateTime?                 // когда сумма зачислена на баланс разработчика
+  payoutId      String?                   // выплата, закрывшая эту продажу (null = ещё не выплачено)
   downloadCount Int            @default(0)
   lastMessageAt DateTime?
   createdAt     DateTime       @default(now())
   paidAt        DateTime?
   buyer         User           @relation(fields: [buyerId], references: [id])
   product       Product        @relation(fields: [productId], references: [id])
+  payout        Payout?        @relation(fields: [payoutId], references: [id])
   messages      PurchaseMessage[]
 
   @@index([buyerId])
   @@index([productId])
   @@index([escrowUntil])
+  @@index([payoutId])
 }
 
 model PurchaseMessage {
@@ -327,7 +330,9 @@ model Payout {
   status      PayoutStatus @default(PENDING)
   requestedAt DateTime     @default(now())
   paidAt      DateTime?
+  receiptSent Boolean      @default(false)  // пробит ли расходный чек в кассе
   developer   User         @relation(fields: [developerId], references: [id])
+  purchases   Purchase[]                     // продажи, вошедшие в эту выплату (позиции чека)
 }
 
 model Wishlist {

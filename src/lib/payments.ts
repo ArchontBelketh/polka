@@ -13,9 +13,9 @@ const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
 // к терминалу — чек передаём в Receipt внутри Init, касса печатает его сама.
 const RECEIPT_TAXATION = process.env.RECEIPT_TAXATION ?? "usn_income"
 const RECEIPT_VAT = process.env.RECEIPT_VAT ?? "none"
-// Признак предмета расчёта товара: "service" валиден везде; "property_rights"
-// (передача имущ. права) — по согласованию с бухгалтером/кассой.
-const RECEIPT_PRODUCT_OBJECT = process.env.RECEIPT_PRODUCT_PAYMENT_OBJECT ?? "service"
+// Признак предмета расчёта ТОВАРА — "property_rights" (передача имущественного
+// права, ФФД 1.2). Собственные услуги оператора остаются "service" (см. ниже).
+const RECEIPT_PRODUCT_OBJECT = process.env.RECEIPT_PRODUCT_PAYMENT_OBJECT ?? "property_rights"
 
 const OWN_SERVICE_TYPES = new Set<string>(["slots", "pro", "ai_review", "listing_fee"])
 
