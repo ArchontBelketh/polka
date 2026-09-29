@@ -54,6 +54,7 @@ const LOG_ACTION_LABELS: Record<string, string> = {
   AUTO_REJECTED: "Не пройдена проверка",
   QUEUED: "На ручной проверке",
   SECURITY_NOTICE: "Уведомление о безопасности",
+  EDITED: "Карточка отредактирована",
 }
 
 // Авто-логи содержат внутренние детали (score, коды правил) — разработчику

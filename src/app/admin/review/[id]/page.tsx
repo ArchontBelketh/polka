@@ -58,6 +58,7 @@ const ACTION_LABELS: Record<string, string> = {
   RESTORED: "Восстановлен",
   VERIFIED: "Проверено вручную",
   UNVERIFIED: "Отметка снята",
+  EDITED: "Карточка отредактирована",
 }
 
 const DECISION_LABELS: Record<string, string> = {
@@ -147,6 +148,12 @@ export default async function AdminReviewPage({ params }: RouteParams) {
           <p className="text-muted-foreground text-sm mt-1">
             {CATEGORY_LABELS[product.category as keyof typeof CATEGORY_LABELS]} · {formatPrice(product.price)}
           </p>
+          <a
+            href={`/admin/products/${product.id}/edit`}
+            className="mt-2 inline-block text-sm text-primary hover:underline underline-offset-4"
+          >
+            ✎ Редактировать карточку
+          </a>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <Badge variant={PRODUCT_STATUS_VARIANT[product.status] ?? "outline"}>
