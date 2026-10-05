@@ -5,7 +5,8 @@ import { auth } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { CATEGORY_LABELS } from "@/types"
-import { Star, Package, ShoppingCart, Pencil } from "lucide-react"
+import { Star, Package, ShoppingCart, Pencil, Rocket, ShieldCheck, Trophy, Flame } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { EARLY_SELLER_BADGE } from "@/lib/early-seller"
 import type { Metadata } from "next"
 
@@ -17,7 +18,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params
   const user = await db.user.findUnique({ where: { id }, select: { name: true } })
   if (!user) return {}
-  return { title: `${user.name ?? "Разработчик"}` }
+  return { title: `${user.name ?? "Разработчик"} — продукты на ПОЛКЕ` }
+}
+
+interface Achievement {
+  icon: LucideIcon
+  label: string
+  desc: string
+  cls: string
 }
 
 export default async function DeveloperPage({ params }: PageProps) {
@@ -34,6 +42,7 @@ export default async function DeveloperPage({ params }: PageProps) {
         bio:            true,
         createdAt:      true,
         isEarlySeller:  true,
+        earlySellerNo:  true,
       },
     }),
   ])
@@ -58,53 +67,109 @@ export default async function DeveloperPage({ params }: PageProps) {
       screenshots: true,
       techStack: true,
       status: true,
+      manuallyVerified: true,
       author: { select: { id: true, name: true, telegramHandle: true } },
     },
   })
 
   const totalSales = products.reduce((sum, p) => sum + p.salesCount, 0)
+  const totalReviews = products.reduce((sum, p) => sum + p.reviewCount, 0)
+  // Рейтинг, взвешенный по числу отзывов (честнее простого среднего).
   const avgRating =
-    products.length > 0
-      ? products.reduce((sum, p) => sum + p.rating, 0) / products.length
+    totalReviews > 0
+      ? products.reduce((sum, p) => sum + p.rating * p.reviewCount, 0) / totalReviews
       : 0
+  const hasVerified = products.some((p) => p.manuallyVerified)
+
+  // Ачивки — только заслуженные, по реальным данным.
+  const achievements: Achievement[] = []
+  if (developer.isEarlySeller) {
+    achievements.push({
+      icon: Rocket,
+      label: developer.earlySellerNo ? `${EARLY_SELLER_BADGE} №${developer.earlySellerNo}` : EARLY_SELLER_BADGE,
+      desc: "Один из первых продавцов ПОЛКИ",
+      cls: "text-violet",
+    })
+  }
+  if (hasVerified) {
+    achievements.push({
+      icon: ShieldCheck,
+      label: "Проверенный код",
+      desc: "Есть продукты, прошедшие ручную проверку модератором",
+      cls: "text-cyan",
+    })
+  }
+  if (totalSales >= 50) {
+    achievements.push({ icon: Trophy, label: "Топ-продавец", desc: "Более 50 продаж", cls: "text-amber-400" })
+  } else if (totalSales >= 10) {
+    achievements.push({ icon: Flame, label: "Популярный автор", desc: "Более 10 продаж", cls: "text-orange-400" })
+  }
+  if (avgRating >= 4.5 && totalReviews >= 5) {
+    achievements.push({ icon: Star, label: "Высокий рейтинг", desc: "Средняя оценка 4.5★ и выше", cls: "text-yellow-400" })
+  }
+  if (products.length >= 5) {
+    achievements.push({ icon: Package, label: "Плодовитый автор", desc: "5+ опубликованных продуктов", cls: "text-primary" })
+  }
 
   const categoryStats = products.reduce<Record<string, number>>((acc, p) => {
     acc[p.category] = (acc[p.category] ?? 0) + 1
     return acc
   }, {})
 
+  const initial = (developer.name ?? "?")[0].toUpperCase()
+  const memberSince = new Date(developer.createdAt).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
       {/* Profile header */}
-      <div className="flex items-start gap-6">
-        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground shrink-0">
-          {(developer.name ?? "?")[0].toUpperCase()}
-        </div>
-        <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
-            {developer.isEarlySeller && (
-              <Badge className="bg-primary/15 text-primary border-primary/30">{EARLY_SELLER_BADGE}</Badge>
-            )}
-            {isOwn && (
-              <Link
-                href="/settings"
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Pencil className="h-3 w-3" /> Редактировать
-              </Link>
-            )}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        {/* Banner */}
+        <div className="h-24 bg-gradient-to-r from-primary/30 via-violet/20 to-cyan/20 sm:h-28" />
+        <div className="px-6 pb-6">
+          <div className="-mt-10 flex flex-wrap items-end gap-4">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-card bg-muted text-3xl font-bold text-foreground shadow-lg">
+              {initial}
+            </div>
+            <div className="flex-1 space-y-1 pb-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
+                {developer.isEarlySeller && (
+                  <Badge className="border-primary/30 bg-primary/15 text-primary">{EARLY_SELLER_BADGE}</Badge>
+                )}
+                {isOwn && (
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Pencil className="h-3 w-3" /> Редактировать
+                  </Link>
+                )}
+              </div>
+              {developer.telegramHandle && (
+                <p className="text-sm text-muted-foreground">@{developer.telegramHandle}</p>
+              )}
+              <p className="text-xs text-muted-foreground">На ПОЛКЕ с {memberSince}</p>
+            </div>
           </div>
-          {developer.telegramHandle && (
-            <p className="text-sm text-muted-foreground">@{developer.telegramHandle}</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            На платформе с {new Date(developer.createdAt).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })}
-          </p>
+
           {developer.bio && (
-            <p className="text-sm text-muted-foreground mt-2 max-w-lg whitespace-pre-line">
-              {developer.bio}
-            </p>
+            <p className="mt-4 max-w-2xl whitespace-pre-line text-sm text-muted-foreground">{developer.bio}</p>
+          )}
+
+          {/* Achievements */}
+          {achievements.length > 0 && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {achievements.map((a) => (
+                <div
+                  key={a.label}
+                  title={a.desc}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm"
+                >
+                  <a.icon className={`h-4 w-4 ${a.cls}`} />
+                  <span className="font-medium">{a.label}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -112,23 +177,23 @@ export default async function DeveloperPage({ params }: PageProps) {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border border-border bg-card p-4 text-center">
-          <Package className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+          <Package className="mx-auto mb-1 h-5 w-5 text-muted-foreground" />
           <p className="text-2xl font-bold">{products.length}</p>
           <p className="text-xs text-muted-foreground">
             {products.length === 1 ? "продукт" : products.length < 5 ? "продукта" : "продуктов"}
           </p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 text-center">
-          <ShoppingCart className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+          <ShoppingCart className="mx-auto mb-1 h-5 w-5 text-muted-foreground" />
           <p className="text-2xl font-bold">{totalSales}</p>
           <p className="text-xs text-muted-foreground">продаж</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 text-center">
-          <Star className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-          <p className="text-2xl font-bold">
-            {avgRating > 0 ? avgRating.toFixed(1) : "—"}
+          <Star className="mx-auto mb-1 h-5 w-5 text-muted-foreground" />
+          <p className="text-2xl font-bold">{avgRating > 0 ? avgRating.toFixed(1) : "—"}</p>
+          <p className="text-xs text-muted-foreground">
+            {totalReviews > 0 ? `рейтинг · ${totalReviews} отз.` : "средний рейтинг"}
           </p>
-          <p className="text-xs text-muted-foreground">средний рейтинг</p>
         </div>
       </div>
 
@@ -145,7 +210,7 @@ export default async function DeveloperPage({ params }: PageProps) {
 
       {/* Products */}
       {products.length === 0 ? (
-        <p className="text-muted-foreground text-sm py-8 text-center">
+        <p className="py-8 text-center text-sm text-muted-foreground">
           У этого разработчика пока нет опубликованных продуктов.
         </p>
       ) : (

@@ -14,6 +14,7 @@ interface BuyPanelProps {
   reviewCount: number
   salesCount: number
   authorName: string
+  authorId: string
   demoUrl?: string | null
   isOwnProduct?: boolean
   saleModel?: string | null
@@ -27,6 +28,7 @@ export async function BuyPanel({
   reviewCount,
   salesCount,
   authorName,
+  authorId,
   demoUrl,
   isOwnProduct = false,
   saleModel,
@@ -127,7 +129,12 @@ export async function BuyPanel({
         </Button>
       )}
 
-      <p className="text-xs text-muted-foreground text-center">Автор: {authorName}</p>
+      <p className="text-xs text-muted-foreground text-center">
+        Автор:{" "}
+        <Link href={`/developer/${authorId}`} className="text-primary hover:underline underline-offset-4">
+          {authorName}
+        </Link>
+      </p>
 
       <ul className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border">
         <li>✓ Мгновенная доставка после оплаты</li>

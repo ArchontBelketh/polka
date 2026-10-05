@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { CATEGORY_LABELS } from "@/types"
 import { BuyPanel } from "@/components/product/BuyPanel"
+import { AuthorCard } from "@/components/product/AuthorCard"
 import { ReviewList } from "@/components/product/ReviewList"
 import { ReviewForm } from "@/components/product/ReviewForm"
 import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
@@ -318,6 +319,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
               />
             </Suspense>
 
+            {/* Об авторе */}
+            <AuthorCard authorId={product.authorId} />
+
             {/* Reviews */}
             <section className="space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Отзывы</h2>
@@ -343,6 +347,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               reviewCount={product.reviewCount}
               salesCount={product.salesCount}
               authorName={authorName}
+              authorId={product.authorId}
               demoUrl={product.demoUrl}
               isOwnProduct={isOwnProduct}
               saleModel={product.saleModel}
