@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 import { Prisma } from "@/generated/prisma/client"
 import { db } from "@/lib/db"
 import { issueEmailVerification } from "@/lib/email-verify"
+import { claimEarlySellerSpot } from "@/lib/early-seller"
 import { isEmailDomainAllowed, emailDomainError } from "@/lib/email-domains"
 import { normalizeEmail } from "@/lib/email-normalize"
 import { clientIp } from "@/lib/ip"
@@ -88,6 +89,11 @@ export async function POST(req: NextRequest) {
   // Send the email-verification link (non-blocking — account is usable, but
   // unverified users can't post reviews/questions until they confirm)
   void issueEmailVerification(user.id, email)
+
+  // Разработчик при регистрации — выдаём место и перки программы «первых продавцов».
+  if (asDeveloper) {
+    await claimEarlySellerSpot(user.id)
+  }
 
   return Response.json({ id: user.id, email: user.email, role: user.role }, { status: 201 })
 }

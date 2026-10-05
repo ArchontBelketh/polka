@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { ensurePlanRecord } from "@/lib/developer-plan"
+import { claimEarlySellerSpot } from "@/lib/early-seller"
 
 // Самостоятельный апгрейд покупателя до разработчика.
 export async function POST() {
@@ -28,6 +29,8 @@ export async function POST() {
     data: { role: "DEVELOPER" },
   })
   await ensurePlanRecord(session.user.id) // создаём тарифный план (FREE, слоты по умолчанию)
+  // Выдаём место и перки программы «первых продавцов» (если есть свободные).
+  await claimEarlySellerSpot(session.user.id)
 
   return Response.json({ ok: true })
 }

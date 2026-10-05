@@ -31,7 +31,8 @@ export default async function AdminQueuePage() {
   const [products, pendingVersions] = await Promise.all([
     db.product.findMany({
       where: { status: { in: ["PENDING", "SCAN_FAILED"] } },
-      orderBy: [{ riskScore: "desc" }, { createdAt: "asc" }],
+      // Приоритет первым продавцам (программа): их продукты — выше в очереди.
+      orderBy: [{ author: { isEarlySeller: "desc" } }, { riskScore: "desc" }, { createdAt: "asc" }],
       include: {
         author: { select: { name: true, email: true } },
         scanResult: { select: { status: true, findings: true, toolsRun: true } },

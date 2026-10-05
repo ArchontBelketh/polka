@@ -114,6 +114,8 @@ model User {
   agreedAt       DateTime?
   balance        Int        @default(0)
   payoutsFrozen  Boolean    @default(false)
+  isEarlySeller  Boolean    @default(false)   // участник программы «первых продавцов»
+  earlySellerNo  Int?                          // порядковый номер в программе (1..N)
   bio            String?    @db.Text
   isBanned       Boolean    @default(false)
   bannedAt       DateTime?

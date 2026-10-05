@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { CATEGORY_LABELS } from "@/types"
 import { Star, Package, ShoppingCart, Pencil } from "lucide-react"
+import { EARLY_SELLER_BADGE } from "@/lib/early-seller"
 import type { Metadata } from "next"
 
 interface PageProps {
@@ -32,6 +33,7 @@ export default async function DeveloperPage({ params }: PageProps) {
         telegramHandle: true,
         bio:            true,
         createdAt:      true,
+        isEarlySeller:  true,
       },
     }),
   ])
@@ -81,6 +83,9 @@ export default async function DeveloperPage({ params }: PageProps) {
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
+            {developer.isEarlySeller && (
+              <Badge className="bg-primary/15 text-primary border-primary/30">{EARLY_SELLER_BADGE}</Badge>
+            )}
             {isOwn && (
               <Link
                 href="/settings"

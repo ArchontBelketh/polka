@@ -4,8 +4,14 @@ import { db } from "@/lib/db"
 import { IncomeCalculator } from "@/components/landing/IncomeCalculator"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { formatPrice } from "@/lib/utils"
-import { Upload, ScanLine, UserCheck, TrendingUp, Check, X } from "lucide-react"
+import { Upload, ScanLine, UserCheck, TrendingUp, Check, X, Zap } from "lucide-react"
 import { SellCta } from "./SellCta"
+import {
+  getEarlySellerStats,
+  EARLY_SELLER_SLOTS,
+  EARLY_SELLER_PRO_MONTHS,
+  EARLY_SELLER_BADGE,
+} from "@/lib/early-seller"
 
 // Соц-доказательства показываем, только когда цифры уже не стыдные —
 // порог по числу опубликованных продуктов.
@@ -112,6 +118,8 @@ export default async function SellPage() {
   const session = await auth()
   const role = (session?.user as { role?: string } | undefined)?.role
 
+  const earlySeller = await getEarlySellerStats()
+
   // Честная статистика площадки (только реальные данные из БД).
   const [developerRows, productsCount, salesCount, paidAgg, topProducts] = await Promise.all([
     db.product.findMany({ where: { status: "APPROVED" }, select: { authorId: true }, distinct: ["authorId"] }),
@@ -156,8 +164,84 @@ export default async function SellPage() {
             <SellCta role={role} />
           </div>
           <p className="text-sm text-muted-foreground">
-            Регистрация бесплатна · 2 продукта бесплатно · комиссия только после продажи
+            {earlySeller.left > 0
+              ? `Первым ${earlySeller.total} продавцам — ${EARLY_SELLER_SLOTS} слотов и Pro бесплатно · осталось ${earlySeller.left} мест`
+              : "Регистрация бесплатна · 2 продукта бесплатно · комиссия только после продажи"}
           </p>
+        </div>
+      </section>
+
+      {/* Программа «первых продавцов» — спец-условия + счётчик свободных мест */}
+      <section className="mx-auto max-w-4xl px-4 py-8">
+        <div className="rounded-2xl border border-primary/40 bg-primary/5 ring-1 ring-primary/20 p-6 sm:p-8 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-primary">
+              <Zap className="h-5 w-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider">Ограниченная программа</span>
+            </div>
+            {earlySeller.left > 0 ? (
+              <span className="rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-primary">
+                Осталось {earlySeller.left} из {earlySeller.total} мест
+              </span>
+            ) : (
+              <span className="rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
+                Все {earlySeller.total} мест заняты
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
+              Первые продавцы ПОЛКИ получают больше
+            </h2>
+            <p className="text-muted-foreground">
+              Мы набираем первых {earlySeller.total} разработчиков и даём им усиленные условия.
+              Место закрепляется автоматически — просто станьте продавцом, пока есть свободные.
+            </p>
+          </div>
+
+          {/* Прогресс-бар занятости мест */}
+          <div className="space-y-1.5">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${Math.min(100, Math.round((earlySeller.taken / earlySeller.total) * 100))}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Занято {earlySeller.taken} из {earlySeller.total}
+            </p>
+          </div>
+
+          {/* Спец-условия */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border border-border bg-card p-4 space-y-1">
+              <p className="font-semibold text-foreground">{EARLY_SELLER_SLOTS} слотов бесплатно</p>
+              <p className="text-sm text-muted-foreground">Вместо стандартных 2 — выкладывайте сразу больше продуктов.</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4 space-y-1">
+              <p className="font-semibold text-foreground">Pro на {EARLY_SELLER_PRO_MONTHS} месяца бесплатно</p>
+              <p className="text-sm text-muted-foreground">Сниженная комиссия 17% вместо 20% на первые продажи.</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4 space-y-1">
+              <p className="font-semibold text-foreground">Бейдж «{EARLY_SELLER_BADGE}»</p>
+              <p className="text-sm text-muted-foreground">Статус раннего продавца в профиле + приоритетная модерация.</p>
+            </div>
+          </div>
+
+          {earlySeller.left > 0 ? (
+            <div className="flex flex-col items-center gap-2 pt-1">
+              <SellCta role={role} />
+              <p className="text-xs text-muted-foreground">
+                Условия закрепляются при регистрации, пока есть свободные места.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Набор первых продавцов завершён. Зарегистрироваться и продавать по-прежнему можно —
+              на стандартных условиях.
+            </p>
+          )}
         </div>
       </section>
 
