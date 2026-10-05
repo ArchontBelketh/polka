@@ -1,8 +1,15 @@
 import type { Metadata } from "next"
 import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
 import { IncomeCalculator } from "@/components/landing/IncomeCalculator"
+import { ProductCard } from "@/components/catalog/ProductCard"
+import { formatPrice } from "@/lib/utils"
 import { Upload, ScanLine, UserCheck, TrendingUp, Check, X } from "lucide-react"
 import { SellCta } from "./SellCta"
+
+// Соц-доказательства показываем, только когда цифры уже не стыдные —
+// порог по числу опубликованных продуктов.
+const STATS_THRESHOLD = 15
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
@@ -30,6 +37,15 @@ const STEPS = [
   { icon: ScanLine, title: "Автоскан", text: "Код автоматически сканируется на вредоносные паттерны за пару минут. Чистые продукты идут дальше." },
   { icon: UserCheck, title: "Модерация", text: "Модератор проверяет продукт за 24–48 часов: соответствие описанию, отсутствие чужого кода." },
   { icon: TrendingUp, title: "Продажи", text: "Продукт в каталоге. Оплата и доставка файлов — на площадке. Деньги зачисляются на баланс сразу после оплаты." },
+]
+
+const CATEGORIES = [
+  { title: "Python", text: "Парсеры, автоматизация, обработка файлов, API, утилиты." },
+  { title: "Telegram", text: "Боты, уведомления, интеграции, автоматизация." },
+  { title: "1С", text: "Обработки, внешние отчёты, интеграции, HTTP/API-сервисы." },
+  { title: "JavaScript / Node.js", text: "Утилиты, CLI, серверные инструменты, автоматизация." },
+  { title: "Excel", text: "Обработка таблиц, генераторы отчётов, конвертеры." },
+  { title: "Парсинг", text: "Сбор данных, обработка результатов, мониторинг сайтов." },
 ]
 
 const ALLOWED = [
@@ -66,8 +82,8 @@ const FAQ = [
     a: "По продажам через площадку покупатель может подать претензию в течение 7 дней, если продукт не соответствует описанию или не работает; обоснованный возврат исполняется за ваш счёт. По прямым продажам (тариф за размещение) возвраты вы решаете с покупателем напрямую. Небезопасные или чужие продукты снимаются модерацией с продажи.",
   },
   {
-    q: "Нужен ли мне статус (самозанятый / ИП / ООО)?",
-    a: "Да. Чтобы продавать и получать оплату, укажите правовой статус и реквизиты в разделе «Реквизиты». Без этого опубликовать продукт нельзя. Чек покупателю и налоги — на вашей стороне.",
+    q: "Нужен ли мне статус (самозанятый / ИП / ООО), чтобы начать?",
+    a: "Чтобы загрузить продукт, подготовить карточку и сохранить черновик — статус не нужен. Правовой статус и реквизиты нужны только для публикации и получения денег: без них мы просто не сможем перечислить вам выплату. Укажите их в разделе «Реквизиты», когда будете готовы продавать. Чек покупателю и налоги — на вашей стороне.",
   },
 ]
 
@@ -95,25 +111,105 @@ const PLANS = [
 export default async function SellPage() {
   const session = await auth()
   const role = (session?.user as { role?: string } | undefined)?.role
+
+  // Честная статистика площадки (только реальные данные из БД).
+  const [developerRows, productsCount, salesCount, paidAgg, topProducts] = await Promise.all([
+    db.product.findMany({ where: { status: "APPROVED" }, select: { authorId: true }, distinct: ["authorId"] }),
+    db.product.count({ where: { status: "APPROVED" } }),
+    db.purchase.count({ where: { status: { in: ["PAID", "DELIVERED"] } } }),
+    db.payout.aggregate({ _sum: { amount: true }, where: { status: "PAID" } }),
+    db.product.findMany({
+      where: { status: "APPROVED", salesCount: { gt: 0 } },
+      orderBy: { salesCount: "desc" },
+      take: 3,
+      select: {
+        id: true, slug: true, title: true, shortDesc: true, category: true, price: true,
+        rating: true, reviewCount: true, salesCount: true, screenshots: true,
+        techStack: true, manuallyVerified: true,
+      },
+    }),
+  ])
+
+  const showStats = productsCount >= STATS_THRESHOLD
+  const statItems = [
+    { label: "разработчиков разместили продукты", value: developerRows.length, money: false },
+    { label: "продуктов в каталоге", value: productsCount, money: false },
+    { label: "продаж совершено", value: salesCount, money: false },
+    { label: "выплачено разработчикам", value: paidAgg._sum.amount ?? 0, money: true },
+  ].filter((s) => s.value > 0)
+
   return (
     <div className="space-y-4">
       {/* Hero */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-4xl px-4 py-20 text-center space-y-6">
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Ваш скрипт уже написан.{" "}
-            <span className="text-primary">Пусть он продаётся сам</span>
+            Ваш код уже написан.{" "}
+            <span className="text-primary">Превратите его в доход</span>
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Бот, парсер или 1С-обработка, которую вы делали под задачу, может приносить доход
-            снова и снова. ПОЛКА берёт на себя оплату и доставку — вы получаете до 80%
-            с каждой продажи.
+            Бот, парсер, Python-скрипт или 1С-обработка, которую вы делали под задачу, может
+            продаваться снова и снова. Разместите её один раз — оплату и выдачу файлов покупателю
+            берёт на себя ПОЛКА. Вы получаете до 80% с каждой продажи.
           </p>
           <div className="flex items-center justify-center gap-3">
             <SellCta role={role} />
           </div>
+          <p className="text-sm text-muted-foreground">
+            Регистрация бесплатна · 2 продукта бесплатно · комиссия только после продажи
+          </p>
         </div>
       </section>
+
+      {/* Статистика площадки — только выше порога и только реальные цифры */}
+      {showStats && statItems.length > 0 && (
+        <section className="border-y border-border bg-card/40">
+          <div className="mx-auto max-w-5xl px-4 py-12">
+            <h2 className="text-center text-2xl font-bold text-foreground">ПОЛКА в цифрах</h2>
+            <div className="mt-8 grid grid-cols-2 gap-6 md:grid-cols-4 text-center">
+              {statItems.map((s) => (
+                <div key={s.label}>
+                  <p className="text-3xl font-bold text-primary">
+                    {s.money ? formatPrice(s.value) : s.value.toLocaleString("ru-RU")}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Что можно разместить */}
+      <section className="mx-auto max-w-5xl px-4 py-12">
+        <h2 className="text-center text-2xl font-bold text-foreground">Что можно разместить</h2>
+        <p className="mt-2 text-center text-muted-foreground">
+          Не обязательно создавать новый продукт специально для ПОЛКИ — продавайте то, что уже написали.
+        </p>
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CATEGORIES.map((c) => (
+            <div key={c.title} className="rounded-lg border border-border bg-card p-5 space-y-1.5">
+              <h3 className="font-semibold text-foreground">{c.title}</h3>
+              <p className="text-sm text-muted-foreground">{c.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Уже продаётся — реальные продукты с продажами (§13) */}
+      {topProducts.length > 0 && (
+        <section className="mx-auto max-w-5xl px-4 py-12">
+          <h2 className="text-center text-2xl font-bold text-foreground">Уже продаётся на ПОЛКЕ</h2>
+          <p className="mt-2 text-center text-muted-foreground">
+            Реальные продукты, которые покупают прямо сейчас.
+          </p>
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {topProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Calculator */}
       <section className="mx-auto max-w-2xl px-4 py-12">

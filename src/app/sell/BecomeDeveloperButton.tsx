@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { SessionProvider, useSession } from "next-auth/react"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { reachGoal } from "@/lib/metrica"
 
 function Inner() {
   const router = useRouter()
@@ -22,6 +23,7 @@ function Inner() {
         setError(data.error ?? "Не удалось стать разработчиком")
         return
       }
+      reachGoal("sell_become_developer")
       await update() // обновляем роль в сессии (jwt trigger:"update") без пере-логина
       router.push("/dashboard")
       router.refresh()

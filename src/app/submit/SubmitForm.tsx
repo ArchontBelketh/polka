@@ -126,7 +126,7 @@ export function SubmitForm() {
       if (!scanRes.ok) {
         const d = await scanRes.json().catch(() => ({}))
         if (d.code === "REQUISITES_REQUIRED") {
-          setError("Заполните правовой статус и реквизиты в разделе «Реквизиты» — продукт сохранён как черновик.")
+          setError("Продукт сохранён как черновик. Правовой статус и реквизиты нужны только для публикации и выплат — укажите их в разделе «Реквизиты», когда будете готовы продавать.")
           return
         }
         setError(typeof d.error === "string" ? d.error : "Не удалось отправить на проверку.")

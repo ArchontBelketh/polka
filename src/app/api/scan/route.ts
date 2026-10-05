@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (!isProfileComplete(profile)) {
       return Response.json(
         {
-          error: "Заполните правовой статус и реквизиты, чтобы опубликовать продукт.",
+          error: "Продукт сохранён как черновик. Правовой статус и реквизиты нужны только для публикации и выплат (не для загрузки) — укажите их в разделе «Реквизиты», когда будете готовы продавать.",
           code: "REQUISITES_REQUIRED",
         },
         { status: 403 },
