@@ -22,6 +22,9 @@ const createSchema = z.object({
   videoUrl: z.string().url().optional().or(z.literal("")),
   exampleInput: z.string().max(5000).optional(),
   exampleOutput: z.string().max(5000).optional(),
+  xrayDeclInternet: z.boolean().optional(),
+  xrayDeclFiles: z.boolean().optional(),
+  xrayDeclCommands: z.boolean().optional(),
 })
 
 const STAFF_ROLES = new Set(["ADMIN", "MODERATOR"])

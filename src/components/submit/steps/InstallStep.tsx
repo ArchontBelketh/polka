@@ -13,6 +13,9 @@ const MAX_REQUIREMENTS = 15
 interface InstallData {
   installGuide: string
   requirements: string[]
+  xrayDeclInternet: boolean
+  xrayDeclFiles: boolean
+  xrayDeclCommands: boolean
 }
 
 interface InstallStepProps {
@@ -120,6 +123,30 @@ export function InstallStep({ value, onChange }: InstallStepProps) {
             {guideLen < MIN_GUIDE && ` — нужно ещё ${MIN_GUIDE - guideLen}`}
           </span>
         </div>
+      </div>
+
+      {/* Поведение программы — для X-Ray-паспорта в карточке */}
+      <div className="space-y-2 rounded-lg border border-border bg-card p-4">
+        <p className="text-sm font-medium">Что делает программа</p>
+        <p className="text-xs text-muted-foreground">
+          Отметьте честно — мы автоматически сверим это с кодом (X-Ray). Расхождение отправит
+          товар на ручную проверку.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={value.xrayDeclInternet}
+            onChange={(e) => onChange({ xrayDeclInternet: e.target.checked })} />
+          Обращается в интернет (сеть, API, загрузки)
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={value.xrayDeclFiles}
+            onChange={(e) => onChange({ xrayDeclFiles: e.target.checked })} />
+          Пишет, изменяет или удаляет файлы
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={value.xrayDeclCommands}
+            onChange={(e) => onChange({ xrayDeclCommands: e.target.checked })} />
+          Запускает системные команды
+        </label>
       </div>
     </div>
   )

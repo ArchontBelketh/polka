@@ -12,7 +12,10 @@ import { VerifyButton } from "./VerifyButton"
 import { CodeViewer } from "@/components/moderation/CodeViewer"
 import { saleModelForKopecks, SALE_MODEL_LABELS } from "@/lib/tariffs"
 import { licenseLabel, detectOpenLicense } from "@/lib/licenses"
+import type { XrayPassport } from "@/lib/xray/types"
 import type { ScanFinding } from "@/types"
+
+const declText = (b: boolean | null | undefined) => (b === true ? "да" : b === false ? "нет" : "—")
 
 const VERIFIABLE_STATUSES = ["APPROVED", "PENDING", "SCAN_FAILED"]
 
@@ -124,6 +127,8 @@ export default async function AdminReviewPage({ params }: RouteParams) {
       ? detectOpenLicense(`${product.shortDesc}\n${product.fullDesc}\n${product.installGuide ?? ""}`)
       : null
 
+  const xrayPassport = (product.xrayPassport as unknown as XrayPassport | null) ?? null
+
   const findings = (product.scanResult?.findings ?? []) as unknown as ScanFinding[]
   const critical = findings.filter((f) => f.severity === "critical")
   const warnings = findings.filter((f) => f.severity === "warning")
@@ -184,6 +189,21 @@ export default async function AdminReviewPage({ params }: RouteParams) {
               «{aiFlags.injectionText}»
             </p>
           )}
+        </div>
+      )}
+
+      {/* Расхождение деклараций автора с X-Ray */}
+      {product.xrayMismatch && (
+        <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 space-y-1">
+          <p className="text-sm font-semibold text-amber-400">Расхождение деклараций автора с X-Ray</p>
+          <p className="text-xs text-muted-foreground">
+            Автор заявил одно, а статический анализ обнаружил другое. Проверьте вручную.
+          </p>
+          <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+            <li>Интернет: автор — {declText(product.xrayDeclInternet)}, X-Ray — {xrayPassport?.internet.used ? "да" : "нет"}</li>
+            <li>Файлы: автор — {declText(product.xrayDeclFiles)}, X-Ray — {xrayPassport?.writesFiles ? "да" : "нет"}</li>
+            <li>Команды: автор — {declText(product.xrayDeclCommands)}, X-Ray — {xrayPassport?.runsCommands ? "да" : "нет"}</li>
+          </ul>
         </div>
       )}
 

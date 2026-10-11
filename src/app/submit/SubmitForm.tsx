@@ -22,6 +22,9 @@ interface FormState {
   features: string[]
   installGuide: string
   requirements: string[]
+  xrayDeclInternet: boolean
+  xrayDeclFiles: boolean
+  xrayDeclCommands: boolean
   productFile: File | null
   screenshots: File[]
   demoUrl: string
@@ -40,6 +43,7 @@ const INITIAL: FormState = {
   targetAudience: "", techStack: [],
   features: [],
   installGuide: "", requirements: [],
+  xrayDeclInternet: false, xrayDeclFiles: false, xrayDeclCommands: false,
   productFile: null, screenshots: [], demoUrl: "", videoUrl: "",
   exampleInput: "", exampleOutput: "",
   price: "", license: "personal", telegramBotUsername: "", developerPaymentInfo: "",
@@ -106,6 +110,9 @@ export function SubmitForm() {
           videoUrl: form.videoUrl || undefined,
           exampleInput: form.exampleInput || undefined,
           exampleOutput: form.exampleOutput || undefined,
+          xrayDeclInternet: form.xrayDeclInternet,
+          xrayDeclFiles: form.xrayDeclFiles,
+          xrayDeclCommands: form.xrayDeclCommands,
         }),
       })
       const product = await res.json()
@@ -200,7 +207,13 @@ export function SubmitForm() {
         )}
         {step === 3 && (
           <InstallStep
-            value={{ installGuide: form.installGuide, requirements: form.requirements }}
+            value={{
+              installGuide: form.installGuide,
+              requirements: form.requirements,
+              xrayDeclInternet: form.xrayDeclInternet,
+              xrayDeclFiles: form.xrayDeclFiles,
+              xrayDeclCommands: form.xrayDeclCommands,
+            }}
             onChange={(v) => setForm({ ...form, ...v })}
           />
         )}

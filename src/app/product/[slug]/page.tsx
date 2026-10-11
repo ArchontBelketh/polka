@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { CATEGORY_LABELS } from "@/types"
 import { BuyPanel } from "@/components/product/BuyPanel"
 import { AuthorCard } from "@/components/product/AuthorCard"
+import { XrayPassportBlock } from "@/components/product/XrayPassportBlock"
+import type { XrayPassport } from "@/lib/xray/types"
 import { licenseLabel, licenseText } from "@/lib/licenses"
 import { ReviewList } from "@/components/product/ReviewList"
 import { ReviewForm } from "@/components/product/ReviewForm"
@@ -317,6 +319,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 productSlug={product.slug}
               />
             </Suspense>
+
+            {/* X-Ray-паспорт: что делает код */}
+            {product.xrayPassport != null && (
+              <XrayPassportBlock passport={product.xrayPassport as unknown as XrayPassport} />
+            )}
 
             {/* Пример до и после */}
             {(product.exampleInput || product.exampleOutput) && (

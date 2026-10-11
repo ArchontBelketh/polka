@@ -50,4 +50,5 @@ export const limits = {
   forgot: (key: string) => rateLimit(`forgot:${key}`, 3, 3_600_000),             // 3/hour
   register: (ip: string) => rateLimit(`register:${ip}`, 5, 3_600_000),           // 5/hour
   support: (ip: string) => rateLimit(`support:${ip}`, 3, 600_000),               // 3/10min
+  xray: (ip: string) => rateLimit(`xray:${ip}`, 10, 86_400_000),                 // 10/сутки
 } as const

@@ -80,6 +80,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/prisma ./prisma
+# X-Ray: Python-анализатор запускается из /app/xray_analyze.py (см. resolveScript)
+COPY --from=builder /app/src/lib/xray/xray_analyze.py ./xray_analyze.py
 
 EXPOSE 3000
 ENV PORT=3000

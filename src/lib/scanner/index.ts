@@ -13,6 +13,8 @@ import { checkNetworkExtra } from "./network-extra"
 import { checkDuplicateHash } from "./duplicate"
 import { safeUnzip } from "./zip-safe"
 import { runAutoModeration } from "@/lib/auto-moderation"
+import { analyzeDir } from "@/lib/xray/analyze"
+import { buildPassport, detectDeclarationMismatch } from "@/lib/xray/passport"
 import type { ScanFinding } from "@/types"
 
 const s3Configured =
@@ -174,6 +176,30 @@ export async function runScan(productId: string): Promise<void> {
         toolsRun: toolsRunArr,
       },
     })
+
+    // ── X-Ray-паспорт (что делает код) — только для Python-продуктов ──────
+    if (product.files.some((f) => /\.(py|zip)$/i.test(f.fileName))) {
+      try {
+        const report = await analyzeDir(tmpDir)
+        if (report.files_analyzed > 0) {
+          const passport = buildPassport(report)
+          const mismatch = detectDeclarationMismatch(
+            {
+              internet: product.xrayDeclInternet,
+              files: product.xrayDeclFiles,
+              commands: product.xrayDeclCommands,
+            },
+            passport,
+          )
+          await db.product.update({
+            where: { id: productId },
+            data: { xrayPassport: passport as object, xrayMismatch: mismatch },
+          })
+        }
+      } catch {
+        /* паспорт best-effort — не ломаем скан */
+      }
+    }
 
     if (status === "BLOCKED") {
       await db.product.update({

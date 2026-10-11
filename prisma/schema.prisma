@@ -193,6 +193,11 @@ model Product {
   requirements        String[]        @default([])
   exampleInput        String?         @db.Text  // «Пример до и после»: входные данные
   exampleOutput       String?         @db.Text  // «Пример до и после»: результат
+  xrayPassport        Json?                     // X-Ray-паспорт: что делает код (без кода/строк)
+  xrayDeclInternet    Boolean?                  // автор заявил: нужен интернет
+  xrayDeclFiles       Boolean?                  // автор заявил: пишет файлы
+  xrayDeclCommands    Boolean?                  // автор заявил: запускает команды
+  xrayMismatch        Boolean         @default(false) // расхождение деклараций с X-Ray
   manuallyVerified    Boolean         @default(false)
   verifiedAt          DateTime?
   rating              Float           @default(0)

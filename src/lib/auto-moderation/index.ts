@@ -16,6 +16,7 @@ export async function runAutoModeration(productId: string): Promise<void> {
       files: { select: { id: true } },
       author: { select: { telegramId: true, email: true } },
       scanResult: { select: { findings: true, toolsRun: true } },
+      xrayMismatch: true,
     },
   })
   if (!product) return
@@ -45,7 +46,11 @@ export async function runAutoModeration(productId: string): Promise<void> {
     },
   })
 
-  if (decision === "AUTO_APPROVE" || decision === "AUTO_APPROVE_MONITOR") {
+  // Расхождение деклараций автора с X-Ray — не авто-одобряем, уводим на ручную проверку.
+  const autoApprove =
+    (decision === "AUTO_APPROVE" || decision === "AUTO_APPROVE_MONITOR") && !product.xrayMismatch
+
+  if (autoApprove) {
     await db.product.update({
       where: { id: productId },
       data: { status: "APPROVED", publishedAt: new Date() },
@@ -98,11 +103,15 @@ export async function runAutoModeration(productId: string): Promise<void> {
         ? " | ⚠ Нет инструментов проверки (ручная очередь)"
         : ""
 
+    const mismatchNote = product.xrayMismatch
+      ? " | ⚠ Расхождение деклараций автора с X-Ray"
+      : ""
+
     await db.moderationLog.create({
       data: {
         productId,
         action: "QUEUED",
-        comment: `${injectionNote}score=${score}, decision=${decision}. ${factorsSummary}${coverageNote}`,
+        comment: `${injectionNote}score=${score}, decision=${decision}. ${factorsSummary}${coverageNote}${mismatchNote}`,
       },
     })
   }
