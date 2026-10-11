@@ -59,22 +59,29 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "-0.01em",
     color: "#fff",
   },
-  statusLink: {
-    display: "inline-flex",
+  logoBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    background: "linear-gradient(145deg,#16132A,#0C0A18)",
+    border: "1px solid #3A3460",
+    boxShadow: "0 0 12px rgba(108,75,245,.45), inset 0 0 8px rgba(52,230,224,.12)",
+    display: "flex",
     alignItems: "center",
-    gap: 8,
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#9a9aab",
-    textDecoration: "none",
+    justifyContent: "center",
+    flexShrink: 0,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: "50%",
-    background: "#f0a93b",
-    boxShadow: "0 0 10px rgba(240,169,59,0.7)",
+  logoInner: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2.5 },
+  logoRow: { display: "flex", alignItems: "flex-end", gap: 2.5 },
+  logoChevron: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontWeight: 800,
+    fontSize: 12,
+    color: "#9D8CFF",
+    lineHeight: 1,
   },
+  logoBars: { display: "flex", gap: 2, alignItems: "flex-end" },
+  logoUnderline: { width: 21, height: 2.5, borderRadius: 2, background: "#6C4BF5" },
   main: {
     position: "relative",
     zIndex: 2,
@@ -129,6 +136,40 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 560,
   },
   actions: { display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" },
+  formWrap: {
+    width: "100%",
+    maxWidth: 460,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    textAlign: "left",
+    marginBottom: 18,
+  },
+  field: { display: "flex", flexDirection: "column", gap: 6 },
+  label: { fontSize: 13, fontWeight: 600, color: "#b9b9c6" },
+  input: {
+    width: "100%",
+    padding: "11px 13px",
+    borderRadius: 10,
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    color: "#e9e9f0",
+    fontSize: 14,
+    fontFamily: "inherit",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  textarea: { minHeight: 110, resize: "vertical" },
+  hp: { position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" },
+  loginRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: 14,
+    color: "#7a7a88",
+  },
   btnPrimary: {
     display: "inline-flex",
     alignItems: "center",
@@ -177,15 +218,41 @@ const KEYFRAMES = `
 export interface MaintenancePageProps {
   /** E-mail поддержки */
   supportEmail?: string
-  /** Ссылка на канал со статусом сервиса */
-  statusUrl?: string
 }
 
 export default function MaintenancePage({
   supportEmail = "support@cyberpolka.store",
-  statusUrl = "#",
 }: MaintenancePageProps) {
-  const [hover, setHover] = React.useState<string | null>(null)
+  const [form, setForm] = React.useState({ email: "", subject: "", message: "", name: "", company: "" })
+  const [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">("idle")
+  const [err, setErr] = React.useState<string | null>(null)
+
+  function upd(key: keyof typeof form, v: string) {
+    setForm((f) => ({ ...f, [key]: v }))
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setStatus("sending")
+    setErr(null)
+    try {
+      const res = await fetch("/api/support/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setErr(typeof d.error === "string" ? d.error : "Ошибка отправки")
+        setStatus("error")
+        return
+      }
+      setStatus("sent")
+    } catch {
+      setErr("Ошибка соединения")
+      setStatus("error")
+    }
+  }
 
   return (
     <div style={styles.root}>
@@ -198,29 +265,22 @@ export default function MaintenancePage({
       {/* header */}
       <header style={styles.header}>
         <div style={styles.brand}>
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={ACCENT}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M16.5 9.4 7.5 4.21" />
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <path d="M3.27 6.96 12 12.01l8.73-5.05" />
-            <path d="M12 22.08V12" />
-          </svg>
+          <div style={styles.logoBox}>
+            <div style={styles.logoInner}>
+              <div style={styles.logoRow}>
+                <span style={styles.logoChevron}>&gt;</span>
+                <div style={styles.logoBars}>
+                  <div style={{ width: 3.5, height: 6, borderRadius: 1.5, background: "#34E6E0" }} />
+                  <div style={{ width: 3.5, height: 9, borderRadius: 1.5, background: "#9D8CFF" }} />
+                </div>
+              </div>
+              <div style={styles.logoUnderline} />
+            </div>
+          </div>
           <span style={styles.brandName}>
-            <span style={{ color: ACCENT_LIGHT }}>CYBER</span>ПОЛКА
+            <span style={{ color: "#34E6E0" }}>CYBER</span>ПОЛКА
           </span>
         </div>
-        <a href={statusUrl} style={styles.statusLink}>
-          <span style={styles.statusDot} />
-          Статус сервиса
-        </a>
       </header>
 
       {/* main */}
@@ -252,35 +312,87 @@ export default function MaintenancePage({
           Каталог и покупки временно недоступны. Совсем скоро вернёмся.
         </p>
 
-        <div style={styles.actions}>
-          <a
-            href={statusUrl}
-            style={{
-              ...styles.btnPrimary,
-              background: hover === "primary" ? "#5b53e6" : ACCENT,
-            }}
-            onMouseEnter={() => setHover("primary")}
-            onMouseLeave={() => setHover(null)}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M21.94 4.27a1.5 1.5 0 0 0-2.02-1.66L2.9 9.2c-1.2.46-1.18 2.18.03 2.61l4.27 1.5 1.6 5.1c.2.65 1.02.83 1.49.34l2.37-2.5 4.42 3.26c.6.44 1.46.12 1.62-.6l3.24-14.64z" />
-            </svg>
-            Канал статуса
+        {status === "sent" ? (
+          <div style={{ ...styles.formWrap, textAlign: "center", alignItems: "center" }}>
+            <p style={{ color: "#5fd08a", fontWeight: 700, fontSize: 17, margin: 0 }}>Сообщение отправлено ✓</p>
+            <p style={{ color: "#9a9aab", fontSize: 14, margin: 0 }}>Ответим на {form.email}.</p>
+          </div>
+        ) : (
+          <form onSubmit={submit} style={styles.formWrap}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#e9e9f0", margin: "0 0 2px" }}>
+              Нужна помощь? Напишите нам
+            </p>
+            <div style={styles.field}>
+              <label style={styles.label}>Email для ответа</label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => upd("email", e.target.value)}
+                style={styles.input}
+                placeholder="you@example.com"
+                maxLength={200}
+              />
+            </div>
+            <div style={styles.field}>
+              <label style={styles.label}>Тема обращения</label>
+              <input
+                required
+                value={form.subject}
+                onChange={(e) => upd("subject", e.target.value)}
+                style={styles.input}
+                placeholder="Коротко о вопросе"
+                maxLength={200}
+              />
+            </div>
+            <div style={styles.field}>
+              <label style={styles.label}>Сообщение</label>
+              <textarea
+                required
+                value={form.message}
+                onChange={(e) => upd("message", e.target.value)}
+                style={{ ...styles.input, ...styles.textarea }}
+                placeholder="Опишите вопрос…"
+                maxLength={5000}
+              />
+            </div>
+            {/* honeypot — скрыт от людей, ловит ботов */}
+            <input
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={styles.hp}
+              value={form.company}
+              onChange={(e) => upd("company", e.target.value)}
+            />
+            {err && <p style={{ color: "#f08b8b", fontSize: 13, margin: 0 }}>{err}</p>}
+            <button
+              type="submit"
+              disabled={status === "sending"}
+              style={{
+                ...styles.btnPrimary,
+                justifyContent: "center",
+                border: "none",
+                cursor: status === "sending" ? "default" : "pointer",
+                opacity: status === "sending" ? 0.7 : 1,
+              }}
+            >
+              {status === "sending" ? "Отправка…" : "Отправить обращение"}
+            </button>
+          </form>
+        )}
+
+        <div style={styles.loginRow}>
+          <a href="/login" style={{ color: ACCENT_LIGHT, textDecoration: "none", fontWeight: 600 }}>
+            Войти
           </a>
-          <a
-            href={`mailto:${supportEmail}`}
-            style={{
-              ...styles.btnGhost,
-              background:
-                hover === "ghost"
-                  ? "rgba(255,255,255,0.08)"
-                  : "rgba(255,255,255,0.04)",
-            }}
-            onMouseEnter={() => setHover("ghost")}
-            onMouseLeave={() => setHover(null)}
-          >
-            Написать в поддержку
-          </a>
+          <span>·</span>
+          <span>
+            или на почту{" "}
+            <a href={`mailto:${supportEmail}`} style={{ color: ACCENT_LIGHT, textDecoration: "none" }}>
+              {supportEmail}
+            </a>
+          </span>
         </div>
       </main>
 

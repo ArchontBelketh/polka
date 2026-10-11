@@ -9,8 +9,7 @@ export const metadata: Metadata = {
 export default function Maintenance() {
   return (
     <MaintenancePage
-      supportEmail={process.env.SUPPORT_EMAIL ?? "support@polka.ru"}
-      statusUrl={process.env.STATUS_URL ?? "#"}
+      supportEmail={process.env.SUPPORT_EMAIL ?? "support@cyberpolka.store"}
     />
   )
 }

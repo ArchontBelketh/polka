@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/Footer"
 import { EmailVerifyBar } from "@/components/layout/EmailVerifyBar"
 import { FeedbackWidgetWrapper } from "@/components/layout/FeedbackWidgetWrapper"
 import { YandexMetrica } from "@/components/analytics/YandexMetrica"
+import { cookies } from "next/headers"
+import { auth } from "@/lib/auth"
 
 export const metadata: Metadata = {
   // База для относительных URL (canonical, OG-картинки). Без неё Next ругается
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
@@ -37,11 +39,29 @@ export default function RootLayout({
   const maintenance =
     process.env.MAINTENANCE_MODE === "1" || process.env.MAINTENANCE_MODE === "true"
 
+  // Админ проходит обслуживание (middleware) и получает полный интерфейс.
+  // auth() вызываем только при наличии сессии — чтобы страница обслуживания для
+  // гостей рендерилась без обращения к БД (важно во время миграции).
+  let showChrome = !maintenance
+  if (maintenance) {
+    const c = await cookies()
+    const hasSession =
+      c.has("authjs.session-token") || c.has("__Secure-authjs.session-token")
+    if (hasSession) {
+      try {
+        const session = await auth()
+        showChrome = (session?.user as { role?: string } | undefined)?.role === "ADMIN"
+      } catch {
+        showChrome = false
+      }
+    }
+  }
+
   return (
     <html lang="ru" className="h-full antialiased dark">
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <YandexMetrica />
-        {maintenance ? (
+        {!showChrome ? (
           children
         ) : (
           <>

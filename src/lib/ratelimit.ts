@@ -49,4 +49,5 @@ export const limits = {
   messages: (userId: string) => rateLimit(`msg:${userId}`, 20, 600_000),         // 20/10min
   forgot: (key: string) => rateLimit(`forgot:${key}`, 3, 3_600_000),             // 3/hour
   register: (ip: string) => rateLimit(`register:${ip}`, 5, 3_600_000),           // 5/hour
+  support: (ip: string) => rateLimit(`support:${ip}`, 3, 600_000),               // 3/10min
 } as const

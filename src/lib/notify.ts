@@ -33,6 +33,51 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
   }
 }
 
+function escapeHtml(s: string): string {
+  const map: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }
+  return s.replace(/[&<>"']/g, (c) => map[c])
+}
+
+/**
+ * Обращение в поддержку со страницы технических работ. Отправляется письмом на
+ * адрес поддержки (reply-to — email автора), без обращения к БД — чтобы работать
+ * во время обслуживания/миграции. Возвращает true при успешной отправке.
+ */
+export async function sendSupportRequest(params: {
+  fromEmail: string
+  subject: string
+  message: string
+  meta?: string
+}): Promise<boolean> {
+  const transport = getMailTransport()
+  const to = process.env.SUPPORT_EMAIL ?? "support@cyberpolka.store"
+  if (!transport) {
+    console.error("[support] SMTP не настроен: нет SMTP_HOST в окружении")
+    return false
+  }
+  const html = `
+    <h2>Обращение со страницы технических работ</h2>
+    <p><b>Тема:</b> ${escapeHtml(params.subject)}</p>
+    <p><b>Email для ответа:</b> ${escapeHtml(params.fromEmail)}</p>
+    <p><b>Сообщение:</b></p>
+    <p style="white-space:pre-wrap">${escapeHtml(params.message)}</p>
+    ${params.meta ? `<p style="color:#888;font-size:12px">${escapeHtml(params.meta)}</p>` : ""}
+  `
+  try {
+    await transport.sendMail({
+      from: process.env.SMTP_FROM ?? `"CYBERПОЛКА" <noreply@cyberpolka.store>`,
+      to,
+      replyTo: params.fromEmail,
+      subject: `[Поддержка] ${params.subject}`,
+      html,
+    })
+    return true
+  } catch (err) {
+    console.error("[support] Ошибка отправки письма через SMTP:", err)
+    return false
+  }
+}
+
 // ── Telegram ───────────────────────────────────────────────────────────────
 async function sendTelegram(chatId: string, text: string): Promise<void> {
   if (!BOT_TOKEN || !chatId) return

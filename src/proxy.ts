@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getToken } from "next-auth/jwt"
 import { limits } from "@/lib/ratelimit"
 import { clientIp } from "@/lib/ip"
 import { guardConfig, checkAccess } from "@/lib/access-guard"
@@ -15,18 +16,45 @@ export async function proxy(req: NextRequest) {
   // monitoring still works). API calls get a 503 JSON instead of HTML.
   const maintenance =
     process.env.MAINTENANCE_MODE === "1" || process.env.MAINTENANCE_MODE === "true"
-  if (maintenance && pathname !== "/maintenance" && pathname !== "/api/health") {
-    if (pathname.startsWith("/api/")) {
-      return Response.json(
-        { error: "Сервис на техническом обслуживании" },
-        { status: 503, headers: { "Retry-After": "3600" } },
-      )
+  if (maintenance) {
+    // Всегда доступны: сама страница обслуживания, health-проба и вход — чтобы
+    // админ мог авторизоваться. Роуты /api/auth и статика исключены matcher'ом.
+    const alwaysAllowed =
+      pathname === "/maintenance" ||
+      pathname === "/api/health" ||
+      pathname === "/login" ||
+      pathname === "/api/support/maintenance"
+
+    // Админ с валидной сессией проходит везде — может зайти в ЛК во время работ.
+    let isAdmin = false
+    const secureCookie = req.cookies.has("__Secure-authjs.session-token")
+    if (!alwaysAllowed && (secureCookie || req.cookies.has("authjs.session-token"))) {
+      try {
+        const token = await getToken({
+          req,
+          secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
+          secureCookie,
+          salt: secureCookie ? "__Secure-authjs.session-token" : "authjs.session-token",
+        })
+        isAdmin = (token as { role?: string } | null)?.role === "ADMIN"
+      } catch {
+        isAdmin = false
+      }
     }
-    const url = req.nextUrl.clone()
-    url.pathname = "/maintenance"
-    const res = NextResponse.rewrite(url)
-    res.headers.set("Retry-After", "3600")
-    return res
+
+    if (!alwaysAllowed && !isAdmin) {
+      if (pathname.startsWith("/api/")) {
+        return Response.json(
+          { error: "Сервис на техническом обслуживании" },
+          { status: 503, headers: { "Retry-After": "3600" } },
+        )
+      }
+      const url = req.nextUrl.clone()
+      url.pathname = "/maintenance"
+      const res = NextResponse.rewrite(url)
+      res.headers.set("Retry-After", "3600")
+      return res
+    }
   }
 
   // Trusted source (X-Real-IP); never the spoofable first X-Forwarded-For entry
