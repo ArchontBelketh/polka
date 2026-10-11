@@ -34,6 +34,8 @@ export default async function AdminProductEditPage({ params }: RouteParams) {
       developerPaymentInfo: true,
       demoUrl: true,
       videoUrl: true,
+      exampleInput: true,
+      exampleOutput: true,
     },
   })
 

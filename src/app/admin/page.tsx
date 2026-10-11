@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CATEGORY_LABELS } from "@/types"
 import { formatPrice } from "@/lib/utils"
+import { pluralize, FORMS } from "@/lib/plural"
 
 export const metadata = { title: "Рабочий стол" }
 
@@ -170,7 +171,7 @@ export default async function AdminPage() {
                       {p.title}
                     </Link>
                     <span className="text-muted-foreground shrink-0">
-                      {p.salesCount} продаж · {formatPrice(p.price)}
+                      {pluralize(p.salesCount, FORMS.sale)} · {formatPrice(p.price)}
                     </span>
                   </li>
                 ))}

@@ -27,6 +27,8 @@ const editSchema = z.object({
   developerPaymentInfo: z.string().max(2000).optional().or(z.literal("")),
   demoUrl: z.string().url().optional().or(z.literal("")),
   videoUrl: z.string().url().optional().or(z.literal("")),
+  exampleInput: z.string().max(5000).optional().or(z.literal("")),
+  exampleOutput: z.string().max(5000).optional().or(z.literal("")),
 })
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
@@ -75,6 +77,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     developerPaymentInfo: d.developerPaymentInfo || null,
     demoUrl: d.demoUrl || null,
     videoUrl: d.videoUrl || null,
+    exampleInput: d.exampleInput || null,
+    exampleOutput: d.exampleOutput || null,
   }
 
   // Название изменилось — обновляем slug (ссылки на productId не ломаются).

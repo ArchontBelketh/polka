@@ -191,6 +191,8 @@ model Product {
   listingFeePaidAt    DateTime?               // когда оплачен тариф за размещение (LISTING_FEE)
   installGuide        String?         @db.Text
   requirements        String[]        @default([])
+  exampleInput        String?         @db.Text  // «Пример до и после»: входные данные
+  exampleOutput       String?         @db.Text  // «Пример до и после»: результат
   manuallyVerified    Boolean         @default(false)
   verifiedAt          DateTime?
   rating              Float           @default(0)

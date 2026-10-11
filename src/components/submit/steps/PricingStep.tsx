@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Category } from "@/types"
+import { LICENSE_OPTIONS as LICENSES } from "@/lib/licenses"
 import {
   PRICE_THRESHOLD_RUB,
   COMMISSION_RATE,
@@ -25,12 +26,6 @@ interface PricingStepProps {
   category: Category | ""
   onChange: (v: PricingData) => void
 }
-
-const LICENSES = [
-  { value: "personal", label: "Персональная лицензия (1 использование)" },
-  { value: "team", label: "Командная лицензия (до 5 пользователей)" },
-  { value: "commercial", label: "Коммерческая (без ограничений)" },
-]
 
 export function PricingStep({ value, category, onChange }: PricingStepProps) {
   function set<K extends keyof PricingData>(key: K, v: PricingData[K]) {

@@ -13,10 +13,15 @@ interface SemgrepResult {
   }>
 }
 
+// Правила из реестра Semgrep запрещены в SaaS (лицензия) — используем ТОЛЬКО
+// свой набор правил из SEMGREP_RULES_PATH. Если он не задан — Semgrep не запускаем.
+const SEMGREP_RULES_PATH = process.env.SEMGREP_RULES_PATH
+
 export async function runSemgrep(dir: string): Promise<{ findings: ScanFinding[]; ran: boolean }> {
+  if (!SEMGREP_RULES_PATH) return { findings: [], ran: false }
   try {
     const { stdout } = await execAsync(
-      `semgrep --json --config=auto "${dir}"`,
+      `semgrep --json --config="${SEMGREP_RULES_PATH}" "${dir}"`,
       { timeout: 120_000 },
     )
     const parsed: SemgrepResult = JSON.parse(stdout)

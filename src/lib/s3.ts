@@ -17,6 +17,20 @@ function getS3Client() {
 const BUCKET = process.env.YANDEX_S3_BUCKET ?? "polka-files"
 const URL_TTL_SECONDS = 900 // 15 minutes
 
+/**
+ * Имя файла без повторного расширения и без разделителей пути.
+ * `nginx_log_analyzer.py.py` → `nginx_log_analyzer.py`, `app.zip.zip` → `app.zip`.
+ */
+export function sanitizeFileName(name: string): string {
+  let n = name.trim().replace(/[\\/]/g, "_")
+  let prev
+  do {
+    prev = n
+    n = n.replace(/(\.[A-Za-z0-9]{1,8})\1$/, "$1") // схлопываем задвоенное расширение
+  } while (n !== prev)
+  return n
+}
+
 export function productSourceKey(productId: string, fileName: string) {
   return `products/${productId}/source/${fileName}`
 }
@@ -38,9 +52,18 @@ export async function getPresignedUploadUrl(
 export async function getPresignedDownloadUrl(
   key: string,
   ttl = URL_TTL_SECONDS,
+  downloadFilename?: string,
 ): Promise<string> {
   const client = getS3Client()
-  const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: key })
+  const cmd = new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    // Принудительно задаём корректное имя при скачивании (чинит в т.ч. уже
+    // загруженные файлы с задвоенным расширением).
+    ...(downloadFilename
+      ? { ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(sanitizeFileName(downloadFilename))}` }
+      : {}),
+  })
   return getSignedUrl(client, cmd, { expiresIn: ttl })
 }
 

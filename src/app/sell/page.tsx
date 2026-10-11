@@ -1,17 +1,10 @@
 import type { Metadata } from "next"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { IncomeCalculator } from "@/components/landing/IncomeCalculator"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { formatPrice } from "@/lib/utils"
-import { Upload, ScanLine, UserCheck, TrendingUp, Check, X, Zap } from "lucide-react"
+import { Upload, ScanLine, UserCheck, TrendingUp, Check, X } from "lucide-react"
 import { SellCta } from "./SellCta"
-import {
-  getEarlySellerStats,
-  EARLY_SELLER_SLOTS,
-  EARLY_SELLER_PRO_MONTHS,
-  EARLY_SELLER_BADGE,
-} from "@/lib/early-seller"
 
 // Соц-доказательства показываем, только когда цифры уже не стыдные —
 // порог по числу опубликованных продуктов.
@@ -80,10 +73,6 @@ const FAQ = [
     a: "Для дорогих продуктов (от 15 000 ₽) площадка не участвует в расчётах — вы получаете оплату напрямую. За право размещать и продавать такой продукт взимается разовый тариф (процент от цены), после оплаты которого продаж может быть сколько угодно. Получение оплаты вы подтверждаете в кабинете, после чего покупателю открывается скачивание.",
   },
   {
-    q: "Чем Pro лучше бесплатного тарифа?",
-    a: "На Pro комиссия площадки по продажам «через площадку» снижается с 20% до 17% и доступно больше слотов. Подписка окупается при регулярных продажах.",
-  },
-  {
     q: "Бывают ли возвраты?",
     a: "По продажам через площадку покупатель может подать претензию в течение 7 дней, если продукт не соответствует описанию или не работает; обоснованный возврат исполняется за ваш счёт. По прямым продажам (тариф за размещение) возвраты вы решаете с покупателем напрямую. Небезопасные или чужие продукты снимаются модерацией с продажи.",
   },
@@ -93,32 +82,9 @@ const FAQ = [
   },
 ]
 
-const PLANS = [
-  {
-    name: "Бесплатный",
-    price: "0 ₽",
-    highlight: false,
-    features: ["2 слота под продукты", "Комиссия 20%", "Автоскан и модерация", "Мгновенное зачисление выплат"],
-  },
-  {
-    name: "Докупка слотов",
-    price: "разово",
-    highlight: false,
-    features: ["+1 / +5 / +15 слотов", "Комиссия 20%", "Оплата один раз", "Слоты не сгорают"],
-  },
-  {
-    name: "Pro",
-    price: "подписка",
-    highlight: true,
-    features: ["Сниженная комиссия 17%", "Больше слотов", "Приоритет в поддержке", "Окупается при потоке продаж"],
-  },
-]
-
 export default async function SellPage() {
   const session = await auth()
   const role = (session?.user as { role?: string } | undefined)?.role
-
-  const earlySeller = await getEarlySellerStats()
 
   // Честная статистика площадки (только реальные данные из БД).
   const [developerRows, productsCount, salesCount, paidAgg, topProducts] = await Promise.all([
@@ -164,84 +130,8 @@ export default async function SellPage() {
             <SellCta role={role} />
           </div>
           <p className="text-sm text-muted-foreground">
-            {earlySeller.left > 0
-              ? `Первым ${earlySeller.total} продавцам — ${EARLY_SELLER_SLOTS} слотов и Pro бесплатно · осталось ${earlySeller.left} мест`
-              : "Регистрация бесплатна · 2 продукта бесплатно · комиссия только после продажи"}
+            Регистрация и размещение бесплатны.
           </p>
-        </div>
-      </section>
-
-      {/* Программа «первых продавцов» — спец-условия + счётчик свободных мест */}
-      <section className="mx-auto max-w-4xl px-4 py-8">
-        <div className="rounded-2xl border border-primary/40 bg-primary/5 ring-1 ring-primary/20 p-6 sm:p-8 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-primary">
-              <Zap className="h-5 w-5" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Ограниченная программа</span>
-            </div>
-            {earlySeller.left > 0 ? (
-              <span className="rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-primary">
-                Осталось {earlySeller.left} из {earlySeller.total} мест
-              </span>
-            ) : (
-              <span className="rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
-                Все {earlySeller.total} мест заняты
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
-              Первые продавцы ПОЛКИ получают больше
-            </h2>
-            <p className="text-muted-foreground">
-              Мы набираем первых {earlySeller.total} разработчиков и даём им усиленные условия.
-              Место закрепляется автоматически — просто станьте продавцом, пока есть свободные.
-            </p>
-          </div>
-
-          {/* Прогресс-бар занятости мест */}
-          <div className="space-y-1.5">
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${Math.min(100, Math.round((earlySeller.taken / earlySeller.total) * 100))}%` }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Занято {earlySeller.taken} из {earlySeller.total}
-            </p>
-          </div>
-
-          {/* Спец-условия */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-border bg-card p-4 space-y-1">
-              <p className="font-semibold text-foreground">{EARLY_SELLER_SLOTS} слотов бесплатно</p>
-              <p className="text-sm text-muted-foreground">Вместо стандартных 2 — выкладывайте сразу больше продуктов.</p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-4 space-y-1">
-              <p className="font-semibold text-foreground">Pro на {EARLY_SELLER_PRO_MONTHS} месяца бесплатно</p>
-              <p className="text-sm text-muted-foreground">Сниженная комиссия 17% вместо 20% на первые продажи.</p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-4 space-y-1">
-              <p className="font-semibold text-foreground">Бейдж «{EARLY_SELLER_BADGE}»</p>
-              <p className="text-sm text-muted-foreground">Статус раннего продавца в профиле + приоритетная модерация.</p>
-            </div>
-          </div>
-
-          {earlySeller.left > 0 ? (
-            <div className="flex flex-col items-center gap-2 pt-1">
-              <SellCta role={role} />
-              <p className="text-xs text-muted-foreground">
-                Условия закрепляются при регистрации, пока есть свободные места.
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Набор первых продавцов завершён. Зарегистрироваться и продавать по-прежнему можно —
-              на стандартных условиях.
-            </p>
-          )}
         </div>
       </section>
 
@@ -295,42 +185,14 @@ export default async function SellPage() {
         </section>
       )}
 
-      {/* Calculator */}
-      <section className="mx-auto max-w-2xl px-4 py-12">
-        <IncomeCalculator />
-      </section>
-
-      {/* Pricing */}
-      <section className="mx-auto max-w-5xl px-4 py-12">
-        <h2 className="text-center text-2xl font-bold text-foreground">Условия</h2>
-        <p className="mt-2 text-center text-muted-foreground">
-          Дешевле 15 000 ₽ — продажа через площадку с комиссией; от 15 000 ₽ — прямая продажа с
-          разовым тарифом за размещение. Точные значения — в{" "}
-          <a href="/legal/tariffs" className="text-primary hover:underline">Приложении №1</a>.
-        </p>
-
-        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-xl border bg-card p-6 space-y-4 ${
-                plan.highlight ? "border-primary/50 ring-1 ring-primary/20" : "border-border"
-              }`}
-            >
-              <div>
-                <h3 className="font-semibold text-foreground">{plan.name}</h3>
-                <p className="text-2xl font-bold text-foreground">{plan.price}</p>
-              </div>
-              <ul className="space-y-2">
-                {plan.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+      {/* Pricing — размещение бесплатно */}
+      <section className="mx-auto max-w-3xl px-4 py-12">
+        <div className="rounded-xl border border-border bg-card p-6 text-center space-y-2">
+          <h2 className="text-2xl font-bold text-foreground">Размещение бесплатное</h2>
+          <p className="text-muted-foreground">
+            Публикуйте свои продукты и продавайте их в каталоге. Подробные условия — в{" "}
+            <a href="/legal/tariffs" className="text-primary hover:underline">тарифах</a>.
+          </p>
         </div>
       </section>
 

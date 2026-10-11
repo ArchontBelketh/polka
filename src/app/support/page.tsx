@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { pluralize } from "@/lib/plural"
 
 export const metadata = { title: "Мои обращения" }
 
@@ -75,7 +76,7 @@ export default async function SupportPage() {
                       {CATEGORY_LABELS[t.category] ?? t.category}
                       {t.product && ` · ${t.product.title}`}
                       {" · "}
-                      {t._count.messages} {t._count.messages === 1 ? "сообщение" : "сообщений"}
+                      {pluralize(t._count.messages, { one: "сообщение", few: "сообщения", many: "сообщений" })}
                     </p>
                     {lastMsg && (
                       <p className="text-sm text-muted-foreground mt-1.5 truncate">

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { getPresignedUploadUrl, productSourceKey, screenshotKey } from "@/lib/s3"
+import { getPresignedUploadUrl, productSourceKey, screenshotKey, sanitizeFileName } from "@/lib/s3"
 import { limits } from "@/lib/ratelimit"
 
 const ALLOWED_SOURCE_TYPES = new Set([
@@ -22,7 +22,7 @@ const uploadSchema = z.object({
   fileName: z.string().min(1).max(200),
   fileSize: z.number().int().positive().max(100 * 1024 * 1024), // 100 MB max
   contentType: z.string(),
-  screenshotIndex: z.number().int().min(0).max(9).optional(),
+  screenshotIndex: z.number().int().min(0).max(4).optional(),
 })
 
 const s3Configured =
@@ -45,7 +45,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 })
   }
 
-  const { productId, type, fileName, fileSize, contentType, screenshotIndex } = parsed.data
+  const { productId, type, fileName: rawFileName, fileSize, contentType, screenshotIndex } = parsed.data
+  // Чистим имя от задвоенного расширения и разделителей пути для всех типов загрузок.
+  const fileName = sanitizeFileName(rawFileName)
 
   // Verify ownership
   const product = await db.product.findUnique({ where: { id: productId } })

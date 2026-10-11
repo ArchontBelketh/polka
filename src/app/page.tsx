@@ -56,8 +56,9 @@ export default async function Home() {
     db.product.count({ where: { status: "APPROVED" } }),
     db.purchase.count({ where: { status: { in: ["PAID", "DELIVERED"] } } }),
     db.scanResult.count({ where: { scannedAt: { not: null } } }),
+    // «Популярное» показываем только при реальных продажах (порог возврата — D-откр-7).
     db.product.findMany({
-      where: { status: "APPROVED" },
+      where: { status: "APPROVED", salesCount: { gt: 0 } },
       orderBy: [{ manuallyVerified: "desc" }, { salesCount: "desc" }],
       take: 6,
       select: PRODUCT_CARD_SELECT,

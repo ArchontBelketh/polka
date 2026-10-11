@@ -69,7 +69,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     )
   }
 
-  const url = await getPresignedDownloadUrl(s3Key, 900)
+  // Корректное имя для скачивания: имя версии/оригинала или последний сегмент ключа.
+  const rawName =
+    (latestVersion?.s3Key && latestVersion.s3Key !== "" ? latestVersion.fileName : originalFile?.fileName) ||
+    s3Key.split("/").pop()
+  const url = await getPresignedDownloadUrl(s3Key, 900, rawName ?? undefined)
 
   await db.purchase.update({
     where: { id: purchaseId },

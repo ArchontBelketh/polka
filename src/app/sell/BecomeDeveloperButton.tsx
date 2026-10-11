@@ -40,7 +40,7 @@ function Inner() {
         {loading ? "Оформляем…" : "Стать разработчиком"}
         {!loading && <ArrowRight className="h-4 w-4" />}
       </Button>
-      <p className="text-xs text-muted-foreground">Бесплатно. Откроется кабинет разработчика и 2 слота под продукты.</p>
+      <p className="text-xs text-muted-foreground">Бесплатно. Откроется кабинет разработчика.</p>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   )

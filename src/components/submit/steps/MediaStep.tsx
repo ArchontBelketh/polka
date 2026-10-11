@@ -3,12 +3,15 @@
 import { useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 interface MediaData {
   productFile: File | null
   screenshots: File[]
   demoUrl: string
   videoUrl: string
+  exampleInput: string
+  exampleOutput: string
 }
 
 interface MediaStepProps {
@@ -139,9 +142,33 @@ export function MediaStep({ value, onChange }: MediaStepProps) {
           <Input
             id="videoUrl"
             type="url"
-            placeholder="https://youtube.com/watch?v=..."
+            placeholder="VK Видео или Rutube"
             value={value.videoUrl}
             onChange={(e) => set("videoUrl", e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Пример до и после */}
+      <div className="space-y-2">
+        <Label>
+          Пример до и после{" "}
+          <span className="font-normal text-muted-foreground">(необязательно — покажем в карточке)</span>
+        </Label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Textarea
+            placeholder="Входные данные — например, строки из orders.csv"
+            value={value.exampleInput}
+            onChange={(e) => set("exampleInput", e.target.value)}
+            rows={5}
+            className="font-mono text-xs"
+          />
+          <Textarea
+            placeholder="Результат — что получится на выходе"
+            value={value.exampleOutput}
+            onChange={(e) => set("exampleOutput", e.target.value)}
+            rows={5}
+            className="font-mono text-xs"
           />
         </div>
       </div>

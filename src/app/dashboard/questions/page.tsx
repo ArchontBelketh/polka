@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import Link from "next/link"
 import { AnswerForm } from "@/components/product/AnswerForm"
 import { MessageCircleQuestion, ArrowLeft } from "lucide-react"
+import { pluralize } from "@/lib/plural"
 
 export const metadata = { title: "Вопросы" }
 
@@ -65,7 +66,7 @@ export default async function DashboardQuestionsPage() {
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {unanswered.length} {unanswered.length === 1 ? "вопрос ждёт" : "вопросов ждут"} ответа.
+            {pluralize(unanswered.length, { one: "вопрос ждёт", few: "вопроса ждут", many: "вопросов ждут" })} ответа.
             Покупатель получит уведомление, когда вы ответите.
           </p>
           {unanswered.map((q) => (

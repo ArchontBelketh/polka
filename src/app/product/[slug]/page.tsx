@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { CATEGORY_LABELS } from "@/types"
 import { BuyPanel } from "@/components/product/BuyPanel"
 import { AuthorCard } from "@/components/product/AuthorCard"
+import { licenseLabel, licenseText } from "@/lib/licenses"
 import { ReviewList } from "@/components/product/ReviewList"
 import { ReviewForm } from "@/components/product/ReviewForm"
 import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
@@ -168,7 +169,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   {CATEGORY_LABELS[product.category as keyof typeof CATEGORY_LABELS]}
                 </Badge>
                 <Badge variant="outline" className="text-xs">
-                  {product.license === "personal" ? "Личная лицензия" : product.license}
+                  {licenseLabel(product.license)} лицензия
                 </Badge>
                 {product.manuallyVerified && <VerifiedBadge />}
               </div>
@@ -244,7 +245,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
 
-            {/* Install guide — teaser before purchase, full after */}
+            {/* Install guide — показывается только после покупки */}
             {product.installGuide && (
               <div>
                 <h2 className="text-lg font-semibold text-foreground mb-3">Установка</h2>
@@ -261,23 +262,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     )}
                   </div>
                 ) : (
-                  <div className="relative overflow-hidden rounded-lg border border-border bg-card p-4">
-                    <div className="max-h-28 overflow-hidden">
-                      <Markdown content={product.installGuide.slice(0, 300)} />
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 flex h-24 items-end justify-center bg-gradient-to-t from-card to-transparent pb-3">
-                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Lock className="h-3.5 w-3.5" />
-                        Полная инструкция доступна после покупки
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+                    <Lock className="h-3.5 w-3.5 shrink-0" />
+                    Инструкция по установке откроется после покупки.
                   </div>
                 )}
               </div>
             )}
 
-            {(product.targetAudience || product.techStack.length > 0) && (
+            {(
               <div className="rounded-lg bg-muted p-4 space-y-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Лицензия: </span>
+                  <span>{licenseLabel(product.license)}</span>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{licenseText(product.license)}</p>
+                </div>
                 {product.targetAudience && (
                   <div>
                     <span className="text-muted-foreground">Целевая аудитория: </span>
@@ -318,6 +317,42 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 productSlug={product.slug}
               />
             </Suspense>
+
+            {/* Пример до и после */}
+            {(product.exampleInput || product.exampleOutput) && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3">Пример до и после</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {product.exampleInput && (
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">Входные данные</p>
+                      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-border bg-card p-3 text-xs">{product.exampleInput}</pre>
+                    </div>
+                  )}
+                  {product.exampleOutput && (
+                    <div>
+                      <p className="mb-1 text-xs text-muted-foreground">Результат</p>
+                      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-border bg-card p-3 text-xs">{product.exampleOutput}</pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Видео-обзор */}
+            {product.videoUrl && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3">Видео-обзор</h2>
+                <a
+                  href={product.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline underline-offset-4"
+                >
+                  Смотреть видео →
+                </a>
+              </div>
+            )}
 
             {/* Об авторе */}
             <AuthorCard authorId={product.authorId} />

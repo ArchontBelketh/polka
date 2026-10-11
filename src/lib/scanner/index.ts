@@ -12,7 +12,6 @@ import { checkEntropy } from "./entropy"
 import { checkNetworkExtra } from "./network-extra"
 import { checkDuplicateHash } from "./duplicate"
 import { safeUnzip } from "./zip-safe"
-import { checkFileHash } from "@/lib/auto-moderation/virustotal"
 import { runAutoModeration } from "@/lib/auto-moderation"
 import type { ScanFinding } from "@/types"
 
@@ -81,30 +80,8 @@ export async function runScan(productId: string): Promise<void> {
         toolsRan.add("size-check")
       }
 
-      // ── VirusTotal hash check ─────────────────────────────────────────────
-      const sha256 = createHash("sha256").update(buffer).digest("hex")
-      const vtResult = await checkFileHash(sha256, file.fileName)
-      if (vtResult.verdict === "malicious") {
-        allFindings.push({
-          tool: "virustotal",
-          severity: "critical",
-          message: `VirusTotal: файл флагируют ${vtResult.detections} AV-движков — вредоносный`,
-          file: file.fileName,
-        })
-        toolsRan.add("virustotal")
-      } else if (vtResult.verdict === "suspicious") {
-        allFindings.push({
-          tool: "virustotal",
-          severity: "warning",
-          message: `VirusTotal: подозрительный файл — ${vtResult.details ?? vtResult.detections + " флагов"}`,
-          file: file.fileName,
-        })
-        toolsRan.add("virustotal")
-      } else if (vtResult.known) {
-        toolsRan.add("virustotal")
-      }
-
       // ── Duplicate detection (SHA-256) ─────────────────────────────────────
+      const sha256 = createHash("sha256").update(buffer).digest("hex")
       const dupeFindings = await checkDuplicateHash(sha256, productId, product.authorId, file.fileName)
       if (dupeFindings.length > 0) {
         allFindings.push(...dupeFindings)

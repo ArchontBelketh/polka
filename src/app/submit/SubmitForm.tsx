@@ -26,6 +26,8 @@ interface FormState {
   screenshots: File[]
   demoUrl: string
   videoUrl: string
+  exampleInput: string
+  exampleOutput: string
   price: string
   license: string
   telegramBotUsername: string
@@ -39,6 +41,7 @@ const INITIAL: FormState = {
   features: [],
   installGuide: "", requirements: [],
   productFile: null, screenshots: [], demoUrl: "", videoUrl: "",
+  exampleInput: "", exampleOutput: "",
   price: "", license: "personal", telegramBotUsername: "", developerPaymentInfo: "",
 }
 
@@ -101,6 +104,8 @@ export function SubmitForm() {
           developerPaymentInfo: form.developerPaymentInfo || undefined,
           demoUrl: form.demoUrl || undefined,
           videoUrl: form.videoUrl || undefined,
+          exampleInput: form.exampleInput || undefined,
+          exampleOutput: form.exampleOutput || undefined,
         }),
       })
       const product = await res.json()
@@ -201,7 +206,7 @@ export function SubmitForm() {
         )}
         {step === 4 && (
           <MediaStep
-            value={{ productFile: form.productFile, screenshots: form.screenshots, demoUrl: form.demoUrl, videoUrl: form.videoUrl }}
+            value={{ productFile: form.productFile, screenshots: form.screenshots, demoUrl: form.demoUrl, videoUrl: form.videoUrl, exampleInput: form.exampleInput, exampleOutput: form.exampleOutput }}
             onChange={(v) => setForm({ ...form, ...v })}
           />
         )}

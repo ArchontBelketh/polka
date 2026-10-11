@@ -20,6 +20,8 @@ const createSchema = z.object({
   developerPaymentInfo: z.string().max(2000).optional(),
   demoUrl: z.string().url().optional().or(z.literal("")),
   videoUrl: z.string().url().optional().or(z.literal("")),
+  exampleInput: z.string().max(5000).optional(),
+  exampleOutput: z.string().max(5000).optional(),
 })
 
 const STAFF_ROLES = new Set(["ADMIN", "MODERATOR"])

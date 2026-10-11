@@ -6,8 +6,8 @@ import { SectionHead } from "./SectionHead"
 const ITEMS: { tint: "cyan" | "violet"; title: string; desc: string; icon: ReactNode }[] = [
   {
     tint: "cyan",
-    title: "Автоматическое сканирование",
-    desc: "Код проходит статический анализ (Bandit, Semgrep, проверка по VirusTotal) и поиск опасных паттернов до того, как попадёт в каталог.",
+    title: "Автоматическая проверка",
+    desc: "Код проходит статический анализ (Bandit и собственные правила) и поиск опасных паттернов до того, как попадёт в каталог.",
     icon: <ScanLine className="h-5 w-5" />,
   },
   {
@@ -39,9 +39,9 @@ export function SafetyBlock() {
   return (
     <section className="mx-auto max-w-6xl px-4 pt-24">
       <SectionHead
-        kicker="// безопасность"
-        title="Почему на ПОЛКЕ безопасно"
-        sub="Маркетплейс чужого кода — это риск нарваться на вредонос. Мы закрыли его системно, на каждом шаге."
+        kicker="// проверка кода"
+        title="Как мы проверяем код"
+        sub="Автоматический анализ и ручная модерация снижают риск, но не дают стопроцентной гарантии — запускайте код осознанно."
         wide
       />
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">

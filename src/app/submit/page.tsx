@@ -3,8 +3,6 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { db } from "@/lib/db"
 import { SubmitForm } from "./SubmitForm"
-import { SlotGate } from "./SlotGate"
-import { getPlanInfo } from "@/lib/developer-plan"
 import { isProfileComplete } from "@/lib/payout-profile"
 import { Button } from "@/components/ui/button"
 
@@ -14,11 +12,8 @@ export default async function SubmitPage() {
   const session = await auth()
   if (!session?.user) redirect("/login?callbackUrl=/submit")
 
-  const [plan, profile] = await Promise.all([
-    getPlanInfo(session.user.id!),
-    db.payoutProfile.findUnique({ where: { userId: session.user.id } }),
-  ])
-  const hasSlot = plan.isProActive || plan.availableSlots > 0
+  // Лимит слотов отключён (программа слотов/Pro скрыта) — размещение не ограничено.
+  const profile = await db.payoutProfile.findUnique({ where: { userId: session.user.id } })
   const requisitesComplete = isProfileComplete(profile)
 
   return (
@@ -41,13 +36,8 @@ export default async function SubmitPage() {
             <Link href="/dashboard/requisites">Заполнить реквизиты</Link>
           </Button>
         </div>
-      ) : hasSlot ? (
-        <SubmitForm />
       ) : (
-        <SlotGate
-          usedSlots={plan.usedSlots}
-          totalSlots={plan.totalSlots}
-        />
+        <SubmitForm />
       )}
     </div>
   )

@@ -11,6 +11,7 @@ import { ModerationActions } from "./ModerationActions"
 import { VerifyButton } from "./VerifyButton"
 import { CodeViewer } from "@/components/moderation/CodeViewer"
 import { saleModelForKopecks, SALE_MODEL_LABELS } from "@/lib/tariffs"
+import { licenseLabel, detectOpenLicense } from "@/lib/licenses"
 import type { ScanFinding } from "@/types"
 
 const VERIFIABLE_STATUSES = ["APPROVED", "PENDING", "SCAN_FAILED"]
@@ -117,6 +118,12 @@ export default async function AdminReviewPage({ params }: RouteParams) {
 
   if (!product) notFound()
 
+  // Конфликт лицензии: открытая лицензия в описании при продаже по «Личной».
+  const licenseConflict =
+    product.license === "personal"
+      ? detectOpenLicense(`${product.shortDesc}\n${product.fullDesc}\n${product.installGuide ?? ""}`)
+      : null
+
   const findings = (product.scanResult?.findings ?? []) as unknown as ScanFinding[]
   const critical = findings.filter((f) => f.severity === "critical")
   const warnings = findings.filter((f) => f.severity === "warning")
@@ -208,7 +215,13 @@ export default async function AdminReviewPage({ params }: RouteParams) {
           </div>
           <div>
             <p className="text-muted-foreground">Лицензия</p>
-            <p>{product.license}</p>
+            <p>{licenseLabel(product.license)}</p>
+            {licenseConflict && (
+              <p className="mt-1 text-xs text-amber-400">
+                ⚠ В описании упомянута открытая лицензия «{licenseConflict}», а продаётся по «Личной».
+                Открытая лицензия разрешает свободное распространение — верните товар на исправление.
+              </p>
+            )}
           </div>
           <div>
             <p className="text-muted-foreground">Модель продажи</p>

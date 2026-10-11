@@ -5,9 +5,9 @@ import { auth } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { CATEGORY_LABELS } from "@/types"
-import { Star, Package, ShoppingCart, Pencil, Rocket, ShieldCheck, Trophy, Flame } from "lucide-react"
+import { Star, Package, ShoppingCart, Pencil, ShieldCheck, Trophy, Flame } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { EARLY_SELLER_BADGE } from "@/lib/early-seller"
+import { plural, FORMS, monthYearGenitive } from "@/lib/plural"
 import type { Metadata } from "next"
 
 interface PageProps {
@@ -41,8 +41,6 @@ export default async function DeveloperPage({ params }: PageProps) {
         telegramHandle: true,
         bio:            true,
         createdAt:      true,
-        isEarlySeller:  true,
-        earlySellerNo:  true,
       },
     }),
   ])
@@ -83,14 +81,6 @@ export default async function DeveloperPage({ params }: PageProps) {
 
   // Ачивки — только заслуженные, по реальным данным.
   const achievements: Achievement[] = []
-  if (developer.isEarlySeller) {
-    achievements.push({
-      icon: Rocket,
-      label: developer.earlySellerNo ? `${EARLY_SELLER_BADGE} №${developer.earlySellerNo}` : EARLY_SELLER_BADGE,
-      desc: "Один из первых продавцов ПОЛКИ",
-      cls: "text-violet",
-    })
-  }
   if (hasVerified) {
     achievements.push({
       icon: ShieldCheck,
@@ -117,7 +107,7 @@ export default async function DeveloperPage({ params }: PageProps) {
   }, {})
 
   const initial = (developer.name ?? "?")[0].toUpperCase()
-  const memberSince = new Date(developer.createdAt).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
+  const memberSince = monthYearGenitive(new Date(developer.createdAt))
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
@@ -133,9 +123,6 @@ export default async function DeveloperPage({ params }: PageProps) {
             <div className="flex-1 space-y-1 pb-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
-                {developer.isEarlySeller && (
-                  <Badge className="border-primary/30 bg-primary/15 text-primary">{EARLY_SELLER_BADGE}</Badge>
-                )}
                 {isOwn && (
                   <Link
                     href="/settings"
@@ -179,9 +166,7 @@ export default async function DeveloperPage({ params }: PageProps) {
         <div className="rounded-lg border border-border bg-card p-4 text-center">
           <Package className="mx-auto mb-1 h-5 w-5 text-muted-foreground" />
           <p className="text-2xl font-bold">{products.length}</p>
-          <p className="text-xs text-muted-foreground">
-            {products.length === 1 ? "продукт" : products.length < 5 ? "продукта" : "продуктов"}
-          </p>
+          <p className="text-xs text-muted-foreground">{plural(products.length, FORMS.product)}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 text-center">
           <ShoppingCart className="mx-auto mb-1 h-5 w-5 text-muted-foreground" />

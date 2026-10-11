@@ -1,8 +1,8 @@
 import Link from "next/link"
 import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
-import { Star, ShieldCheck, Rocket, ArrowRight } from "lucide-react"
-import { EARLY_SELLER_BADGE } from "@/lib/early-seller"
+import { Star, ShieldCheck, ArrowRight } from "lucide-react"
+import { plural, FORMS, monthYearGenitive } from "@/lib/plural"
 
 /**
  * Мини-профиль автора на странице товара: ключевые цифры и бейджи,
@@ -12,7 +12,7 @@ export async function AuthorCard({ authorId }: { authorId: string }) {
   const [author, products] = await Promise.all([
     db.user.findUnique({
       where: { id: authorId },
-      select: { id: true, name: true, telegramHandle: true, createdAt: true, isEarlySeller: true, bio: true },
+      select: { id: true, name: true, telegramHandle: true, createdAt: true, bio: true },
     }),
     db.product.findMany({
       where: { authorId, status: "APPROVED" },
@@ -27,7 +27,7 @@ export async function AuthorCard({ authorId }: { authorId: string }) {
   const avgRating =
     totalReviews > 0 ? products.reduce((s, p) => s + p.rating * p.reviewCount, 0) / totalReviews : 0
   const hasVerified = products.some((p) => p.manuallyVerified)
-  const memberSince = new Date(author.createdAt).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
+  const memberSince = monthYearGenitive(new Date(author.createdAt))
   const initial = (author.name ?? "?")[0].toUpperCase()
 
   return (
@@ -54,12 +54,6 @@ export async function AuthorCard({ authorId }: { authorId: string }) {
             <Link href={`/developer/${author.id}`} className="font-semibold text-foreground hover:underline">
               {author.name ?? "Разработчик"}
             </Link>
-            {author.isEarlySeller && (
-              <Badge className="gap-1 border-primary/30 bg-primary/15 text-primary">
-                <Rocket className="h-3 w-3" />
-                {EARLY_SELLER_BADGE}
-              </Badge>
-            )}
             {hasVerified && (
               <Badge variant="secondary" className="gap-1">
                 <ShieldCheck className="h-3 w-3 text-cyan" />
@@ -76,9 +70,7 @@ export async function AuthorCard({ authorId }: { authorId: string }) {
       <div className="grid grid-cols-3 gap-2 rounded-lg border border-border bg-background/50 p-3 text-center">
         <div>
           <p className="text-xl font-bold text-foreground">{productCount}</p>
-          <p className="text-[11px] text-muted-foreground">
-            {productCount === 1 ? "продукт" : productCount < 5 ? "продукта" : "продуктов"}
-          </p>
+          <p className="text-[11px] text-muted-foreground">{plural(productCount, FORMS.product)}</p>
         </div>
         <div>
           <p className="text-xl font-bold text-foreground">{totalSales}</p>

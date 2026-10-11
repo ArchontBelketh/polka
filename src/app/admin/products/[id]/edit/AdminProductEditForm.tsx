@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CATEGORY_LABELS } from "@/types"
 import { saleModelForRub, SALE_MODEL_LABELS, PRICE_THRESHOLD_RUB, formatRub } from "@/lib/tariffs"
+import { LICENSE_OPTIONS as LICENSES } from "@/lib/licenses"
 
 export interface AdminProductEditFormProps {
   product: {
@@ -28,14 +29,10 @@ export interface AdminProductEditFormProps {
     developerPaymentInfo: string | null
     demoUrl: string | null
     videoUrl: string | null
+    exampleInput: string | null
+    exampleOutput: string | null
   }
 }
-
-const LICENSES = [
-  { value: "personal", label: "Персональная (1 использование)" },
-  { value: "team", label: "Командная (до 5 пользователей)" },
-  { value: "commercial", label: "Коммерческая (без ограничений)" },
-]
 
 const linesToArr = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean)
 const commaToArr = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean)
@@ -61,6 +58,8 @@ export function AdminProductEditForm({ product }: AdminProductEditFormProps) {
     developerPaymentInfo: product.developerPaymentInfo ?? "",
     demoUrl: product.demoUrl ?? "",
     videoUrl: product.videoUrl ?? "",
+    exampleInput: product.exampleInput ?? "",
+    exampleOutput: product.exampleOutput ?? "",
   })
 
   function set<K extends keyof typeof f>(key: K, v: (typeof f)[K]) {
@@ -94,6 +93,8 @@ export function AdminProductEditForm({ product }: AdminProductEditFormProps) {
           developerPaymentInfo: f.developerPaymentInfo || undefined,
           demoUrl: f.demoUrl || undefined,
           videoUrl: f.videoUrl || undefined,
+          exampleInput: f.exampleInput || undefined,
+          exampleOutput: f.exampleOutput || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -216,8 +217,19 @@ export function AdminProductEditForm({ product }: AdminProductEditFormProps) {
           <Input id="demoUrl" value={f.demoUrl} onChange={(e) => set("demoUrl", e.target.value)} placeholder="https://…" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="videoUrl">Видео-ссылка</Label>
+          <Label htmlFor="videoUrl">Видео-ссылка (VK Видео / Rutube)</Label>
           <Input id="videoUrl" value={f.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} placeholder="https://…" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="exampleInput">Пример: входные данные</Label>
+          <Textarea id="exampleInput" rows={5} value={f.exampleInput} onChange={(e) => set("exampleInput", e.target.value)} maxLength={5000} className="font-mono text-xs" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="exampleOutput">Пример: результат</Label>
+          <Textarea id="exampleOutput" rows={5} value={f.exampleOutput} onChange={(e) => set("exampleOutput", e.target.value)} maxLength={5000} className="font-mono text-xs" />
         </div>
       </div>
 
