@@ -167,6 +167,17 @@ export default function CyberHeader({ authed, role, unread, messagesHref }: Cybe
         </div>
       </div>
 
+      {/* ── ОСНОВНОЕ МЕНЮ (десктоп, тонкая полоса под шапкой) ── */}
+      <nav className="cyber-ui-desktop hdr-nav" style={navBarStyle}>
+        <div style={navInnerStyle}>
+          <Link href="/request" className="hdr-nav-cta" style={navCtaStyle}>Описать задачу</Link>
+          <Link href="/x-ray" style={navLinkStyle}>Проверить код</Link>
+          <Link href="/catalog" style={navLinkStyle}>Каталог</Link>
+          <Link href="/sell" style={navLinkStyle}>Продавать</Link>
+          <Link href="/how-we-check" style={navLinkStyle}>Как проверяем</Link>
+        </div>
+      </nav>
+
       {/* ── МОБИЛЬНАЯ ПАНЕЛЬ (выпадает под шапкой) ── */}
       {mobileOpen && (
         <div className="cyber-ui-mobile" style={{ flexDirection: "column", gap: 4, padding: "12px 16px 16px", background: "#0A0912", borderTop: "1px solid #1C1830" }}>
@@ -175,7 +186,10 @@ export default function CyberHeader({ authed, role, unread, messagesHref }: Cybe
             <input name="q" placeholder="Поиск продуктов…" style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#EDEAF7", fontFamily: "'Exo 2',sans-serif", fontSize: 14, minWidth: 0 }} />
           </form>
 
+          <Link href="/request" style={mPrimary} onClick={closeMobile}>Описать задачу</Link>
+          <Link href="/x-ray" style={mLink} onClick={closeMobile}>Проверить код</Link>
           <Link href="/catalog" style={mLink} onClick={closeMobile}>Каталог</Link>
+          <Link href="/how-we-check" style={mLink} onClick={closeMobile}>Как проверяем</Link>
 
           {authed ? (
             <>
@@ -294,6 +308,41 @@ const headerBtnStyle: CSSProperties = {
   textDecoration: "none",
   transition: "box-shadow .2s, transform .12s",
   boxShadow: "0 0 14px rgba(108,75,245,.55), inset 0 1px 0 rgba(255,255,255,.18)",
+}
+
+const navBarStyle: CSSProperties = {
+  background: "#09080F",
+  borderTop: "1px solid #141122",
+}
+
+const navInnerStyle: CSSProperties = {
+  maxWidth: 1200,
+  margin: "0 auto",
+  padding: "0 20px",
+  height: 46,
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+}
+
+const navLinkStyle: CSSProperties = {
+  padding: "8px 14px",
+  borderRadius: 9,
+  fontFamily: "'Exo 2',sans-serif",
+  fontSize: 14,
+  fontWeight: 600,
+  color: "#C9C4DB",
+  textDecoration: "none",
+  transition: "color .15s, background .15s",
+}
+
+const navCtaStyle: CSSProperties = {
+  ...navLinkStyle,
+  marginRight: 4,
+  color: "#D9FBFA",
+  background: "rgba(52,230,224,.08)",
+  border: "1px solid rgba(52,230,224,.35)",
+  boxShadow: "0 0 10px rgba(52,230,224,.12)",
 }
 
 const mLink: CSSProperties = {

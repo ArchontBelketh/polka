@@ -149,6 +149,9 @@ body {
 /* Переключение интерактивного слоя шапки: десктоп ↔ мобайл.
    Декоративный SVG-слой (трассы/чипы) показывается всегда и обрезается по краям. */
 .cyber-ui-mobile { display: none; }
+/* Основное меню-полоса под шапкой (десктоп). */
+.hdr-nav a:hover { color: #FFFFFF; background: rgba(157,140,255,.12); }
+.hdr-nav a.hdr-nav-cta:hover { background: rgba(52,230,224,.16); }
 @media (max-width: 900px) {
   .cyber-ui-desktop { display: none !important; }
   .cyber-ui-mobile { display: flex !important; }
