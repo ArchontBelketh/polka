@@ -49,6 +49,14 @@ export function isProfileComplete(profile: PayoutProfile | null | undefined): bo
 }
 
 /**
+ * Можно публиковать и продавать: полный профиль + ссылка на прямую оплату
+ * (без неё покупатель не сможет оплатить напрямую автору — оферта 2.0, 6.4).
+ */
+export function canPublish(profile: PayoutProfile | null | undefined): boolean {
+  return isProfileComplete(profile) && !!profile?.paymentLink && profile.paymentLink.trim().length > 0
+}
+
+/**
  * Нормализует телефон РФ к формату +7XXXXXXXXXX. Возвращает null, если не похоже
  * на корректный номер (нужно для SupplierInfo в агентском чеке).
  */

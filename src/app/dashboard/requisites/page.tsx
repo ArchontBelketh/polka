@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { RequisitesForm } from "./RequisitesForm"
-import { isProfileComplete } from "@/lib/payout-profile"
+import { canPublish } from "@/lib/payout-profile"
 
 export const metadata = { title: "Реквизиты" }
 
@@ -14,7 +14,7 @@ export default async function RequisitesPage() {
   if (!user || !["DEVELOPER", "ADMIN"].includes(user.role)) redirect("/dashboard")
 
   const profile = await db.payoutProfile.findUnique({ where: { userId: session.user.id } })
-  const complete = isProfileComplete(profile)
+  const complete = canPublish(profile)
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
@@ -43,7 +43,8 @@ export default async function RequisitesPage() {
         </div>
       ) : (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
-          Профиль не заполнен. Без него нельзя отправить продукт на публикацию.
+          Профиль не заполнен (нужны статус, реквизиты и ссылка для оплаты). Без него нельзя
+          отправить продукт на публикацию.
         </div>
       )}
 
@@ -55,6 +56,7 @@ export default async function RequisitesPage() {
                 displayName: profile.displayName,
                 inn: profile.inn,
                 phone: profile.phone ?? "",
+                paymentLink: profile.paymentLink ?? "",
                 attested: !!profile.attestedAt,
               }
             : null

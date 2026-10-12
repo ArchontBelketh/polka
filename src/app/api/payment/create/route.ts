@@ -11,7 +11,19 @@ const schema = z.object({
   couponCode: z.string().optional(),
 })
 
+// Эквайринг за товары отключён (оферта 2.0, раздел 6): все товары оплачиваются
+// напрямую автору через /api/products/[id]/request. Логика сплита сохранена под
+// флагом PRODUCT_ACQUIRING_ENABLED на случай возврата к расчётам через площадку.
+const ACQUIRING_ENABLED = process.env.PRODUCT_ACQUIRING_ENABLED === "true"
+
 export async function POST(req: NextRequest) {
+  if (!ACQUIRING_ENABLED) {
+    return Response.json(
+      { error: "Оплата товаров через площадку отключена — оплачивайте напрямую автору." },
+      { status: 410 },
+    )
+  }
+
   const session = await auth()
   if (!session?.user?.id) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })

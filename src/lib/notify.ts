@@ -285,6 +285,78 @@ export async function notifyListingPurchaseConfirmed(params: {
   ])
 }
 
+/** Автор не нашёл оплату — покупатель может пожаловаться. */
+export async function notifyPurchaseDeclined(params: {
+  buyerTelegramId: string | null
+  buyerEmail?: string | null
+  productTitle: string
+  purchaseUrl: string
+}): Promise<void> {
+  const tg =
+    `❗ <b>Оплата не подтверждена: ${params.productTitle}</b>\n\n` +
+    `Автор сообщил, что не нашёл вашу оплату. Если вы оплатили — откройте покупку и нажмите «Пожаловаться»: ${params.purchaseUrl}`
+  const html = `
+    <h2>Оплата не подтверждена — «${params.productTitle}»</h2>
+    <p>Автор сообщил, что не нашёл вашу оплату. Если вы оплатили, откройте покупку и нажмите
+       «Пожаловаться» — мы разберёмся.</p>
+    <p><a href="${params.purchaseUrl}">Открыть покупку</a></p>`
+  await Promise.all([
+    params.buyerTelegramId ? sendTelegram(params.buyerTelegramId, tg) : Promise.resolve(),
+    params.buyerEmail
+      ? sendEmail(params.buyerEmail, `Оплата не подтверждена: ${params.productTitle}`, html)
+      : Promise.resolve(),
+  ])
+}
+
+/** Напоминание автору о неподтверждённой заявке (через 24ч). */
+export async function notifyPurchaseReminder(params: {
+  developerTelegramId: string | null
+  developerEmail?: string | null
+  productTitle: string
+  confirmUrl: string
+}): Promise<void> {
+  const tg =
+    `⏰ <b>Неподтверждённая заявка: ${params.productTitle}</b>\n\n` +
+    `Покупатель ждёт подтверждения оплаты более суток. Подтвердите получение или отметьте «Оплаты нет»: ${params.confirmUrl}`
+  const html = `
+    <h2>Неподтверждённая заявка — «${params.productTitle}»</h2>
+    <p>Покупатель ждёт подтверждения оплаты более суток. Подтвердите получение или отметьте, что оплаты нет.</p>
+    <p><a href="${params.confirmUrl}">Открыть подтверждения</a></p>`
+  await Promise.all([
+    params.developerTelegramId ? sendTelegram(params.developerTelegramId, tg) : Promise.resolve(),
+    params.developerEmail
+      ? sendEmail(params.developerEmail, `Неподтверждённая заявка: ${params.productTitle}`, html)
+      : Promise.resolve(),
+  ])
+}
+
+/** Заявка просрочена (72ч без ответа автора) — уведомляем покупателя и админа. */
+export async function notifyPurchaseExpired(params: {
+  buyerTelegramId: string | null
+  buyerEmail?: string | null
+  productTitle: string
+  purchaseUrl: string
+}): Promise<void> {
+  const supportTo = process.env.SUPPORT_EMAIL ?? "support@cyberpolka.store"
+  const buyerHtml = `
+    <h2>Заявка просрочена — «${params.productTitle}»</h2>
+    <p>Автор не подтвердил оплату в течение 72 часов. Если вы оплатили — напишите в поддержку, мы разберёмся.</p>
+    <p><a href="${params.purchaseUrl}">Открыть покупку</a></p>`
+  await Promise.all([
+    params.buyerTelegramId
+      ? sendTelegram(params.buyerTelegramId, `⌛ Заявка просрочена: ${params.productTitle}. Автор не подтвердил оплату за 72ч. ${params.purchaseUrl}`)
+      : Promise.resolve(),
+    params.buyerEmail
+      ? sendEmail(params.buyerEmail, `Заявка просрочена: ${params.productTitle}`, buyerHtml)
+      : Promise.resolve(),
+    sendEmail(
+      supportTo,
+      `Просрочена заявка: ${params.productTitle}`,
+      `<p>Заявка по «${params.productTitle}» просрочена (72 часа без подтверждения автором).</p><p><a href="${params.purchaseUrl}">${params.purchaseUrl}</a></p>`,
+    ),
+  ])
+}
+
 /**
  * Отзыв по безопасности — предупреждение всем покупателям продукта о том, что
  * приобретённый продукт снят с площадки из-за вопросов к безопасности.

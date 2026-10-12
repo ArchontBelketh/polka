@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { saleModelForKopecks } from "@/lib/tariffs"
 import { notifyListingPurchaseRequested } from "@/lib/notify"
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -17,16 +16,20 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const product = await db.product.findUnique({
     where: { id },
-    include: { author: { select: { telegramId: true, email: true } } },
+    include: {
+      author: {
+        select: { telegramId: true, email: true, payoutProfile: { select: { paymentLink: true } } },
+      },
+    },
   })
   if (!product || product.status !== "APPROVED") {
     return Response.json({ error: "Продукт недоступен для покупки" }, { status: 404 })
   }
-  if (saleModelForKopecks(product.price) !== "LISTING_FEE") {
-    return Response.json({ error: "Этот продукт оплачивается через площадку" }, { status: 400 })
-  }
   if (product.authorId === session.user.id) {
     return Response.json({ error: "Нельзя купить собственный продукт" }, { status: 400 })
+  }
+  if (!product.author.payoutProfile?.paymentLink) {
+    return Response.json({ error: "У автора не указана ссылка для оплаты" }, { status: 400 })
   }
 
   const existing = await db.purchase.findFirst({

@@ -2,10 +2,8 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/utils"
-import { developerPayout } from "@/lib/earnings"
 import { isProfileComplete } from "@/lib/payout-profile"
 
 export const metadata = { title: "Кабинет" }
@@ -31,7 +29,7 @@ export default async function DashboardPage() {
   const approvedCount = products.filter((p) => p.status === "APPROVED").length
   const requisitesComplete = isProfileComplete(payoutProfile)
 
-  const [paidPurchases, salesCount, unansweredQuestions, unreadMessages, awaitingConfirmations, heldAgg] = await Promise.all([
+  const [paidPurchases, salesCount, unansweredQuestions, unreadMessages, awaitingConfirmations] = await Promise.all([
     db.purchase.findMany({
       where: { productId: { in: productIds }, status: { in: ["PAID", "DELIVERED"] } },
       include: {
@@ -53,17 +51,7 @@ export default async function DashboardPage() {
       },
     }),
     db.purchase.count({ where: { status: "AWAITING", product: { authorId: session.user.id } } }),
-    db.purchase.aggregate({
-      where: {
-        productId: { in: productIds },
-        status: { in: ["PAID", "DELIVERED"] },
-        creditedAt: null,
-        holdUntil: { not: null },
-      },
-      _sum: { developerAmount: true },
-    }),
   ])
-  const heldAmount = heldAgg._sum.developerAmount ?? 0
 
   const totalSales = salesCount
 
@@ -87,13 +75,10 @@ export default async function DashboardPage() {
       )}
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Баланс" value={formatPrice(user.balance)} hint="доступно к выводу" />
-        {heldAmount > 0 && (
-          <StatCard label="В ожидании" value={formatPrice(heldAmount)} hint="удержание до конца окна претензии" />
-        )}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatCard label="Продажи" value={String(totalSales)} />
         <StatCard label="Активных продуктов" value={String(approvedCount)} />
+        <StatCard label="Ждут подтверждения" value={String(awaitingConfirmations)} />
       </div>
 
       {/* Quick links */}
@@ -102,8 +87,8 @@ export default async function DashboardPage() {
           <Link href="/dashboard/products">Мои продукты</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/dashboard/payouts">
-            Вывод средств {user.balance > 0 && `(${formatPrice(user.balance)})`}
+          <Link href="/dashboard/confirmations">
+            Подтверждения оплат {awaitingConfirmations > 0 && `(${awaitingConfirmations})`}
           </Link>
         </Button>
         <Button variant="outline" asChild>
@@ -116,13 +101,6 @@ export default async function DashboardPage() {
             Сообщения {unreadMessages > 0 && `(${unreadMessages})`}
           </Link>
         </Button>
-        {awaitingConfirmations > 0 && (
-          <Button variant="outline" asChild>
-            <Link href="/dashboard/confirmations">
-              Подтверждения ({awaitingConfirmations})
-            </Link>
-          </Button>
-        )}
         <Button variant="outline" asChild>
           <Link href="/dashboard/requisites">
             Реквизиты {!requisitesComplete && "⚠"}
@@ -145,10 +123,8 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-medium">{formatPrice(p.developerAmount ?? developerPayout(p.amount))}</p>
-                  <Badge variant={p.creditedAt ? "secondary" : "outline"} className="text-xs">
-                    {p.creditedAt ? "Зачислено" : "В ожидании"}
-                  </Badge>
+                  <p className="text-sm font-medium">{formatPrice(p.amount)}</p>
+                  <span className="text-xs text-muted-foreground">напрямую автору</span>
                 </div>
               </div>
             ))}

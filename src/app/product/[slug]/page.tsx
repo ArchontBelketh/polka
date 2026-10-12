@@ -9,6 +9,7 @@ import { AuthorCard } from "@/components/product/AuthorCard"
 import { XrayPassportBlock } from "@/components/product/XrayPassportBlock"
 import type { XrayPassport } from "@/lib/xray/types"
 import { licenseLabel, licenseText } from "@/lib/licenses"
+import { PAYER_KIND_LABELS } from "@/lib/payout-profile"
 import { ReviewList } from "@/components/product/ReviewList"
 import { ReviewForm } from "@/components/product/ReviewForm"
 import { ScreenshotSlider } from "@/components/product/ScreenshotSlider"
@@ -68,7 +69,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = await db.product.findUnique({
     where: { slug },
     include: {
-      author: { select: { id: true, name: true, email: true } },
+      author: {
+        select: {
+          id: true, name: true, email: true,
+          payoutProfile: { select: { paymentLink: true, displayName: true, kind: true, inn: true } },
+        },
+      },
       files: {
         where: { fileType: "SOURCE" },
         select: { fileName: true, fileSize: true, format: true },
@@ -361,6 +367,27 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
 
+            {/* Продавец — данные продавца (закон о защите прав потребителей, агрегатор) */}
+            {product.author.payoutProfile && (
+              <section className="rounded-lg border border-border bg-card p-5 space-y-2">
+                <h2 className="text-lg font-semibold text-foreground">Продавец</h2>
+                <div className="space-y-0.5 text-sm text-muted-foreground">
+                  <p className="text-foreground">{product.author.payoutProfile.displayName}</p>
+                  <p>
+                    {PAYER_KIND_LABELS[product.author.payoutProfile.kind]} · ИНН{" "}
+                    {product.author.payoutProfile.inn}
+                  </p>
+                  <Link href={`/developer/${product.authorId}`} className="text-primary hover:underline underline-offset-4">
+                    Страница продавца →
+                  </Link>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Оплата поступает продавцу напрямую. ПОЛКА — информационный сервис и не является
+                  стороной сделки между продавцом и покупателем.
+                </p>
+              </section>
+            )}
+
             {/* Об авторе */}
             <AuthorCard authorId={product.authorId} />
 
@@ -390,9 +417,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
               salesCount={product.salesCount}
               authorName={authorName}
               authorId={product.authorId}
+              authorPaymentLink={product.author.payoutProfile?.paymentLink ?? null}
               demoUrl={product.demoUrl}
               isOwnProduct={isOwnProduct}
-              saleModel={product.saleModel}
               developerPaymentInfo={product.developerPaymentInfo}
             />
           </div>

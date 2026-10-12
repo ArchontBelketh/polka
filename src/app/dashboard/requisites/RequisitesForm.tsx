@@ -19,6 +19,7 @@ interface Props {
     displayName: string
     inn: string
     phone: string
+    paymentLink: string
     attested: boolean
   } | null
 }
@@ -29,6 +30,7 @@ export function RequisitesForm({ initial }: Props) {
   const [displayName, setDisplayName] = useState(initial?.displayName ?? "")
   const [inn, setInn] = useState(initial?.inn ?? "")
   const [phone, setPhone] = useState(initial?.phone ?? "")
+  const [paymentLink, setPaymentLink] = useState(initial?.paymentLink ?? "")
   // Уже принятые заверения не требуют повторной галочки, но при изменении данных — да
   const [attest, setAttest] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -51,7 +53,7 @@ export function RequisitesForm({ initial }: Props) {
       const res = await fetch("/api/developer/requisites", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, displayName: displayName.trim(), inn: inn.trim(), phone: phone.trim(), attest: true }),
+        body: JSON.stringify({ kind, displayName: displayName.trim(), inn: inn.trim(), phone: phone.trim(), paymentLink: paymentLink.trim(), attest: true }),
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -116,6 +118,20 @@ export function RequisitesForm({ initial }: Props) {
         />
         <p className="text-xs text-muted-foreground">
           Нужен для чека покупателю (данные поставщика). Виден только площадке и в чеке.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Ссылка для оплаты покупателем</label>
+        <Input
+          value={paymentLink}
+          onChange={(e) => { setPaymentLink(e.target.value); setSaved(false) }}
+          placeholder="Ссылка ЮKassa / Robokassa / перевод на карту"
+          maxLength={500}
+        />
+        <p className="text-xs text-muted-foreground">
+          Покупатель платит вам <b>напрямую</b> по этой ссылке. Без неё товары нельзя опубликовать.
+          Площадка оплату за товары не принимает.
         </p>
       </div>
 

@@ -20,6 +20,9 @@ const STATUS_LABELS: Record<string, string> = {
   PAID: "Оплачено",
   DELIVERED: "Оплачено",
   REFUNDED: "Отменено",
+  DECLINED: "Оплата не подтверждена автором",
+  EXPIRED: "Просрочено",
+  DISPUTED: "Спор",
 }
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PENDING: "outline",
@@ -27,6 +30,9 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
   PAID: "default",
   DELIVERED: "default",
   REFUNDED: "destructive",
+  DECLINED: "destructive",
+  EXPIRED: "destructive",
+  DISPUTED: "secondary",
 }
 
 export const metadata = { title: "Покупка" }
@@ -154,6 +160,24 @@ export default async function PurchaseDetailPage({ params }: RouteParams) {
           </Button>
         )}
       </div>
+
+      {/* Оплата не подтверждена / просрочено — покупатель может пожаловаться */}
+      {isBuyer && (purchase.status === "DECLINED" || purchase.status === "EXPIRED") && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-2">
+          <p className="text-sm font-medium text-destructive">
+            {purchase.status === "DECLINED"
+              ? "Автор сообщил, что не нашёл вашу оплату."
+              : "Автор не подтвердил оплату в течение 72 часов."}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Если вы оплатили — напишите в поддержку, приложите подтверждение платежа, и мы разберёмся.
+            Вернуть средства может только автор: ПОЛКА оплату за товары не принимает.
+          </p>
+          <Button size="sm" asChild>
+            <Link href="/support">Пожаловаться</Link>
+          </Button>
+        </div>
+      )}
 
       {/* Messaging with the developer */}
       {showThread && (

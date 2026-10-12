@@ -9,6 +9,7 @@ const schema = z.object({
   displayName: z.string().trim().min(2, "Укажите ФИО или наименование").max(200),
   inn: z.string().trim().regex(/^\d{10}$|^\d{12}$/, "ИНН — 10 или 12 цифр"),
   phone: z.string().trim().min(1, "Укажите телефон"),
+  paymentLink: z.string().trim().max(500).optional(),
   attest: z.literal(true, { message: "Необходимо принять заверения" }),
 })
 
@@ -38,7 +39,7 @@ export async function PUT(req: NextRequest) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 })
   }
 
-  const { kind, displayName, inn } = parsed.data
+  const { kind, displayName, inn, paymentLink } = parsed.data
   if (!isInnValidForKind(inn, kind)) {
     const expected = kind === "COMPANY" ? "10 цифр" : "12 цифр"
     return Response.json({ error: `Некорректный ИНН для выбранного статуса (${expected})` }, { status: 422 })
@@ -60,6 +61,7 @@ export async function PUT(req: NextRequest) {
       displayName,
       inn,
       phone,
+      paymentLink: paymentLink || null,
       attestedAt: new Date(),
       attestVersion: ATTESTATION_VERSION,
     },
@@ -68,6 +70,7 @@ export async function PUT(req: NextRequest) {
       displayName,
       inn,
       phone,
+      paymentLink: paymentLink || null,
       phoneVerified: false,
       attestedAt: new Date(),
       attestVersion: ATTESTATION_VERSION,

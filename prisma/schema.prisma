@@ -40,11 +40,13 @@ enum ScanStatus {
 
 enum PurchaseStatus {
   PENDING
-  AWAITING   // покупка LISTING_FEE: покупатель оформил заявку, ждём подтверждения оплаты разработчиком
+  AWAITING   // покупатель оформил заявку («Я оплатил»), ждём подтверждения оплаты автором
   PAID
   DELIVERED
   REFUNDED
   DISPUTED
+  DECLINED   // автор не нашёл оплату («Оплаты нет»)
+  EXPIRED    // автор не ответил 72 часа
 }
 
 enum PayoutStatus {
@@ -292,6 +294,7 @@ model Purchase {
   payoutId      String?                   // выплата, закрывшая эту продажу (null = ещё не выплачено)
   downloadCount Int            @default(0)
   lastMessageAt DateTime?
+  reminderSentAt DateTime?                // напоминание автору о неподтверждённой заявке (24ч)
   createdAt     DateTime       @default(now())
   paidAt        DateTime?
   buyer         User           @relation(fields: [buyerId], references: [id])
@@ -439,6 +442,7 @@ model PayoutProfile {
   displayName        String    // ФИО (самозанятый/ИП) или наименование (ООО)
   inn                String    // 12 цифр (самозанятый/ИП) или 10 (ООО)
   phone              String?   // телефон поставщика для агентского чека (SupplierInfo), формат +7…
+  paymentLink        String?   // ссылка/реквизиты для прямой оплаты покупателем (ЮKassa, Robokassa, банк)
   phoneVerified      Boolean   @default(false)  // подтверждён по СМС (Фаза СМС; пока не используется)
   attestedAt         DateTime  // момент принятия заверений п. 6 оферты
   attestVersion      String    @default("v1")

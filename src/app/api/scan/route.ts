@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { runScan } from "@/lib/scanner"
-import { isProfileComplete } from "@/lib/payout-profile"
+import { canPublish } from "@/lib/payout-profile"
 import { saleModelForKopecks } from "@/lib/tariffs"
 
 export async function POST(req: NextRequest) {
@@ -34,30 +34,14 @@ export async function POST(req: NextRequest) {
   // (оферта, п. 6). Админ/модератор — в обход.
   if (isOwner && !isAdmin) {
     const profile = await db.payoutProfile.findUnique({ where: { userId: session.user.id } })
-    if (!isProfileComplete(profile)) {
+    if (!canPublish(profile)) {
       return Response.json(
         {
-          error: "Продукт сохранён как черновик. Правовой статус и реквизиты нужны только для публикации и выплат (не для загрузки) — укажите их в разделе «Реквизиты», когда будете готовы продавать.",
+          error: "Продукт сохранён как черновик. Для публикации укажите правовой статус, реквизиты и ссылку для оплаты покупателем в разделе «Реквизиты» — покупатель платит вам напрямую.",
           code: "REQUISITES_REQUIRED",
         },
         { status: 403 },
       )
-    }
-
-    // Для модели «Тариф за размещение» — нужны реквизиты оплаты и оплаченный тариф (оферта 4.2, 8.8)
-    if (saleModelForKopecks(product.price) === "LISTING_FEE") {
-      if (!product.developerPaymentInfo) {
-        return Response.json(
-          { error: "Укажите реквизиты для оплаты покупателем.", code: "PAYMENT_INFO_REQUIRED" },
-          { status: 403 },
-        )
-      }
-      if (!product.listingFeePaidAt) {
-        return Response.json(
-          { error: "Оплатите тариф за размещение перед публикацией.", code: "LISTING_FEE_REQUIRED" },
-          { status: 403 },
-        )
-      }
     }
   }
 
