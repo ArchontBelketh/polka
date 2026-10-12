@@ -139,6 +139,7 @@ model User {
   aiReviews       AiReview[]
   questions       ProductQuestion[]
   purchaseMessages PurchaseMessage[]
+  requests        Request[]
 }
 
 model Account {
@@ -222,6 +223,7 @@ model Product {
   versions            ProductVersion[]
   aiReviews           AiReview[]
   questions           ProductQuestion[]
+  rightsComplaints    RightsComplaint[]
 
   @@index([status])
   @@index([category])
@@ -533,4 +535,127 @@ model PaymentIntent {
   @@index([paymentId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ── Заявки на разработку (Фаза 3) ────────────────────────────────────────────
+enum RequestStatus {
+  NEW                 // Новая
+  CLARIFYING          // Уточняется
+  TO_CATALOG          // Ушла в каталог
+  SERVICE_RECOMMENDED // Рекомендован сервис
+  SPEC_READY          // ТЗ готово
+  PROPOSALS_SENT      // Предложения отправлены
+  IN_PROGRESS         // В работе
+  RELAY               // Эстафета
+  ACCEPTANCE          // Приёмка
+  AWAITING_PASSPORT   // Ждём паспорт
+  CLOSED              // Закрыта
+  KWORK               // Передана на Kwork
+  CANCELLED           // Отменена
+}
+
+model Request {
+  id              String        @id @default(cuid())
+  task            String        @db.Text          // что нужно сделать
+  platform        String                          // где должно работать
+  deadline        String?                         // срок (дата или «не срочно»)
+  budget          String?                         // бюджет (диапазон)
+  contact         String                          // телефон или email
+  messenger       String?                         // удобный мессенджер
+  consentPd       Boolean       @default(false)   // согласие на обработку ПДн
+  consentContacts Boolean       @default(false)   // согласие на передачу контактов исполнителям
+  status          RequestStatus @default(NEW)
+  notes           String?       @db.Text          // заметки владельца
+  spec            String?       @db.Text          // техническое задание (ТЗ)
+  codeS3Key       String?                         // прикреплённый код (до закрытия заявки)
+  codeFileName    String?
+  xrayReport      Json?                           // отчёт X-Ray по прикреплённому коду
+  kworkUrl        String?                         // ссылка Kwork (для статуса KWORK)
+  userId          String?                         // если заказчик залогинен
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User?         @relation(fields: [userId], references: [id])
+  statusLogs      RequestStatusLog[]
+  assignments     RequestAssignment[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RequestStatusLog {
+  id        String   @id @default(cuid())
+  requestId String
+  status    String
+  comment   String?
+  createdAt DateTime @default(now())
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+// ── Жалобы правообладателей (Фаза 3, раздел 16 оферты) ───────────────────────
+enum ComplaintStatus {
+  NEW        // Новая
+  REVIEWING  // На рассмотрении (товар скрыт)
+  REMOVED    // Удалён (нарушение подтверждено)
+  RESTORED   // Восстановлен (жалоба отклонена)
+  REJECTED   // Отклонена (без рассмотрения)
+}
+
+model RightsComplaint {
+  id           String          @id @default(cuid())
+  claimant     String                            // ФИО/наименование заявителя
+  contact      String                            // email/контакт для ответа
+  productId    String?                           // товар (если найден по ссылке)
+  productUrl   String?                           // ссылка/идентификатор товара от заявителя
+  protectedObj String          @db.Text          // охраняемый объект
+  rightsProof  String          @db.Text          // подтверждение прав
+  description  String          @db.Text          // описание нарушения
+  consentPd    Boolean         @default(false)
+  status       ComplaintStatus @default(NEW)
+  decision     String?         @db.Text          // решение/заметки оператора
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  product      Product?        @relation(fields: [productId], references: [id])
+
+  @@index([status])
+}
+
+// ── Пул дежурных исполнителей (Фаза 3, раздел 12) ────────────────────────────
+model Executor {
+  id            String   @id @default(cuid())
+  name          String                            // имя
+  contact       String                            // email / telegram
+  stack         String?                           // стек
+  active        Boolean  @default(true)           // дежурный (true) / пауза (false)
+  inn           String?                           // ИНН для проверки ФНС
+  taxStatus     String?                           // самозанятый / ИП / ООО
+  taxVerified   Boolean  @default(false)          // статус подтверждён
+  taxCheckedAt  DateTime?
+  xrayReportUrl String?                           // отчёт X-Ray по примеру кода
+  freeRequestsLeft Int   @default(10)             // остаток бесплатных заявок
+  requestsSent  Int      @default(0)              // отправлено заявок
+  ordersTaken   Int      @default(0)              // взято заказов
+  relayCount    Int      @default(0)              // участие в «Эстафете»
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  assignments   RequestAssignment[]
+
+  @@index([active])
+}
+
+// Отправка заявки исполнителю (ТЗ 11.4): до 3 на заявку + отметка, кто ответил.
+model RequestAssignment {
+  id          String    @id @default(cuid())
+  requestId   String
+  executorId  String
+  responded   Boolean   @default(false)
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+  request     Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  executor    Executor  @relation(fields: [executorId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, executorId])
+  @@index([requestId])
 }

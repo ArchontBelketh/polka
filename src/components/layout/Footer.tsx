@@ -6,8 +6,8 @@ const COLUMNS = [
     title: "Маркетплейс",
     links: [
       { href: "/catalog", label: "Каталог" },
-      { href: "/catalog?sort=popular", label: "Популярное" },
-      { href: "/catalog?sort=newest", label: "Новинки" },
+      { href: "/x-ray", label: "Проверка кода" },
+      { href: "/how-we-check", label: "Как мы проверяем код" },
     ],
   },
   {
@@ -15,6 +15,7 @@ const COLUMNS = [
     links: [
       { href: "/sell", label: "Продавать" },
       { href: "/submit", label: "Загрузить продукт" },
+      { href: "/how-to-get-paid", label: "Как принимать оплату" },
       { href: "/dashboard", label: "Кабинет разработчика" },
     ],
   },
@@ -32,6 +33,7 @@ const COLUMNS = [
       { href: "/legal/tariffs", label: "Тарифы" },
       { href: "/legal/terms", label: "Соглашение" },
       { href: "/legal/privacy", label: "Политика ПДн" },
+      { href: "/rights-complaint", label: "Жалоба правообладателя" },
     ],
   },
 ]

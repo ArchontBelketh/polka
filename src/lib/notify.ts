@@ -308,6 +308,86 @@ export async function notifyPurchaseDeclined(params: {
   ])
 }
 
+/** Новая заявка на разработку — письмо владельцу (+ подтверждение заказчику). */
+export async function notifyNewRequest(params: {
+  requestId: string
+  task: string
+  platform: string
+  budget?: string | null
+  deadline?: string | null
+  contact: string
+  messenger?: string | null
+  customerEmail?: string | null
+}): Promise<void> {
+  const supportTo = process.env.SUPPORT_EMAIL ?? "support@cyberpolka.store"
+  const adminHtml = `
+    <h2>🆕 Новая заявка на разработку</h2>
+    <p><b>Что нужно:</b></p>
+    <p style="white-space:pre-wrap">${params.task}</p>
+    <p><b>Где работает:</b> ${params.platform}</p>
+    ${params.deadline ? `<p><b>Срок:</b> ${params.deadline}</p>` : ""}
+    ${params.budget ? `<p><b>Бюджет:</b> ${params.budget}</p>` : ""}
+    <p><b>Контакт:</b> ${params.contact}${params.messenger ? ` (${params.messenger})` : ""}</p>
+    <p><a href="${APP_URL}/admin/requests/${params.requestId}">Открыть заявку в админке</a></p>`
+
+  const tasks: Array<Promise<void>> = [
+    sendEmail(supportTo, `Новая заявка: ${params.platform}`, adminHtml),
+  ]
+  // Подтверждение заказчику, если контакт — email.
+  if (params.customerEmail) {
+    tasks.push(
+      sendEmail(
+        params.customerEmail,
+        "Заявка принята — CYBERПОЛКА",
+        `<h2>Заявка принята</h2>
+         <p>Мы получили вашу заявку и ответим в течение 24 часов.</p>
+         <p>Номер заявки: ${params.requestId}</p>`,
+      ),
+    )
+  }
+  await Promise.all(tasks)
+}
+
+/** Передача заявки исполнителю (с контактом заказчика — после согласия, 11.4). */
+export async function notifyRequestToExecutor(params: {
+  executorContact: string
+  task: string
+  platform: string
+  budget?: string | null
+  deadline?: string | null
+  customerContact: string
+}): Promise<void> {
+  if (!params.executorContact.includes("@")) return // контакт не email — письмо не шлём
+  const html = `
+    <h2>Новая заявка для вас</h2>
+    <p><b>Задача:</b></p>
+    <p style="white-space:pre-wrap">${params.task}</p>
+    <p><b>Где работает:</b> ${params.platform}</p>
+    ${params.deadline ? `<p><b>Срок:</b> ${params.deadline}</p>` : ""}
+    ${params.budget ? `<p><b>Бюджет:</b> ${params.budget}</p>` : ""}
+    <p><b>Контакт заказчика:</b> ${params.customerContact}</p>
+    <p>Если готовы взяться — свяжитесь с заказчиком и сообщите оператору.</p>`
+  await sendEmail(params.executorContact, `Новая заявка: ${params.platform}`, html)
+}
+
+/** Новая жалоба правообладателя — письмо владельцу. */
+export async function notifyNewComplaint(params: {
+  complaintId: string
+  claimant: string
+  productUrl?: string | null
+}): Promise<void> {
+  const supportTo = process.env.SUPPORT_EMAIL ?? "support@cyberpolka.store"
+  await sendEmail(
+    supportTo,
+    "Новая жалоба правообладателя",
+    `<h2>⚖️ Жалоба правообладателя</h2>
+     <p><b>Заявитель:</b> ${params.claimant}</p>
+     ${params.productUrl ? `<p><b>Товар:</b> ${params.productUrl}</p>` : ""}
+     <p><a href="${APP_URL}/admin/rights-complaints/${params.complaintId}">Открыть в админке</a></p>
+     <p style="color:#888;font-size:12px">Срок реакции по оферте — 24 часа.</p>`,
+  )
+}
+
 /** Напоминание автору о неподтверждённой заявке (через 24ч). */
 export async function notifyPurchaseReminder(params: {
   developerTelegramId: string | null

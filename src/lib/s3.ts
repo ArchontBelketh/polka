@@ -67,6 +67,11 @@ export async function getPresignedDownloadUrl(
   return getSignedUrl(client, cmd, { expiresIn: ttl })
 }
 
+export async function putObject(key: string, body: Buffer, contentType: string): Promise<void> {
+  const client = getS3Client()
+  await client.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType }))
+}
+
 export async function deleteObject(key: string): Promise<void> {
   const client = getS3Client()
   await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))

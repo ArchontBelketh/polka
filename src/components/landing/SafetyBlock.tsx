@@ -56,9 +56,9 @@ export function SafetyBlock() {
         ))}
       </div>
       <div className="mt-9 text-center text-sm text-muted-foreground">
-        Подробнее о проверке —{" "}
-        <Link href="/catalog" className="text-violet transition-colors hover:text-violet/80">
-          смотрите каталог
+        Подробнее —{" "}
+        <Link href="/how-we-check" className="text-violet transition-colors hover:text-violet/80">
+          как мы проверяем код
         </Link>
       </div>
     </section>

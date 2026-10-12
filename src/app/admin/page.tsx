@@ -107,6 +107,15 @@ export default async function AdminPage() {
               <Button asChild variant="outline" size="sm">
                 <Link href="/admin/payments">Платежи</Link>
               </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/requests">Заявки</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/rights-complaints">Жалобы</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/executors">Пул</Link>
+              </Button>
             </>
           )}
           <Button asChild variant="outline" size="sm">

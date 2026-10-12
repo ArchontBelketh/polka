@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { ProductCard } from "@/components/catalog/ProductCard"
-import { formatPrice } from "@/lib/utils"
 import { Upload, ScanLine, UserCheck, TrendingUp, Check, X } from "lucide-react"
 import { SellCta } from "./SellCta"
 
@@ -13,29 +12,29 @@ const STATS_THRESHOLD = 15
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
 export const metadata: Metadata = {
-  title: "Продавать на ПОЛКЕ — заработок на готовых скриптах",
+  title: "Продавайте на ПОЛКЕ — прямая оплата автору",
   description:
-    "Выложите свой бот, парсер или 1С-обработку и получайте до 80% с продажи. Площадка берёт на себя оплату и доставку файлов. Загрузка за 15 минут.",
+    "Разместите готовый бот, парсер или 1С-обработку и продавайте напрямую: покупатель платит вам, площадка оплату за товары не берёт. Размещение бесплатно, плата за продажу 0%.",
   openGraph: {
-    title: "Продавать на ПОЛКЕ — заработок на готовых скриптах",
-    description: "Выложите готовый продукт и получайте до 80% с каждой продажи.",
+    title: "Продавайте на ПОЛКЕ — прямая оплата автору",
+    description: "Разместите готовый код и продавайте напрямую. Размещение бесплатно, 0% с продаж.",
     url: `${APP_URL}/sell`,
     images: [{ url: `${APP_URL}/og-default.svg`, width: 1200, height: 630 }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Продавать на ПОЛКЕ",
-    description: "Выложите готовый продукт и получайте до 80% с каждой продажи.",
+    title: "Продавайте на ПОЛКЕ",
+    description: "Разместите готовый код и продавайте напрямую. Размещение бесплатно, 0% с продаж.",
     images: [`${APP_URL}/og-default.svg`],
   },
 }
 
 const STEPS = [
-  { icon: Upload, title: "Загрузка", text: "Заполняете карточку, прикладываете файлы и инструкцию по установке. 15 минут — и черновик готов." },
-  { icon: ScanLine, title: "Автоскан", text: "Код автоматически сканируется на вредоносные паттерны за пару минут. Чистые продукты идут дальше." },
-  { icon: UserCheck, title: "Модерация", text: "Модератор проверяет продукт за 24–48 часов: соответствие описанию, отсутствие чужого кода." },
-  { icon: TrendingUp, title: "Продажи", text: "Продукт в каталоге. Оплата и доставка файлов — на площадке. Деньги зачисляются на баланс сразу после оплаты." },
+  { icon: Upload, title: "Загрузка", text: "Заполняете карточку, прикладываете файлы и инструкцию. 15 минут — и черновик готов." },
+  { icon: ScanLine, title: "Проверка", text: "Код проходит автоматический X-Ray и ручную модерацию. В карточке появляется блок «Что делает этот код»." },
+  { icon: UserCheck, title: "Публикация", text: "Указываете свою ссылку для оплаты в реквизитах — и продукт попадает в каталог." },
+  { icon: TrendingUp, title: "Прямая оплата", text: "Покупатель платит вам напрямую по вашей ссылке, вы подтверждаете оплату — открывается скачивание." },
 ]
 
 const CATEGORIES = [
@@ -61,24 +60,24 @@ const FORBIDDEN = [
 
 const FAQ = [
   {
-    q: "Как продаётся продукт — через площадку или напрямую?",
-    a: "Зависит от цены. Дешевле ценового порога (15 000 ₽) — продажа идёт через площадку: покупатель платит нам, мы перечисляем вам сумму за вычетом комиссии. От порога — прямая продажа: покупатель платит вам напрямую по вашим реквизитам, а площадка берёт разовый тариф за размещение. Точные цифры — в Приложении №1.",
+    q: "Как я получаю оплату?",
+    a: "Покупатель платит вам напрямую по вашей ссылке (ЮKassa, Robokassa, банк). ПОЛКА оплату за товары не принимает. После оплаты покупатель нажимает «Я оплатил», вы подтверждаете получение в кабинете — и покупателю открывается скачивание.",
   },
   {
-    q: "Когда я получу деньги? (продажа через площадку)",
-    a: "Сумма за вычетом комиссии зачисляется на ваш баланс после оплаты покупателем. По крупным продажам (от порога удержания) зачисление придерживается до конца окна претензии — чтобы обеспечить возможный возврат. Вывод обрабатывается администратором по вторникам и пятницам.",
-  },
-  {
-    q: "Что такое тариф за размещение?",
-    a: "Для дорогих продуктов (от 15 000 ₽) площадка не участвует в расчётах — вы получаете оплату напрямую. За право размещать и продавать такой продукт взимается разовый тариф (процент от цены), после оплаты которого продаж может быть сколько угодно. Получение оплаты вы подтверждаете в кабинете, после чего покупателю открывается скачивание.",
-  },
-  {
-    q: "Бывают ли возвраты?",
-    a: "По продажам через площадку покупатель может подать претензию в течение 7 дней, если продукт не соответствует описанию или не работает; обоснованный возврат исполняется за ваш счёт. По прямым продажам (тариф за размещение) возвраты вы решаете с покупателем напрямую. Небезопасные или чужие продукты снимаются модерацией с продажи.",
+    q: "Сколько берёт площадка?",
+    a: "Размещение бесплатное, плата за продажу сейчас 0%. Деньги за товар — ваши целиком. Как подключить приём оплаты — на странице «Как принимать оплату».",
   },
   {
     q: "Нужен ли мне статус (самозанятый / ИП / ООО), чтобы начать?",
-    a: "Чтобы загрузить продукт, подготовить карточку и сохранить черновик — статус не нужен. Правовой статус и реквизиты нужны только для публикации и получения денег: без них мы просто не сможем перечислить вам выплату. Укажите их в разделе «Реквизиты», когда будете готовы продавать. Чек покупателю и налоги — на вашей стороне.",
+    a: "Загрузить и подготовить продукт можно без статуса. Для публикации нужны правовой статус, реквизиты и ссылка для оплаты — укажите их в разделе «Реквизиты». Чек покупателю и налоги — на вашей стороне.",
+  },
+  {
+    q: "Что такое X-Ray-паспорт?",
+    a: "При публикации код проходит X-Ray, и в карточке показывается «Что делает этот код» (интернет, файлы, команды, уязвимые зависимости) — без исходного кода. При загрузке вы отмечаете, нужен ли интернет, пишет ли файлы, запускает ли команды; расхождение с анализом отправляет продукт на ручную проверку.",
+  },
+  {
+    q: "Возвраты и претензии?",
+    a: "Вы — продавец, поэтому чек покупателю, возвраты и ответы на претензии на вашей стороне. ПОЛКА помогает в спорах и снимает небезопасные или чужие продукты с продажи.",
   },
 ]
 
@@ -87,11 +86,10 @@ export default async function SellPage() {
   const role = (session?.user as { role?: string } | undefined)?.role
 
   // Честная статистика площадки (только реальные данные из БД).
-  const [developerRows, productsCount, salesCount, paidAgg, topProducts] = await Promise.all([
+  const [developerRows, productsCount, salesCount, topProducts] = await Promise.all([
     db.product.findMany({ where: { status: "APPROVED" }, select: { authorId: true }, distinct: ["authorId"] }),
     db.product.count({ where: { status: "APPROVED" } }),
     db.purchase.count({ where: { status: { in: ["PAID", "DELIVERED"] } } }),
-    db.payout.aggregate({ _sum: { amount: true }, where: { status: "PAID" } }),
     db.product.findMany({
       where: { status: "APPROVED", salesCount: { gt: 0 } },
       orderBy: { salesCount: "desc" },
@@ -106,10 +104,9 @@ export default async function SellPage() {
 
   const showStats = productsCount >= STATS_THRESHOLD
   const statItems = [
-    { label: "разработчиков разместили продукты", value: developerRows.length, money: false },
-    { label: "продуктов в каталоге", value: productsCount, money: false },
-    { label: "продаж совершено", value: salesCount, money: false },
-    { label: "выплачено разработчикам", value: paidAgg._sum.amount ?? 0, money: true },
+    { label: "разработчиков разместили продукты", value: developerRows.length },
+    { label: "продуктов в каталоге", value: productsCount },
+    { label: "продаж совершено", value: salesCount },
   ].filter((s) => s.value > 0)
 
   return (
@@ -123,8 +120,8 @@ export default async function SellPage() {
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
             Бот, парсер, Python-скрипт или 1С-обработка, которую вы делали под задачу, может
-            продаваться снова и снова. Разместите её один раз — оплату и выдачу файлов покупателю
-            берёт на себя ПОЛКА. Вы получаете до 80% с каждой продажи.
+            продаваться снова и снова. Разместите её один раз — покупатель платит вам напрямую, а
+            доступ открывается после вашего подтверждения оплаты. Размещение бесплатно, 0% с продаж.
           </p>
           <div className="flex items-center justify-center gap-3">
             <SellCta role={role} />
@@ -140,12 +137,10 @@ export default async function SellPage() {
         <section className="border-y border-border bg-card/40">
           <div className="mx-auto max-w-5xl px-4 py-12">
             <h2 className="text-center text-2xl font-bold text-foreground">ПОЛКА в цифрах</h2>
-            <div className="mt-8 grid grid-cols-2 gap-6 md:grid-cols-4 text-center">
+            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 text-center">
               {statItems.map((s) => (
                 <div key={s.label}>
-                  <p className="text-3xl font-bold text-primary">
-                    {s.money ? formatPrice(s.value) : s.value.toLocaleString("ru-RU")}
-                  </p>
+                  <p className="text-3xl font-bold text-primary">{s.value.toLocaleString("ru-RU")}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
                 </div>
               ))}
@@ -185,13 +180,13 @@ export default async function SellPage() {
         </section>
       )}
 
-      {/* Pricing — размещение бесплатно */}
+      {/* Pricing — прямая оплата, 0% */}
       <section className="mx-auto max-w-3xl px-4 py-12">
         <div className="rounded-xl border border-border bg-card p-6 text-center space-y-2">
-          <h2 className="text-2xl font-bold text-foreground">Размещение бесплатное</h2>
+          <h2 className="text-2xl font-bold text-foreground">Размещение бесплатное, 0% с продаж</h2>
           <p className="text-muted-foreground">
-            Публикуйте свои продукты и продавайте их в каталоге. Подробные условия — в{" "}
-            <a href="/legal/tariffs" className="text-primary hover:underline">тарифах</a>.
+            Покупатель платит вам напрямую — деньги за товар ваши целиком. Как подключить приём
+            оплаты — <a href="/how-to-get-paid" className="text-primary hover:underline">читайте здесь</a>.
           </p>
         </div>
       </section>
@@ -274,7 +269,7 @@ export default async function SellPage() {
       <section className="mx-auto max-w-3xl px-4 py-20 text-center space-y-6">
         <h2 className="text-3xl font-bold text-foreground">Готовы выложить первый продукт?</h2>
         <p className="text-muted-foreground">
-          Загрузка занимает 15 минут. Дальше площадка работает за вас.
+          Загрузка занимает 15 минут. Покупатель платит вам напрямую, вы подтверждаете оплату.
         </p>
         <div className="flex items-center justify-center">
           <SellCta role={role} />

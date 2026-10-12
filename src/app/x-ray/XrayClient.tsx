@@ -217,7 +217,7 @@ function ReportView({ report }: { report: XrayReport }) {
           <Link href="/catalog" onClick={() => reachGoal("xray_to_catalog")}>Проверенные решения на ПОЛКЕ</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/support" onClick={() => reachGoal("xray_need_help")}>Нужна помощь с исправлением</Link>
+          <Link href="/request" onClick={() => reachGoal("xray_need_help")}>Нужна помощь с исправлением</Link>
         </Button>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { XrayClient } from "./XrayClient"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
@@ -28,7 +29,8 @@ export default function XrayPage() {
       <XrayClient />
 
       <p className="text-xs text-muted-foreground">
-        Это автоматический анализ, а не гарантия безопасности. Пока поддерживается Python.
+        Это автоматический анализ, а не гарантия безопасности. Пока поддерживается Python.{" "}
+        <Link href="/how-we-check" className="text-primary hover:underline">Как мы проверяем код</Link>.
       </p>
     </div>
   )
