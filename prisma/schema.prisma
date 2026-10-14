@@ -572,6 +572,11 @@ model Request {
   codeFileName    String?
   xrayReport      Json?                           // отчёт X-Ray по прикреплённому коду
   kworkUrl        String?                         // ссылка Kwork (для статуса KWORK)
+  // Фаза 5: паспорт проекта (12.2) и рентген приёмки (12.3)
+  projectPassport      String?  @db.Text          // паспорт проекта (шаблон Прил. B)
+  deliveredCodeS3Key   String?                    // сданная исполнителем работа
+  deliveredCodeFileName String?
+  deliveryXrayReport   Json?                       // X-Ray по сданной работе
   userId          String?                         // если заказчик залогинен
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -581,6 +586,15 @@ model Request {
 
   @@index([status])
   @@index([createdAt])
+}
+
+// Настройки сайта (синглтон). Напр. «Срок замены на сайте» для Эстафеты (ТЗ 12.1):
+// пока в пуле мало дежурных — выключено, на сайте только «подберём замену».
+model SiteSetting {
+  id              String   @id @default("singleton")
+  relaySlaEnabled Boolean  @default(false) // показывать срок замены на сайте
+  relaySlaDays    Int      @default(7)     // обещанный срок подбора замены, дней
+  updatedAt       DateTime @updatedAt
 }
 
 model RequestStatusLog {

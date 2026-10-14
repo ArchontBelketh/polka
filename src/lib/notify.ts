@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer"
 import { SERVICE_LABELS } from "@/lib/services"
+import { ACCESS_CHECKLIST } from "@/lib/relay"
 import type { ServiceKind } from "@/generated/prisma/client"
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
@@ -417,6 +418,41 @@ export async function notifyServiceReportReady(params: {
     `<h2>Отчёт готов</h2>
      <p>Отчёт по услуге «${SERVICE_LABELS[params.kind]}» готов.</p>
      <p><a href="${APP_URL}/services/${params.orderId}">Открыть отчёт в личном кабинете</a></p>`,
+  )
+}
+
+/** Заявка переведена в «Эстафету» — письмо заказчику (ТЗ 12.1). */
+export async function notifyRequestRelay(params: { requestId: string; email: string }): Promise<void> {
+  await sendEmail(
+    params.email,
+    "Подбираем замену по вашему проекту — CYBERПОЛКА",
+    `<h2>Подбираем замену</h2>
+     <p>Мы включили «Эстафету» по вашей заявке и подбираем нового исполнителя из дежурных разработчиков.
+     Работа продолжится с вашего репозитория.</p>
+     <p>Правила «Эстафеты»: <a href="${APP_URL}/relay">${APP_URL}/relay</a></p>`,
+  )
+}
+
+/** Заявка закрыта — письмо заказчику с паспортом проекта и чеклистом доступов (ТЗ 12.2/12.4). */
+export async function notifyRequestClosed(params: {
+  requestId: string
+  email: string
+  passport: string
+}): Promise<void> {
+  const checklist = ACCESS_CHECKLIST.map((it) => `<li>${it}</li>`).join("")
+  const passportBlock = params.passport.trim()
+    ? `<h3>Паспорт проекта</h3>
+       <pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:8px;font-size:12px">${escapeHtml(params.passport)}</pre>`
+    : ""
+  await sendEmail(
+    params.email,
+    "Заявка закрыта — CYBERПОЛКА",
+    `<h2>Заявка закрыта</h2>
+     <p>Работа сдана. Ниже — паспорт проекта и чеклист по доступам.</p>
+     ${passportBlock}
+     <h3>Отзовите доступы после сдачи</h3>
+     <ul>${checklist}</ul>
+     <p style="color:#888;font-size:12px">ПОЛКА паролей не хранит.</p>`,
   )
 }
 

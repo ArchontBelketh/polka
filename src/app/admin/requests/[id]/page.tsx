@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react"
 import { REQUEST_STATUS_LABELS } from "@/lib/request-status"
 import { RequestActions } from "./RequestActions"
 import { AssignExecutors } from "./AssignExecutors"
+import { DeliveryUpload } from "./DeliveryUpload"
 import type { XrayReport } from "@/lib/xray/types"
 
 export const metadata = { title: "Заявка" }
@@ -43,6 +44,7 @@ export default async function AdminRequestPage({ params }: RouteParams) {
   }))
 
   const xray = request.xrayReport ? (request.xrayReport as unknown as XrayReport) : null
+  const deliveryXray = request.deliveryXrayReport ? (request.deliveryXrayReport as unknown as XrayReport) : null
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -96,6 +98,29 @@ export default async function AdminRequestPage({ params }: RouteParams) {
         </section>
       )}
 
+      {/* Рентген приёмки — X-Ray по сданной работе (ТЗ 12.3) */}
+      <section className="rounded-lg border border-border bg-card p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-semibold">Рентген приёмки</h2>
+          {request.deliveredCodeS3Key && (
+            <a href={`/api/admin/requests/${request.id}/delivery`} className="text-sm text-primary hover:underline">Скачать работу →</a>
+          )}
+        </div>
+        {deliveryXray ? (
+          <ul className="space-y-0.5 text-sm text-muted-foreground">
+            <li>Интернет: {deliveryXray.facts.internet.length} · Файлы: {deliveryXray.facts.files.length} · Команды: {deliveryXray.facts.commands.length}</li>
+            <li>Секреты: {deliveryXray.facts.secrets.length} · Подозрительное: {deliveryXray.facts.suspicious.length} · Уязвимости: {deliveryXray.vulns.length}</li>
+            {deliveryXray.addresses.urls.length + deliveryXray.addresses.ips.length > 0 && (
+              <li className="break-all">Адреса: {[...deliveryXray.addresses.urls, ...deliveryXray.addresses.ips].join(", ")}</li>
+            )}
+            <li className="pt-1 text-xs">Критерии приёмки — в поле «Техническое задание» ниже. Отправьте заказчику отчёт и критерии.</li>
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">Загрузите сданную исполнителем работу, чтобы проверить её X-Ray.</p>
+        )}
+        <DeliveryUpload requestId={request.id} />
+      </section>
+
       {/* Управление */}
       <RequestActions
         requestId={request.id}
@@ -103,6 +128,7 @@ export default async function AdminRequestPage({ params }: RouteParams) {
         notes={request.notes ?? ""}
         spec={request.spec ?? ""}
         kworkUrl={request.kworkUrl ?? ""}
+        projectPassport={request.projectPassport ?? ""}
       />
 
       {/* Исполнители */}

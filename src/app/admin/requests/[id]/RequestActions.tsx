@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { REQUEST_STATUS_LABELS, REQUEST_STATUSES } from "@/lib/request-status"
+import { PASSPORT_TEMPLATE } from "@/lib/relay"
 
 interface Props {
   requestId: string
@@ -13,6 +14,7 @@ interface Props {
   notes: string
   spec: string
   kworkUrl: string
+  projectPassport: string
 }
 
 const SPEC_TEMPLATE = `## Задача
@@ -28,13 +30,14 @@ const SPEC_TEMPLATE = `## Задача
 ## Срок
 `
 
-export function RequestActions({ requestId, status, notes, spec, kworkUrl }: Props) {
+export function RequestActions({ requestId, status, notes, spec, kworkUrl, projectPassport }: Props) {
   const router = useRouter()
   const [newStatus, setNewStatus] = useState(status)
   const [comment, setComment] = useState("")
   const [notesVal, setNotesVal] = useState(notes)
   const [specVal, setSpecVal] = useState(spec || SPEC_TEMPLATE)
   const [kwork, setKwork] = useState(kworkUrl)
+  const [passport, setPassport] = useState(projectPassport)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -52,6 +55,7 @@ export function RequestActions({ requestId, status, notes, spec, kworkUrl }: Pro
           comment: comment || undefined,
           notes: notesVal,
           spec: specVal,
+          projectPassport: passport,
           kworkUrl: newStatus === "KWORK" ? kwork : undefined,
         }),
       })
@@ -100,6 +104,18 @@ export function RequestActions({ requestId, status, notes, spec, kworkUrl }: Pro
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Техническое задание <span className="font-normal text-muted-foreground">(заполняет оператор)</span></label>
         <Textarea value={specVal} onChange={(e) => setSpecVal(e.target.value)} rows={10} maxLength={10000} className="font-mono text-xs" />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-medium">Паспорт проекта <span className="font-normal text-muted-foreground">(нужен для закрытия заявки)</span></label>
+          {!passport.trim() && (
+            <button type="button" onClick={() => setPassport(PASSPORT_TEMPLATE)} className="text-xs text-primary hover:underline">
+              Вставить шаблон
+            </button>
+          )}
+        </div>
+        <Textarea value={passport} onChange={(e) => setPassport(e.target.value)} rows={10} maxLength={20000} className="font-mono text-xs" />
       </div>
 
       <div className="space-y-1.5">

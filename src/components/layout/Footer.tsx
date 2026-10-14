@@ -24,6 +24,7 @@ const COLUMNS = [
     title: "Поддержка",
     links: [
       { href: "/purchases", label: "Мои покупки" },
+      { href: "/relay", label: "Правила «Эстафеты»" },
       { href: "/support", label: "Помощь" },
     ],
   },

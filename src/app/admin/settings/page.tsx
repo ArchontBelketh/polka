@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { SettingsForm } from "./SettingsForm"
 import { AiSettingsForm } from "./AiSettingsForm"
+import { RelaySettingsForm } from "./RelaySettingsForm"
 import type { AiProvider } from "@/lib/ai-provider"
 
 export const metadata = { title: "Настройки" }
@@ -13,9 +14,11 @@ export default async function AdminSettingsPage() {
   const user = await db.user.findUnique({ where: { id: session.user.id } })
   if (!user || user.role !== "ADMIN") redirect("/")
 
-  const [row, ai] = await Promise.all([
+  const [row, ai, site, executorCount] = await Promise.all([
     db.operatorSettings.findUnique({ where: { id: "singleton" } }),
     db.aiSettings.findUnique({ where: { id: "singleton" } }),
+    db.siteSetting.findUnique({ where: { id: "singleton" } }),
+    db.executor.count({ where: { active: true } }),
   ])
 
   return (
@@ -47,6 +50,22 @@ export default async function AdminSettingsPage() {
             model: ai?.model ?? "",
             folderId: ai?.folderId ?? "",
             hasKey: !!ai?.apiKey,
+          }}
+        />
+      </section>
+
+      <section className="space-y-4 border-t border-border pt-8">
+        <div>
+          <h2 className="text-xl font-semibold">«Эстафета»</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Срок замены на сайте (ТЗ 12.1). Сейчас активных дежурных в пуле: <b>{executorCount}</b>.
+            Включайте показ срока только при 3–5 дежурных.
+          </p>
+        </div>
+        <RelaySettingsForm
+          initial={{
+            relaySlaEnabled: site?.relaySlaEnabled ?? false,
+            relaySlaDays: site?.relaySlaDays ?? 7,
           }}
         />
       </section>
