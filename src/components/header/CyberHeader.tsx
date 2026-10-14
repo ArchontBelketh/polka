@@ -172,6 +172,7 @@ export default function CyberHeader({ authed, role, unread, messagesHref }: Cybe
         <div style={navInnerStyle}>
           <Link href="/request" className="hdr-nav-cta" style={navCtaStyle}>Описать задачу</Link>
           <Link href="/x-ray" style={navLinkStyle}>Проверить код</Link>
+          <Link href="/services" style={navLinkStyle}>Услуги</Link>
           <Link href="/catalog" style={navLinkStyle}>Каталог</Link>
           <Link href="/sell" style={navLinkStyle}>Продавать</Link>
           <Link href="/how-we-check" style={navLinkStyle}>Как проверяем</Link>
@@ -188,6 +189,7 @@ export default function CyberHeader({ authed, role, unread, messagesHref }: Cybe
 
           <Link href="/request" style={mPrimary} onClick={closeMobile}>Описать задачу</Link>
           <Link href="/x-ray" style={mLink} onClick={closeMobile}>Проверить код</Link>
+          <Link href="/services" style={mLink} onClick={closeMobile}>Услуги</Link>
           <Link href="/catalog" style={mLink} onClick={closeMobile}>Каталог</Link>
           <Link href="/how-we-check" style={mLink} onClick={closeMobile}>Как проверяем</Link>
 

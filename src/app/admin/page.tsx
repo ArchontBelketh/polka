@@ -111,6 +111,9 @@ export default async function AdminPage() {
                 <Link href="/admin/requests">Заявки</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
+                <Link href="/admin/services">Услуги</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
                 <Link href="/admin/rights-complaints">Жалобы</Link>
               </Button>
               <Button asChild variant="outline" size="sm">

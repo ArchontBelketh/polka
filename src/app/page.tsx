@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { RefreshCw, FileCheck, KeyRound, ScanLine, ArrowRight } from "lucide-react"
+import { formatPrice } from "@/lib/utils"
+import { SERVICE_KINDS, SERVICE_LABELS, SERVICE_TAGLINES, SERVICE_PRICES, SLUG_BY_KIND } from "@/lib/services"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
@@ -167,6 +169,35 @@ export default async function Home() {
           <Button asChild size="lg" variant="outline">
             <Link href="/catalog">Смотреть каталог</Link>
           </Button>
+        </div>
+      </section>
+
+      {/* Платные услуги */}
+      <section className="border-t border-border bg-card/40">
+        <div className="mx-auto max-w-5xl px-4 py-16">
+          <h2 className="text-center text-2xl font-bold text-foreground">Платные услуги</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-center text-muted-foreground">
+            Когда нужна не просто проверка, а разбор и помощь: аудит кода, приёмка работы подрядчика
+            или спасение проекта, если разработчик пропал.
+          </p>
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {SERVICE_KINDS.map((kind) => (
+              <Link
+                key={kind}
+                href={`/services/order?kind=${SLUG_BY_KIND[kind]}`}
+                className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+              >
+                <h3 className="font-semibold text-foreground">{SERVICE_LABELS[kind]}</h3>
+                <p className="mt-1 text-lg font-bold text-primary">{formatPrice(SERVICE_PRICES[kind])}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{SERVICE_TAGLINES[kind]}</p>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Button asChild size="lg" variant="outline">
+              <Link href="/services">Подробнее об услугах</Link>
+            </Button>
+          </div>
         </div>
       </section>
 

@@ -211,8 +211,14 @@ function ReportView({ report }: { report: XrayReport }) {
         <p>База уязвимостей обновлена {formatXrayDate(report.osvCheckedAt)}. Источник данных: OSV (osv.dev).</p>
       </div>
 
-      {/* Кнопки под отчётом */}
+      {/* Кнопки под отчётом (ТЗ 7.8) */}
       <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+        <Button asChild>
+          <Link href="/services/order?kind=ai-audit" onClick={() => reachGoal("service_ai_audit")}>Глубокий AI-аудит — 390 ₽</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/services/order?kind=expert-review" onClick={() => reachGoal("service_expert_review")}>Проверить работу подрядчика с экспертом</Link>
+        </Button>
         <Button asChild variant="outline">
           <Link href="/catalog" onClick={() => reachGoal("xray_to_catalog")}>Проверенные решения на ПОЛКЕ</Link>
         </Button>

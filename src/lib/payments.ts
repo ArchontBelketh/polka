@@ -4,8 +4,9 @@ import { db } from "@/lib/db"
 import { createPayment, type TBankReceipt } from "@/lib/tbank"
 import { developerPayout } from "@/lib/earnings"
 import { payoutHoldThresholdKopecks } from "@/lib/tariffs"
-import { notifyNewSale } from "@/lib/notify"
+import { notifyNewSale, notifyServiceOrderPaid } from "@/lib/notify"
 import { hasAgentReceiptData, normalizePhone } from "@/lib/payout-profile"
+import { deleteObject } from "@/lib/s3"
 
 const CLAIM_WINDOW_DAYS = parseInt(process.env.CLAIM_WINDOW_DAYS ?? "7", 10)
 
@@ -17,9 +18,9 @@ const RECEIPT_VAT = process.env.RECEIPT_VAT ?? "none"
 // права, ФФД 1.2). Собственные услуги оператора остаются "service" (см. ниже).
 const RECEIPT_PRODUCT_OBJECT = process.env.RECEIPT_PRODUCT_PAYMENT_OBJECT ?? "property_rights"
 
-const OWN_SERVICE_TYPES = new Set<string>(["slots", "pro", "ai_review", "listing_fee"])
+const OWN_SERVICE_TYPES = new Set<string>(["slots", "pro", "ai_review", "listing_fee", "service_order"])
 
-export type PaymentType = "purchase" | "slots" | "pro" | "ai_review" | "listing_fee"
+export type PaymentType = "purchase" | "slots" | "pro" | "ai_review" | "listing_fee" | "service_order"
 
 /** Обычный чек за услугу оператора: одна позиция, продавец — оператор. */
 function buildServiceReceipt(name: string, amountKopecks: number, email: string): TBankReceipt {
@@ -171,11 +172,13 @@ const CONFIRM_HANDLERS: Record<string, (p: Payload, ctx: Ctx) => Promise<void>> 
   pro: fulfillPro,
   ai_review: fulfillAiReview,
   listing_fee: fulfillListingFee,
+  service_order: fulfillServiceOrder,
 }
 
 const FAIL_HANDLERS: Record<string, (p: Payload) => Promise<void>> = {
   purchase: failPurchase,
   ai_review: failAiReview,
+  service_order: failServiceOrder,
 }
 
 /** Выдать услугу по подтверждённому платежу. */
@@ -319,4 +322,33 @@ async function failAiReview(p: Payload): Promise<void> {
     where: { id: p.aiReviewId, status: "PENDING" },
     data: { status: "FAILED" },
   })
+}
+
+// Платные услуги ПОЛКИ (раздел 11): оплата переводит заказ в «Оплачен».
+// AI_AUDIT далее подхватит крон и выполнит аудит; экспертные услуги ведёт оператор.
+async function fulfillServiceOrder(p: Payload, ctx: Ctx): Promise<void> {
+  const { serviceOrderId } = p
+  if (!serviceOrderId) return
+  const res = await db.serviceOrder.updateMany({
+    where: { id: serviceOrderId, status: "AWAITING_PAYMENT" },
+    data: { status: "PAID", paymentId: ctx.paymentId, paidAt: new Date() },
+  })
+  if (res.count === 0) return // идемпотентность
+  const order = await db.serviceOrder.findUnique({
+    where: { id: serviceOrderId },
+    select: { id: true, kind: true },
+  })
+  if (order) void notifyServiceOrderPaid({ orderId: order.id, kind: order.kind })
+}
+
+async function failServiceOrder(p: Payload): Promise<void> {
+  if (!p.serviceOrderId) return
+  // Неоплаченный заказ не занимает место — удаляем вместе с прикреплённым кодом.
+  const order = await db.serviceOrder.findFirst({
+    where: { id: p.serviceOrderId, status: "AWAITING_PAYMENT" },
+    select: { id: true, codeS3Key: true },
+  })
+  if (!order) return
+  if (order.codeS3Key) await deleteObject(order.codeS3Key).catch(() => {})
+  await db.serviceOrder.delete({ where: { id: order.id } }).catch(() => {})
 }

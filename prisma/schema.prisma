@@ -140,6 +140,7 @@ model User {
   questions       ProductQuestion[]
   purchaseMessages PurchaseMessage[]
   requests        Request[]
+  serviceOrders   ServiceOrder[]
 }
 
 model Account {
@@ -641,8 +642,58 @@ model Executor {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   assignments   RequestAssignment[]
+  serviceOrders ServiceOrder[]
 
   @@index([active])
+}
+
+// ── Платные услуги ПОЛКИ (Фаза 4, ТЗ раздел 11) ──────────────────────────────
+// Собственные услуги оператора: оплата через эквайринг + чек CloudKassir
+// («service», без агентского признака). AI_AUDIT выполняется автоматически
+// (нейросеть + факты X-Ray), экспертные услуги ведёт оператор вручную.
+enum ServiceKind {
+  AI_AUDIT        // Глубокий AI-аудит (авто)
+  EXPERT_REVIEW   // Расширенная приёмка кода (эксперт)
+  PROJECT_RESCUE  // «Спасение проекта» (эксперт)
+}
+
+enum ServiceOrderStatus {
+  AWAITING_PAYMENT // ждёт оплаты
+  PAID             // Оплачен
+  IN_PROGRESS      // В работе
+  REPORT_READY     // Отчёт готов
+  CLOSED           // Закрыт
+  REFUNDED         // Возврат
+}
+
+model ServiceOrder {
+  id            String             @id @default(cuid())
+  kind          ServiceKind
+  status        ServiceOrderStatus @default(AWAITING_PAYMENT)
+  amount        Int                                 // копейки
+  userId        String
+  email         String                              // для чека и отчёта
+  contact       String?                             // мессенджер/телефон для связи
+  brief         String             @db.Text         // задача / критерии приёмки / описание ситуации
+  codeS3Key     String?
+  codeFileName  String?
+  xrayReport    Json?                               // факты X-Ray по прикреплённому коду
+  aiResult      Json?                               // результат AI-аудита (AI_AUDIT)
+  report        String?            @db.Text         // отчёт эксперта (EXPERT_REVIEW/PROJECT_RESCUE)
+  expertId      String?                             // назначенный эксперт из пула
+  paymentId     String?
+  codeDeletedAt DateTime?                           // код удалён после сдачи отчёта (11.4)
+  createdAt     DateTime           @default(now())
+  paidAt        DateTime?
+  reportReadyAt DateTime?
+  closedAt      DateTime?
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expert        Executor?          @relation(fields: [expertId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([kind])
 }
 
 // Отправка заявки исполнителю (ТЗ 11.4): до 3 на заявку + отметка, кто ответил.

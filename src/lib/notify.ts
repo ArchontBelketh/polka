@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer"
+import { SERVICE_LABELS } from "@/lib/services"
+import type { ServiceKind } from "@/generated/prisma/client"
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
@@ -385,6 +387,36 @@ export async function notifyNewComplaint(params: {
      ${params.productUrl ? `<p><b>Товар:</b> ${params.productUrl}</p>` : ""}
      <p><a href="${APP_URL}/admin/rights-complaints/${params.complaintId}">Открыть в админке</a></p>
      <p style="color:#888;font-size:12px">Срок реакции по оферте — 24 часа.</p>`,
+  )
+}
+
+/** Оплачена платная услуга ПОЛКИ — письмо владельцу (ТЗ раздел 11). */
+export async function notifyServiceOrderPaid(params: {
+  orderId: string
+  kind: ServiceKind
+}): Promise<void> {
+  const supportTo = process.env.SUPPORT_EMAIL ?? "support@cyberpolka.store"
+  await sendEmail(
+    supportTo,
+    `Оплачена услуга: ${SERVICE_LABELS[params.kind]}`,
+    `<h2>💳 Оплачена платная услуга</h2>
+     <p><b>Услуга:</b> ${SERVICE_LABELS[params.kind]}</p>
+     <p><a href="${APP_URL}/admin/services/${params.orderId}">Открыть заказ в админке</a></p>`,
+  )
+}
+
+/** Отчёт по услуге готов — письмо заказчику. */
+export async function notifyServiceReportReady(params: {
+  orderId: string
+  kind: ServiceKind
+  email: string
+}): Promise<void> {
+  await sendEmail(
+    params.email,
+    `Отчёт готов: ${SERVICE_LABELS[params.kind]} — CYBERПОЛКА`,
+    `<h2>Отчёт готов</h2>
+     <p>Отчёт по услуге «${SERVICE_LABELS[params.kind]}» готов.</p>
+     <p><a href="${APP_URL}/services/${params.orderId}">Открыть отчёт в личном кабинете</a></p>`,
   )
 }
 
