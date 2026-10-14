@@ -4,8 +4,7 @@ import { db } from "@/lib/db"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
-import { SERVICE_LABELS, SERVICE_STATUS_LABELS } from "@/lib/services"
+import { SERVICE_LABELS, SERVICE_STATUS_LABELS, amountLabel } from "@/lib/services"
 
 export const metadata = { title: "Платные услуги" }
 
@@ -30,7 +29,7 @@ export default async function AdminServicesPage() {
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{SERVICE_LABELS[o.kind]}</p>
             <p className="text-xs text-muted-foreground">
-              {o.email} · {formatPrice(o.amount)} · {new Date(o.createdAt).toLocaleDateString("ru-RU")}
+              {o.email} · {amountLabel(o.amount)} · {new Date(o.createdAt).toLocaleDateString("ru-RU")}
             </p>
           </div>
           <Badge variant="outline" className="shrink-0 text-xs">{SERVICE_STATUS_LABELS[o.status]}</Badge>

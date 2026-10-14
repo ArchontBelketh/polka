@@ -1,4 +1,5 @@
 import type { ServiceKind, ServiceOrderStatus } from "@/generated/prisma/client"
+import { formatPrice } from "@/lib/utils"
 
 // ── Платные услуги ПОЛКИ (ТЗ раздел 11) ──────────────────────────────────────
 // Цены — [Решение владельца]; задаются через env (копейки), с ориентирами из ТЗ
@@ -79,7 +80,34 @@ export function isAutomated(kind: ServiceKind): boolean {
   return kind === "AI_AUDIT"
 }
 
+// Оплата сразу на сайте. «Спасение проекта» — бесплатная заявка: сначала разбор
+// и обсуждение, счёт выставляется вручную позже (чтобы не отпугивать оплатой).
+export function isUpfrontPaid(kind: ServiceKind): boolean {
+  return kind !== "PROJECT_RESCUE"
+}
+
+// Текст цены для витрины/карточки.
+export function priceLabel(kind: ServiceKind): string {
+  return isUpfrontPaid(kind) ? formatPrice(SERVICE_PRICES[kind]) : "Бесплатная заявка"
+}
+
+// Подпись к цене (вторая строка).
+export function priceNote(kind: ServiceKind): string {
+  return isUpfrontPaid(kind) ? "оплата на сайте" : "смета после разбора"
+}
+
+// Надпись на кнопке заказа.
+export function ctaLabel(kind: ServiceKind): string {
+  return isUpfrontPaid(kind) ? "Заказать" : "Оставить заявку"
+}
+
+// Сумма в заказе: «по смете», если ещё не оценено (amount = 0).
+export function amountLabel(amount: number): string {
+  return amount > 0 ? formatPrice(amount) : "по смете"
+}
+
 export const SERVICE_STATUS_LABELS: Record<ServiceOrderStatus, string> = {
+  NEW: "Заявка принята",
   AWAITING_PAYMENT: "Ждёт оплаты",
   PAID: "Оплачен",
   IN_PROGRESS: "В работе",
@@ -88,9 +116,9 @@ export const SERVICE_STATUS_LABELS: Record<ServiceOrderStatus, string> = {
   REFUNDED: "Возврат",
 }
 
-// Статусы, которые может ставить оператор в админке (экспертные услуги).
+// Статусы, которые может ставить оператор в админке.
 export const SERVICE_STATUSES: ServiceOrderStatus[] = [
-  "PAID", "IN_PROGRESS", "REPORT_READY", "CLOSED", "REFUNDED",
+  "NEW", "PAID", "IN_PROGRESS", "REPORT_READY", "CLOSED", "REFUNDED",
 ]
 
 // slug в URL ↔ ServiceKind (для /services/order?kind=…).

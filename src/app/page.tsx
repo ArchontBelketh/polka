@@ -4,8 +4,7 @@ import { db } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import { ProductCard } from "@/components/catalog/ProductCard"
 import { RefreshCw, FileCheck, KeyRound, ScanLine, ArrowRight } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
-import { SERVICE_KINDS, SERVICE_LABELS, SERVICE_TAGLINES, SERVICE_PRICES, SLUG_BY_KIND } from "@/lib/services"
+import { SERVICE_KINDS, SERVICE_LABELS, SERVICE_TAGLINES, SLUG_BY_KIND, priceLabel } from "@/lib/services"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
@@ -188,7 +187,7 @@ export default async function Home() {
                 className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
               >
                 <h3 className="font-semibold text-foreground">{SERVICE_LABELS[kind]}</h3>
-                <p className="mt-1 text-lg font-bold text-primary">{formatPrice(SERVICE_PRICES[kind])}</p>
+                <p className="mt-1 text-lg font-bold text-primary">{priceLabel(kind)}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{SERVICE_TAGLINES[kind]}</p>
               </Link>
             ))}

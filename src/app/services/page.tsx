@@ -5,10 +5,10 @@ import { db } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
 import {
   SERVICE_KINDS, SERVICE_LABELS, SERVICE_TAGLINES, SERVICE_TURNAROUND,
-  SERVICE_INCLUDES, SERVICE_PRICES, SERVICE_STATUS_LABELS, SLUG_BY_KIND, SERVICE_DISCLAIMER,
+  SERVICE_INCLUDES, SERVICE_STATUS_LABELS, SLUG_BY_KIND, SERVICE_DISCLAIMER,
+  priceLabel, priceNote, ctaLabel, amountLabel,
 } from "@/lib/services"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
@@ -45,7 +45,8 @@ export default async function ServicesPage() {
         {SERVICE_KINDS.map((kind) => (
           <div key={kind} className="flex flex-col rounded-xl border border-border bg-card p-5">
             <h2 className="text-lg font-semibold text-foreground">{SERVICE_LABELS[kind]}</h2>
-            <p className="mt-1 text-2xl font-bold text-primary">{formatPrice(SERVICE_PRICES[kind])}</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{priceLabel(kind)}</p>
+            <p className="text-xs text-muted-foreground">{priceNote(kind)}</p>
             <p className="mt-2 text-sm text-muted-foreground">{SERVICE_TAGLINES[kind]}</p>
             <ul className="mt-4 space-y-1.5">
               {SERVICE_INCLUDES[kind].map((it, i) => (
@@ -58,7 +59,7 @@ export default async function ServicesPage() {
             <p className="mt-4 text-xs text-muted-foreground">{SERVICE_TURNAROUND[kind]}</p>
             <div className="mt-4 pt-1">
               <Button asChild className="w-full">
-                <Link href={`/services/order?kind=${SLUG_BY_KIND[kind]}`}>Заказать</Link>
+                <Link href={`/services/order?kind=${SLUG_BY_KIND[kind]}`}>{ctaLabel(kind)}</Link>
               </Button>
             </div>
           </div>
@@ -79,7 +80,7 @@ export default async function ServicesPage() {
                   <div>
                     <p className="font-medium text-foreground">{SERVICE_LABELS[o.kind]}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(o.createdAt).toLocaleDateString("ru-RU")} · {formatPrice(o.amount)}
+                      {new Date(o.createdAt).toLocaleDateString("ru-RU")} · {amountLabel(o.amount)}
                     </p>
                   </div>
                   <Badge variant="outline">{SERVICE_STATUS_LABELS[o.status]}</Badge>

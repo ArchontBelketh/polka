@@ -3,8 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
-import { formatPrice } from "@/lib/utils"
-import { SERVICE_LABELS, SERVICE_STATUS_LABELS, SERVICE_TURNAROUND, SERVICE_DISCLAIMER } from "@/lib/services"
+import { SERVICE_LABELS, SERVICE_STATUS_LABELS, SERVICE_TURNAROUND, SERVICE_DISCLAIMER, amountLabel } from "@/lib/services"
 import type { CodeAuditResult } from "@/lib/ai-review/code-audit"
 
 export const metadata: Metadata = { title: "Заказ услуги", robots: { index: false } }
@@ -30,13 +29,18 @@ export default async function ServiceOrderPage({ params }: RouteParams) {
         <div>
           <h1 className="text-2xl font-bold text-foreground">{SERVICE_LABELS[order.kind]}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {new Date(order.createdAt).toLocaleString("ru-RU")} · {formatPrice(order.amount)}
+            {new Date(order.createdAt).toLocaleString("ru-RU")} · {amountLabel(order.amount)}
           </p>
         </div>
         <Badge variant="outline">{SERVICE_STATUS_LABELS[order.status]}</Badge>
       </div>
 
       {/* Статусные подсказки */}
+      {order.status === "NEW" && (
+        <p className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          Заявка принята. Разберёмся в ситуации, свяжемся с вами и пришлём смету. Оплата не требуется.
+        </p>
+      )}
       {order.status === "AWAITING_PAYMENT" && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
           Заказ ждёт оплаты. Если вы закрыли окно оплаты — оформите заказ заново на странице услуги.

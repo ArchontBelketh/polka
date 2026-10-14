@@ -12,6 +12,7 @@ import { SERVICE_DISCLAIMER } from "@/lib/services"
 interface Props {
   kindSlug: string
   price: number
+  upfront: boolean
   briefLabel: string
   briefRequired: boolean
   showFile: boolean
@@ -19,7 +20,7 @@ interface Props {
   goal: string
 }
 
-export function OrderForm({ kindSlug, price, briefLabel, briefRequired, showFile, fileRequired, goal }: Props) {
+export function OrderForm({ kindSlug, price, upfront, briefLabel, briefRequired, showFile, fileRequired, goal }: Props) {
   const [brief, setBrief] = useState("")
   const [contact, setContact] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -121,8 +122,15 @@ export function OrderForm({ kindSlug, price, briefLabel, briefRequired, showFile
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       <Button onClick={submit} disabled={loading} size="lg" className="w-full">
-        {loading ? "Переходим к оплате…" : `Перейти к оплате · ${formatPrice(price)}`}
+        {upfront
+          ? (loading ? "Переходим к оплате…" : `Перейти к оплате · ${formatPrice(price)}`)
+          : (loading ? "Отправляем…" : "Отправить заявку")}
       </Button>
+      {!upfront && (
+        <p className="text-center text-xs text-muted-foreground">
+          Оплата не требуется. Разберёмся в ситуации, обсудим и пришлём смету.
+        </p>
+      )}
     </div>
   )
 }

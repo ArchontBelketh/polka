@@ -406,6 +406,24 @@ export async function notifyServiceOrderPaid(params: {
   )
 }
 
+/** Бесплатная заявка на услугу (напр. «Спасение проекта») — письмо владельцу. */
+export async function notifyServiceOrderRequested(params: {
+  orderId: string
+  kind: ServiceKind
+  email: string
+}): Promise<void> {
+  const supportTo = process.env.SUPPORT_EMAIL ?? "support@cyberpolka.store"
+  await sendEmail(
+    supportTo,
+    `Новая заявка: ${SERVICE_LABELS[params.kind]}`,
+    `<h2>🆕 Заявка на услугу (без оплаты)</h2>
+     <p><b>Услуга:</b> ${SERVICE_LABELS[params.kind]}</p>
+     <p><b>Заказчик:</b> ${params.email}</p>
+     <p><a href="${APP_URL}/admin/services/${params.orderId}">Открыть заявку в админке</a></p>
+     <p style="color:#888;font-size:12px">Обсудите задачу и выставьте счёт вручную.</p>`,
+  )
+}
+
 /** Отчёт по услуге готов — письмо заказчику. */
 export async function notifyServiceReportReady(params: {
   orderId: string

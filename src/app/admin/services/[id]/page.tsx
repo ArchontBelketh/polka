@@ -4,8 +4,7 @@ import { db } from "@/lib/db"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
-import { SERVICE_LABELS, SERVICE_STATUS_LABELS, isAutomated } from "@/lib/services"
+import { SERVICE_LABELS, SERVICE_STATUS_LABELS, isAutomated, amountLabel } from "@/lib/services"
 import { ServiceActions } from "./ServiceActions"
 import type { XrayReport } from "@/lib/xray/types"
 import type { CodeAuditResult } from "@/lib/ai-review/code-audit"
@@ -50,7 +49,7 @@ export default async function AdminServiceOrderPage({ params }: RouteParams) {
       {/* Детали */}
       <section className="rounded-lg border border-border bg-card p-5 space-y-3 text-sm">
         <div className="grid grid-cols-2 gap-3">
-          <div><p className="text-xs text-muted-foreground">Сумма</p><p>{formatPrice(order.amount)}</p></div>
+          <div><p className="text-xs text-muted-foreground">Сумма</p><p>{amountLabel(order.amount)}</p></div>
           <div><p className="text-xs text-muted-foreground">Создан</p><p>{new Date(order.createdAt).toLocaleString("ru-RU")}</p></div>
           <div><p className="text-xs text-muted-foreground">Email</p><p className="break-all">{order.email}</p></div>
           <div><p className="text-xs text-muted-foreground">Контакт</p><p className="break-all">{order.contact || "—"}</p></div>

@@ -672,6 +672,7 @@ enum ServiceKind {
 }
 
 enum ServiceOrderStatus {
+  NEW              // Заявка принята (без оплаты — напр. «Спасение проекта»)
   AWAITING_PAYMENT // ждёт оплаты
   PAID             // Оплачен
   IN_PROGRESS      // В работе

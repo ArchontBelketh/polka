@@ -6,9 +6,10 @@ import { initPayment } from "@/lib/payments"
 import { analyzeXray } from "@/lib/xray/analyze"
 import { putObject, sanitizeFileName } from "@/lib/s3"
 import {
-  SERVICE_PRICES, SERVICE_LABELS, KIND_BY_SLUG, needsCode, codeRequired,
+  SERVICE_PRICES, SERVICE_LABELS, KIND_BY_SLUG, needsCode, codeRequired, isUpfrontPaid,
 } from "@/lib/services"
 import { isAiReviewEnabled, getAiSettings } from "@/lib/ai-settings"
+import { notifyServiceOrderRequested } from "@/lib/notify"
 
 export const maxDuration = 60
 
@@ -64,9 +65,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const amount = SERVICE_PRICES[kind]
+  // «Спасение проекта» — бесплатная заявка (оплата позже по счёту). Остальное — оплата сразу.
+  const upfront = isUpfrontPaid(kind)
+  const amount = upfront ? SERVICE_PRICES[kind] : 0
   const order = await db.serviceOrder.create({
-    data: { kind, status: "AWAITING_PAYMENT", amount, userId: session.user.id, email, brief: brief || "", contact },
+    data: {
+      kind,
+      status: upfront ? "AWAITING_PAYMENT" : "NEW",
+      amount,
+      userId: session.user.id,
+      email,
+      brief: brief || "",
+      contact,
+    },
   })
 
   // X-Ray по прикреплённому коду (best-effort). Для AI-аудита факты пойдут на вход нейросети.
@@ -83,6 +94,12 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error("[services] X-Ray/upload error:", err)
     }
+  }
+
+  // Бесплатная заявка: без платежа — уведомляем владельца и отдаём заказ.
+  if (!upfront) {
+    void notifyServiceOrderRequested({ orderId: order.id, kind, email })
+    return Response.json({ orderId: order.id })
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"

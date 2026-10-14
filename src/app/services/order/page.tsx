@@ -5,7 +5,7 @@ import { OrderForm } from "./OrderForm"
 import {
   KIND_BY_SLUG, SERVICE_LABELS, SERVICE_TAGLINES, SERVICE_TURNAROUND,
   SERVICE_PRICES, SERVICE_BRIEF_LABEL, needsCode, codeRequired, SLUG_BY_KIND,
-  SERVICE_METRICA_GOAL,
+  SERVICE_METRICA_GOAL, isUpfrontPaid,
 } from "@/lib/services"
 
 export const metadata: Metadata = { title: "Заказ услуги", robots: { index: false } }
@@ -33,6 +33,7 @@ export default async function OrderPage({ searchParams }: SP) {
       <OrderForm
         kindSlug={SLUG_BY_KIND[kind]}
         price={SERVICE_PRICES[kind]}
+        upfront={isUpfrontPaid(kind)}
         briefLabel={SERVICE_BRIEF_LABEL[kind]}
         briefRequired={kind !== "AI_AUDIT"}
         showFile={needsCode(kind)}
