@@ -15,7 +15,9 @@ function envPrice(name: string, fallback: number): number {
 export const SERVICE_PRICES: Record<ServiceKind, number> = {
   AI_AUDIT: envPrice("SERVICE_PRICE_AI_AUDIT", 39000), // 390 ₽ (ТЗ 11.1)
   EXPERT_REVIEW: envPrice("SERVICE_PRICE_EXPERT_REVIEW", 249000), // ориентир 1 990–2 990 ₽ (ТЗ 11.2)
-  PROJECT_RESCUE: envPrice("SERVICE_PRICE_PROJECT_RESCUE", 799000), // ориентир 5–10 тыс. ₽ (ТЗ 11.3)
+  // «Спасение проекта» не оплачивается на входе (заявка бесплатная); эта сумма —
+  // только ориентир «от …» на витрине, точная цена по смете (ТЗ 11.3).
+  PROJECT_RESCUE: envPrice("SERVICE_PRICE_PROJECT_RESCUE", 600000), // «от 6000 ₽»
 }
 
 export const SERVICE_KINDS: ServiceKind[] = ["AI_AUDIT", "EXPERT_REVIEW", "PROJECT_RESCUE"]
@@ -86,14 +88,14 @@ export function isUpfrontPaid(kind: ServiceKind): boolean {
   return kind !== "PROJECT_RESCUE"
 }
 
-// Текст цены для витрины/карточки.
+// Текст цены для витрины/карточки. Для услуг без предоплаты — ориентир «от …».
 export function priceLabel(kind: ServiceKind): string {
-  return isUpfrontPaid(kind) ? formatPrice(SERVICE_PRICES[kind]) : "Бесплатная заявка"
+  return isUpfrontPaid(kind) ? formatPrice(SERVICE_PRICES[kind]) : `от ${formatPrice(SERVICE_PRICES[kind])}`
 }
 
 // Подпись к цене (вторая строка).
 export function priceNote(kind: ServiceKind): string {
-  return isUpfrontPaid(kind) ? "оплата на сайте" : "смета после разбора"
+  return isUpfrontPaid(kind) ? "оплата на сайте" : "заявка бесплатная, точная цена по смете"
 }
 
 // Надпись на кнопке заказа.
