@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { getOperatorInfo, operatorShortLine } from "@/lib/operator"
+import { CookieSettingsLink } from "./CookieSettingsLink"
 
 const COLUMNS = [
   {
@@ -89,6 +90,7 @@ export async function Footer() {
         <div className="mx-auto max-w-7xl space-y-1 px-4 py-6 font-mono text-xs text-muted-foreground">
           <p>{operatorShortLine(op)}</p>
           <p>© {new Date().getFullYear()} CYBERПОЛКА — маркетплейс готовых программ</p>
+          <p><CookieSettingsLink /></p>
         </div>
       </div>
     </footer>

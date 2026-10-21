@@ -5,7 +5,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { EmailVerifyBar } from "@/components/layout/EmailVerifyBar"
 import { FeedbackWidgetWrapper } from "@/components/layout/FeedbackWidgetWrapper"
-import { YandexMetrica } from "@/components/analytics/YandexMetrica"
+import { CookieConsent } from "@/components/analytics/CookieConsent"
 import { cookies } from "next/headers"
 import { auth } from "@/lib/auth"
 
@@ -60,7 +60,7 @@ export default async function RootLayout({
   return (
     <html lang="ru" className="h-full antialiased dark">
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <YandexMetrica />
+        <CookieConsent />
         {!showChrome ? (
           children
         ) : (
