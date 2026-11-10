@@ -58,6 +58,11 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {searchParams.get("passwordChanged") === "1" && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Пароль изменён. Войдите с новым паролем.
+        </p>
+      )}
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium">Email</label>
         <Input

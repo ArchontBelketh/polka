@@ -4,15 +4,26 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/check-static-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test tests/*.test.mjs",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:seed:demo": "npx tsx scripts/seed-demo.ts",
     "create-admin": "npx tsx scripts/create-admin.ts",
     "db:push": "npx prisma db push",
+    "db:deploy": "tsx scripts/migrate-database.ts",
+    "db:baseline:check": "prisma migrate diff --from-config-datasource --to-schema prisma/migrations/0_baseline/schema.prisma --exit-code",
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio",
+    "uploads:cleanup": "tsx scripts/cleanup-product-uploads.ts",
+    "ydb:check": "node scripts/check-ydb.mjs",
+    "ydb:check:sdk": "tsx scripts/ydb/check-sdk.ts",
+    "ydb:generate": "node scripts/generate-ydb-schema.mjs",
+    "ydb:schema:check": "tsx scripts/ydb/check-schema.ts",
+    "ydb:migrate": "tsx scripts/ydb/migrate.ts",
+    "ydb:test": "tsx scripts/ydb/integration.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
@@ -48,6 +59,7 @@
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.6.0",
     "yauzl": "^3.4.0",
+    "ydb-sdk": "5.11.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -60,6 +72,7 @@
     "eslint-config-next": "16.2.7",
     "jszip": "^3.10.1",
     "tailwindcss": "^4",
+    "tsx": "4.21.0",
     "typescript": "^5"
   }
 }

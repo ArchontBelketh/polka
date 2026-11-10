@@ -7,6 +7,7 @@ out
 build
 
 # Secrets — never bake env files into the image (compose passes them at runtime)
+.secrets
 .env
 .env.*
 !.env.example

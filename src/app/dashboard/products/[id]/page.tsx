@@ -11,6 +11,11 @@ import { ProductActions } from "./ProductActions"
 import { ListingFeeButton } from "./ListingFeeButton"
 import { NewVersionForm } from "./NewVersionForm"
 import { VersionActions } from "./VersionActions"
+import { ProductSpecificationEditor } from "@/components/product/ProductSpecificationEditor"
+import { ProductSpecifications } from "@/components/product/ProductSpecifications"
+import { specificationInput, EDITABLE_SPECIFICATION_STATUSES } from "@/lib/product-specification"
+import { DraftUploadCard } from "@/components/product/DraftUploadCard"
+import { isUploadEditable } from "@/lib/product-upload-policy"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -126,6 +131,7 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
   const product = await db.product.findUnique({
     where: { id },
     include: {
+      specification: true,
       files: true,
       moderationLogs: { orderBy: { createdAt: "desc" } },
       versions: { orderBy: { createdAt: "desc" } },
@@ -160,6 +166,10 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
       </div>
 
       <StatusBanner status={product.status} reason={lastReasonLog?.comment} />
+      {isUploadEditable(product) && product._count.purchases === 0 && <DraftUploadCard productId={product.id} sourceConfirmed={product.files.some((file) => file.fileType === "SOURCE" && !!file.sha256 && file.s3Key.startsWith(`products/${product.id}/artifacts/`))} sourceName={product.files.find((file) => file.fileType === "SOURCE")?.fileName} screenshotCount={product.screenshots.length} />}
+      {EDITABLE_SPECIFICATION_STATUSES.some((status) => status === product.status)
+        ? <ProductSpecificationEditor productId={product.id} initial={specificationInput(product.specification)} />
+        : <><ProductSpecifications specification={product.specification} /><p className="text-xs text-muted-foreground">Для изменения характеристик опубликованного или проверяемого товара <Link href="/support" className="text-cyan underline">обратитесь к модератору</Link>.</p></>}
 
       {/* Тариф за размещение (модель LISTING_FEE) */}
       {(product.saleModel ?? saleModelForKopecks(product.price)) === "LISTING_FEE" && (
@@ -343,6 +353,7 @@ export default async function DeveloperProductPage({ params }: RouteParams) {
         productTitle={product.title}
         productStatus={product.status}
         productSlug={product.slug}
+        canDelete={!product.publishedAt && product._count.purchases === 0}
       />
     </div>
   )

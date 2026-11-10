@@ -57,7 +57,7 @@ docker run -d \
   postgres:15
 
 # 5. Применить схему и засеять ДЕМО-данные (только для разработки)
-npm run db:push
+npm run db:deploy
 npm run db:seed:demo                    # демо-продукты (dev-only)
 npx tsx scripts/seed-test-users.ts      # тестовые учётки (dev-only)
 
@@ -194,8 +194,8 @@ SENTRY_PROJECT="polka"
 ### Первичная инициализация
 
 ```bash
-# Применить схему (создаёт таблицы, не удаляет данные)
-npm run db:push
+# Применить миграции (для существующей БД сначала проверить baseline)
+npm run db:deploy
 
 # Безопасный сид (без демо-данных и тест-аккаунтов)
 npm run db:seed
@@ -214,16 +214,17 @@ npx tsx scripts/create-admin.ts --email admin@your-domain --password 'Стойк
 # Сгенерировать клиент после изменений schema.prisma
 npm run db:generate
 
-# Применить изменения (для продакшна используйте миграции)
-npm run db:push
+# Применить сохранённые миграции
+npm run db:deploy
 ```
 
-### Продакшн: использование миграций вместо db:push
+### Продакшн: Prisma Migrate
 
-Для продакшна рекомендуется Prisma Migrate вместо `db:push`:
+Штатный деплой использует Prisma Migrate. Для существующей базы, созданной через
+`db push`, сначала выполнить проверку по [инструкции baseline](docs/DATABASE_MIGRATIONS.md).
 
 ```bash
-# Создать миграцию
+# Создать миграцию только на отдельной базе разработки
 npx prisma migrate dev --name your_migration_name
 
 # Применить все pending-миграции (CI/CD, деплой)
@@ -237,12 +238,13 @@ npx prisma migrate deploy
 Быстрый запуск всего стека (БД + приложение):
 
 ```bash
-# Собрать образ и запустить
-docker compose up -d --build
+# Собрать приложение и инструмент миграций, запустить БД
+docker compose build app migrate
+docker compose up -d db
 
-# Применить схему (первый запуск)
-docker compose exec app npx prisma db push
-docker compose exec app npm run db:seed:demo   # только для локального стека
+# Применить миграции до запуска нового приложения
+docker compose run --rm migrate
+docker compose up -d app
 
 # Логи
 docker compose logs -f app

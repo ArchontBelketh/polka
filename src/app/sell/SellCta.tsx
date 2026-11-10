@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BecomeDeveloperButton } from "./BecomeDeveloperButton"
 import { reachGoal } from "@/lib/metrica"
+import { canManageCode } from "@/lib/permissions"
 
 /**
  * CTA на странице /sell, зависит от роли:
@@ -14,7 +15,7 @@ import { reachGoal } from "@/lib/metrica"
  * Клики по CTA отправляют цели в Метрику (воронка привлечения разработчиков).
  */
 export function SellCta({ role }: { role?: string }) {
-  if (role && role !== "BUYER") {
+  if (canManageCode(role)) {
     return (
       <Button asChild size="lg">
         <Link
@@ -28,6 +29,8 @@ export function SellCta({ role }: { role?: string }) {
       </Button>
     )
   }
+
+  if (role === "MODERATOR") return <Button asChild size="lg"><Link href="/dashboard">Открыть кабинет</Link></Button>
 
   if (role === "BUYER") {
     return <BecomeDeveloperButton />

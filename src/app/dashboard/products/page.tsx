@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/current-user"
+import { canManageCode } from "@/lib/permissions"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import Link from "next/link"
@@ -31,13 +32,14 @@ interface PageProps {
 }
 
 export default async function DashboardProductsPage({ searchParams }: PageProps) {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
+  if (!canManageCode(user.role)) redirect("/dashboard/profile")
 
   const { submitted } = await searchParams
 
   const products = await db.product.findMany({
-    where: { authorId: session.user.id },
+    where: { authorId: user.id },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { purchases: true, reviews: true } },

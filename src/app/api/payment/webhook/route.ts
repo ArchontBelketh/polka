@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { getPayment, verifyNotificationToken } from "@/lib/tbank"
-import { fulfillPayment, failPayment } from "@/lib/payments"
+import { applyPaymentOutcome } from "@/lib/payments"
 
 // Нотификация Т-Банка: подпись проверяется Token'ом (а не белым списком IP).
 // Успех платежа — Status = CONFIRMED. За что платёж — определяем по PaymentIntent,
@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
     return new Response("OK", { status: 200 })
   }
 
+  if (!paymentId || (intent.paymentId && intent.paymentId !== paymentId) || Number(body.Amount) !== intent.amount) {
+    return new Response("Payment mismatch", { status: 400 })
+  }
+
   if (status === "CONFIRMED" && success) {
     if (intent.status === "CONFIRMED") {
       return new Response("OK", { status: 200 }) // идемпотентность (повторная нотификация)
@@ -64,19 +68,9 @@ export async function POST(req: NextRequest) {
       return new Response("OK", { status: 200 })
     }
 
-    await fulfillPayment(intent, { paymentId })
-    await db.paymentIntent.update({
-      where: { id: intent.id },
-      data: { status: "CONFIRMED", paymentId },
-    })
+    await applyPaymentOutcome(intent.id, paymentId, "CONFIRMED")
   } else if (FAIL_STATUSES.has(status)) {
-    if (intent.status !== "FAILED") {
-      await failPayment(intent)
-      await db.paymentIntent.update({
-        where: { id: intent.id },
-        data: { status: "FAILED", paymentId },
-      })
-    }
+    await applyPaymentOutcome(intent.id, paymentId, "FAILED")
   }
 
   return new Response("OK", { status: 200 })

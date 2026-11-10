@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CATEGORY_LABELS } from "@/types"
 import { saleModelForRub, SALE_MODEL_LABELS, PRICE_THRESHOLD_RUB, formatRub } from "@/lib/tariffs"
 import { LICENSE_OPTIONS as LICENSES } from "@/lib/licenses"
+import { ProductSpecificationFields } from "@/components/product/ProductSpecificationFields"
+import { specificationInput, type SpecificationRecord } from "@/lib/product-specification"
 
 export interface AdminProductEditFormProps {
   product: {
@@ -31,6 +33,7 @@ export interface AdminProductEditFormProps {
     videoUrl: string | null
     exampleInput: string | null
     exampleOutput: string | null
+    specification: SpecificationRecord | null
   }
 }
 
@@ -41,6 +44,7 @@ export function AdminProductEditForm({ product }: AdminProductEditFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [specification, setSpecification] = useState(() => specificationInput(product.specification))
 
   const [f, setF] = useState({
     title: product.title,
@@ -95,6 +99,7 @@ export function AdminProductEditForm({ product }: AdminProductEditFormProps) {
           videoUrl: f.videoUrl || undefined,
           exampleInput: f.exampleInput || undefined,
           exampleOutput: f.exampleOutput || undefined,
+          specification,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -233,7 +238,8 @@ export function AdminProductEditForm({ product }: AdminProductEditFormProps) {
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      <ProductSpecificationFields value={specification} onChange={setSpecification} idPrefix="admin-spec" />
+      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <Button onClick={handleSave} disabled={loading}>

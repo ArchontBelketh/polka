@@ -1,0 +1,65 @@
+import { test, expect } from "@playwright/test"
+
+test.describe("Публичная навигация и главная", () => {
+  test("главная показывает два действующих сценария и открывает пояснения", async ({ page }) => {
+    const response = await page.goto("/")
+    expect(response?.status()).toBe(200)
+    await page.keyboard.press("Tab")
+    await expect(page.getByRole("link", { name: "Перейти к содержимому", exact: true })).toBeFocused()
+    await page.keyboard.press("Enter")
+    await expect(page.locator("main")).toBeFocused()
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Готовый код.")
+    await expect(page.getByRole("link", { name: "Найти готовый код", exact: true })).toHaveAttribute("href", "/catalog")
+    await expect(page.getByRole("link", { name: "Описать задачу", exact: true }).first()).toHaveAttribute("href", "/orders/new")
+    await expect(page.locator('header a[href="/x-ray"], footer a[href="/x-ray"], header a[href="/services"], footer a[href="/services"]')).toHaveCount(0)
+    await expect(page.getByRole("navigation", { name: "Основная навигация", exact: true }).getByRole("link", { name: "Разработчики", exact: true })).toHaveAttribute("href", "/developers")
+    const faq = page.locator("details").filter({ hasText: "Как сейчас принимаются задачи на разработку?" })
+    await faq.locator("summary").click()
+    await expect(faq).toHaveAttribute("open", "")
+    await expect(faq.locator("p")).toBeVisible()
+  })
+
+  test("главная и шапка помещаются на экраны от 320 до 1440 пикселей", async ({ page }) => {
+    await page.goto("/")
+    await page.evaluate(() => document.fonts.ready)
+    for (const width of [320, 375, 768, 1024, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 })
+      const size = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }))
+      expect(size.content, `Переполнение при ширине ${width}`).toBeLessThanOrEqual(size.viewport)
+      if (width < 1024) await expect(page.getByRole("button", { name: "Открыть меню", exact: true })).toBeVisible()
+      else await expect(page.getByRole("navigation", { name: "Основная навигация", exact: true })).toBeVisible()
+    }
+  })
+
+  test("мобильное меню открывается, закрывается Escape и ведёт к форме задачи", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 850 })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Только необходимые", exact: true }).click()
+    const toggle = page.getByRole("button", { name: "Открыть меню", exact: true })
+    await toggle.click()
+    const navigation = page.getByRole("navigation", { name: "Мобильная навигация", exact: true })
+    await expect(navigation).toBeVisible()
+    await page.getByRole("heading", { level: 1 }).click()
+    await expect(navigation).toHaveCount(0)
+    await toggle.click()
+    await expect(page.getByRole("button", { name: "Закрыть меню", exact: true })).toHaveAttribute("aria-expanded", "true")
+    await page.keyboard.press("Escape")
+    await expect(navigation).toHaveCount(0)
+    await expect(toggle).toBeFocused()
+    await toggle.click()
+    await navigation.getByRole("link", { name: "Заказы", exact: true }).click()
+    await expect(page).toHaveURL(/\/orders$/)
+    await expect(page.getByRole("heading", { name: "Заказы на разработку", exact: true })).toBeVisible()
+    await expect(navigation).toHaveCount(0)
+  })
+
+  test("мобильное меню закрывается при переходе к десктопной ширине", async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 900 })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Открыть меню", exact: true }).click()
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await expect(page.getByRole("navigation", { name: "Основная навигация", exact: true })).toBeVisible()
+    await page.setViewportSize({ width: 768, height: 900 })
+    await expect(page.getByRole("button", { name: "Открыть меню", exact: true })).toHaveAttribute("aria-expanded", "false")
+  })
+})

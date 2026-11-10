@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     default: "CYBERПОЛКА",
     template: "%s — CYBERПОЛКА",
   },
-  description: "Готовые программные продукты для российского бизнеса: Telegram-боты, парсеры, Excel-скрипты, автоматизация. С проверкой кода и ручной модерацией.",
+  description: "Готовый код и разработка под вашу задачу: боты, скрипты, модули и интеграции для бизнеса. Один аккаунт для покупателей, заказчиков и разработчиков.",
   // favicon.ico авто-эмитится из src/app; остальное объявляем явно (иначе Next,
   // увидев metadata.icons, перестаёт авто-линковать icon.svg/apple-icon).
   icons: {
@@ -60,6 +60,7 @@ export default async function RootLayout({
   return (
     <html lang="ru" className="h-full antialiased dark">
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        {showChrome && <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[150] focus:rounded-xl focus:bg-cyan focus:px-4 focus:py-3 focus:text-background">Перейти к содержимому</a>}
         <CookieConsent />
         {!showChrome ? (
           children
@@ -69,8 +70,8 @@ export default async function RootLayout({
             <Suspense fallback={null}>
               <EmailVerifyBar />
             </Suspense>
-            <main className="flex-1">{children}</main>
-            <Footer />
+            <main id="main-content" tabIndex={-1} className="flex-1 outline-none">{children}</main>
+            <Suspense fallback={null}><Footer /></Suspense>
             <FeedbackWidgetWrapper />
           </>
         )}

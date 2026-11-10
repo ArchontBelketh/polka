@@ -39,6 +39,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["ydb-sdk"],
+  outputFileTracingIncludes: {
+    "/*": ["./src/lib/xray/xray_analyze.py"],
+  },
+  outputFileTracingExcludes: {
+    "/*": ["./.secrets/**/*"],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }]
   },

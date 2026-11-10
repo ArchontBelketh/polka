@@ -1,4 +1,4 @@
-import { exec } from "child_process"
+import { execFile } from "child_process"
 import { promisify } from "util"
 import fs from "fs"
 import os from "os"
@@ -7,11 +7,18 @@ import { safeUnzip } from "@/lib/scanner/zip-safe"
 import { checkOsv } from "./osv"
 import type { XrayRaw, XrayReport } from "./types"
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 const PYTHON_BIN = process.env.PYTHON_BIN ?? "python3"
 const ANALYZE_TIMEOUT_MS = 30_000
 const MAX_FILES_HINT = 500
+
+export class XrayAnalysisError extends Error {
+  constructor(message: string, public readonly status: 422 | 503 = 503) {
+    super(message)
+    this.name = "XrayAnalysisError"
+  }
+}
 
 export interface XrayInput {
   /** Код, вставленный в поле (анализируется как snippet.py). */
@@ -21,16 +28,9 @@ export interface XrayInput {
   fileName?: string
 }
 
-/** Путь к Python-анализатору: прод (COPY в /app) или dev (из src). */
+/** Один путь в dev и standalone; файл явно включён в сборку и Dockerfile. */
 function resolveScript(): string {
-  const candidates = [
-    path.join(process.cwd(), "xray_analyze.py"),
-    path.join(process.cwd(), "src", "lib", "xray", "xray_analyze.py"),
-  ]
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c
-  }
-  return candidates[0]
+  return path.join(process.cwd(), "src", "lib", "xray", "xray_analyze.py")
 }
 
 /**
@@ -53,12 +53,10 @@ export async function analyzeXray(input: XrayInput): Promise<XrayReport> {
       const zipPath = path.join(tmp, "upload.zip")
       fs.writeFileSync(zipPath, input.fileBuffer)
       const un = await safeUnzip(zipPath, srcDir)
+      if (!un.ok) throw new XrayAnalysisError("Архив не прошёл проверку безопасности.", 422)
       root = un.extractedDir
-      // Находки распаковки (zip-бомба/traversal) прокинем через parse_errors-канал позже,
-      // но на MVP достаточно того, что анализ идёт по безопасно извлечённому дереву.
     } else if (input.fileBuffer) {
-      const name = input.fileName?.toLowerCase().endsWith(".py") ? "snippet.py" : "snippet.py"
-      fs.writeFileSync(path.join(srcDir, name), input.fileBuffer)
+      fs.writeFileSync(path.join(srcDir, "snippet.py"), input.fileBuffer)
     } else if (typeof input.code === "string") {
       fs.writeFileSync(path.join(srcDir, "snippet.py"), input.code)
     }
@@ -87,34 +85,22 @@ export async function analyzeDir(root: string): Promise<XrayReport> {
 async function runAnalyzer(root: string): Promise<XrayRaw> {
   const script = resolveScript()
   try {
-    const { stdout } = await execAsync(
-      `${PYTHON_BIN} "${script}" "${root}"`,
+    const { stdout } = await execFileAsync(
+      PYTHON_BIN, [script, root],
       { timeout: ANALYZE_TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 },
     )
-    return JSON.parse(stdout) as XrayRaw
-  } catch (err) {
-    // Таймаут/сбой анализатора — возвращаем пустой каркас, чтобы отчёт не падал.
-    const stdout = (err as { stdout?: string }).stdout
-    if (stdout) {
-      try {
-        return JSON.parse(stdout) as XrayRaw
-      } catch {
-        /* fall through */
-      }
+    const raw = JSON.parse(stdout) as XrayRaw
+    if (!raw || !Number.isSafeInteger(raw.files_analyzed) || !raw.facts || !raw.dependencies ||
+        !Array.isArray(raw.dependencies.packages) || !Array.isArray(raw.parse_errors)) {
+      throw new XrayAnalysisError("Анализатор вернул некорректный результат. Повторите позже.")
     }
-    return emptyRaw()
-  }
-}
-
-function emptyRaw(): XrayRaw {
-  return {
-    language: "python",
-    files_analyzed: 0,
-    files_skipped: [],
-    parse_errors: [],
-    facts: { internet: [], files: [], commands: [], secrets: [], suspicious: [] },
-    addresses: { urls: [], ips: [], flags: [] },
-    dependencies: { ecosystem: "PyPI", packages: [] },
+    if (raw.files_analyzed === 0) {
+      throw new XrayAnalysisError("Не удалось проанализировать Python-файлы. Проверьте код и формат файла.", 422)
+    }
+    return raw
+  } catch (err) {
+    if (err instanceof XrayAnalysisError) throw err
+    throw new XrayAnalysisError("Проверка кода временно недоступна. Повторите позже.")
   }
 }
 

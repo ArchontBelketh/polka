@@ -6,8 +6,7 @@
  *
  * Email/password may also come from ADMIN_EMAIL / ADMIN_PASSWORD env vars.
  */
-import { PrismaClient } from "../src/generated/prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { createDatabase } from "../src/lib/database-factory"
 import bcrypt from "bcryptjs"
 import crypto from "crypto"
 import * as dotenv from "dotenv"
@@ -15,7 +14,7 @@ import * as dotenv from "dotenv"
 dotenv.config({ path: ".env.local" })
 dotenv.config({ path: ".env" })
 
-const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) })
+const db = createDatabase()
 
 function arg(name: string): string | undefined {
   const withEq = process.argv.find((a) => a.startsWith(`--${name}=`))
@@ -52,7 +51,7 @@ async function main() {
     // Админ создаётся доверенным лицом из CLI — сразу помечаем почту
     // подтверждённой, чтобы не требовать верификации (и не слать письмо на
     // возможно несуществующий ящик вроде admin@<домен>).
-    update: { role: "ADMIN", passwordHash, emailVerified: new Date() },
+    update: { role: "ADMIN", passwordHash, sessionVersion: { increment: 1 }, emailVerified: new Date() },
     create: {
       email,
       name: "Администратор",

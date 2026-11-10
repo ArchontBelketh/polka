@@ -28,10 +28,18 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12)
-  await db.user.update({
-    where: { id: user.id },
-    data: { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null },
+  const changed = await db.user.updateMany({
+    where: { id: user.id, resetTokenHash: tokenHash, resetTokenExpiresAt: { gt: new Date() } },
+    data: {
+      passwordHash,
+      sessionVersion: { increment: 1 },
+      resetTokenHash: null,
+      resetTokenExpiresAt: null,
+    },
   })
+  if (changed.count === 0) {
+    return Response.json({ error: "Ссылка недействительна или истекла" }, { status: 400 })
+  }
 
   return Response.json({ ok: true })
 }

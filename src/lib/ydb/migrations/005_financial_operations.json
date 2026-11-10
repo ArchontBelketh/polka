@@ -1,0 +1,101 @@
+{
+  "sourceHash": "04932e2dc5e1ceced1def797da2919f4f889ba4ba0dab93c9135a8fa024f1990",
+  "models": {
+    "FinancialOperation": {
+      "name": "FinancialOperation",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "kind": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "referenceId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "FinancialOperationStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PREPARED"
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "actorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "providerId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "providerStatus": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "payload": {
+          "type": "Json",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        },
+        "appliedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "kind",
+          "referenceId"
+        ],
+        [
+          "status",
+          "updatedAt"
+        ]
+      ]
+    }
+  }
+}

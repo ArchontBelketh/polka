@@ -1,179 +1,58 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Search, SlidersHorizontal, X } from "lucide-react"
+import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CATEGORY_LABELS, CATEGORY_ICONS, type Category } from "@/types"
+import { CATEGORY_LABELS, type Category } from "@/types"
+import { PRODUCT_LANGUAGES, PRODUCT_PLATFORMS } from "@/lib/product-specification"
+import { CATALOG_SORT_OPTIONS, catalogUrl, parseCatalogQuery, type CatalogQuery } from "@/lib/catalog-query"
+import { Button } from "@/components/ui/button"
 
-const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[]
+const fieldClass = "mt-1.5 w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan"
 
-const SORT_OPTIONS = [
-  { value: "popular",    label: "Популярные"   },
-  { value: "newest",     label: "Новые"         },
-  { value: "rating",     label: "По рейтингу"  },
-  { value: "price_asc",  label: "Дешевле"      },
-  { value: "price_desc", label: "Дороже"       },
-]
-
-export function CatalogFilters() {
+export function CatalogFilters({ query }: { query: CatalogQuery }) {
   const router = useRouter()
-  const params = useSearchParams()
-
-  const active        = params.get("category") as Category | null
-  const currentSort   = params.get("sort") ?? "popular"
-  const currentQ      = params.get("q") ?? ""
-  const currentMin    = params.get("minPrice") ?? ""
-  const currentMax    = params.get("maxPrice") ?? ""
-
-  const [searchVal, setSearchVal] = useState(currentQ)
-  const [minPrice,  setMinPrice]  = useState(currentMin)
-  const [maxPrice,  setMaxPrice]  = useState(currentMax)
-
-  function buildUrl(overrides: Record<string, string | null>) {
-    const next = new URLSearchParams(params.toString())
-    for (const [k, v] of Object.entries(overrides)) {
-      if (v === null || v === "") next.delete(k)
-      else next.set(k, v)
-    }
-    next.delete("page")
-    return `/catalog?${next.toString()}`
+  const [error, setError] = useState("")
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const values = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<string, string>
+    const parsed = parseCatalogQuery(values)
+    if (!parsed.success) { setError(parsed.error); return }
+    setError("")
+    router.push(catalogUrl(parsed.value, { page: 1 }))
   }
-
-  function selectCategory(cat: Category | null) {
-    router.push(buildUrl({ category: cat }))
-  }
-
-  function submitSearch(e: React.FormEvent) {
-    e.preventDefault()
-    router.push(buildUrl({ q: searchVal.trim() || null }))
-  }
-
-  function clearSearch() {
-    setSearchVal("")
-    router.push(buildUrl({ q: null }))
-  }
-
-  function changeSort(sort: string) {
-    router.push(buildUrl({ sort: sort === "popular" ? null : sort }))
-  }
-
-  function applyPrice() {
-    router.push(buildUrl({ minPrice: minPrice || null, maxPrice: maxPrice || null }))
-  }
-
-  function clearPrice() {
-    setMinPrice("")
-    setMaxPrice("")
-    router.push(buildUrl({ minPrice: null, maxPrice: null }))
-  }
-
-  const hasPriceFilter = !!currentMin || !!currentMax
-
   return (
-    <div className="space-y-3">
-      {/* Row: search + sort + price */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <form onSubmit={submitSearch} className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            placeholder="Поиск..."
-            className="w-44 pl-8 pr-7 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          {searchVal && (
-            <button
-              type="button"
-              onClick={clearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
-        </form>
-
-        {/* Sort */}
-        <select
-          value={currentSort}
-          onChange={(e) => changeSort(e.target.value)}
-          className="text-sm rounded-md border border-border bg-background px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-
-        {/* Price range */}
-        <div className="flex items-center gap-1.5">
-          <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <input
-            type="number"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            placeholder="от"
-            min={0}
-            className="w-16 px-2 py-1.5 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          <span className="text-xs text-muted-foreground">–</span>
-          <input
-            type="number"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            placeholder="до"
-            min={0}
-            className="w-16 px-2 py-1.5 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          <span className="text-xs text-muted-foreground">₽</span>
-          <button
-            onClick={applyPrice}
-            className="text-xs px-2 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors"
-          >
-            →
-          </button>
-          {hasPriceFilter && (
-            <button
-              onClick={clearPrice}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label="Сбросить фильтр цены"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
+    <section aria-label="Фильтры готового кода" className="space-y-4 rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
+      <nav aria-label="Назначение продукта" className="flex flex-wrap gap-2" data-testid="category-filter">
+        <CategoryLink href={catalogUrl(query, { category: undefined, page: 1 })} active={!query.category}>Все задачи</CategoryLink>
+        {Object.entries(CATEGORY_LABELS).map(([key, label]) => <CategoryLink key={key} href={catalogUrl(query, { category: key as Category, page: 1 })} active={query.category === key}>{label}</CategoryLink>)}
+      </nav>
+      <form action="/catalog" method="get" onSubmit={submit} className="space-y-4" aria-label="Подобрать готовый код">
+        <input type="hidden" name="category" value={query.category ?? ""} />
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="min-w-0 text-xs text-muted-foreground sm:col-span-2 lg:col-span-3"><label htmlFor="catalog-q">Поиск по названию и описанию</label><div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" /><input id="catalog-q" name="q" type="search" defaultValue={query.q ?? ""} maxLength={200} placeholder="Например, бот записи или обработка Excel" className={cn(fieldClass, "pl-9 text-foreground")} /></div></div>
+          <div className="min-w-0 text-xs text-muted-foreground"><label htmlFor="catalog-sort">Сортировка</label><select id="catalog-sort" name="sort" defaultValue={query.sort} className={cn(fieldClass, "text-foreground")}>{CATALOG_SORT_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+          <FilterSelect name="language" label="Язык" value={query.language} options={PRODUCT_LANGUAGES} empty="Любой язык" />
+          <FilterSelect name="platform" label="Платформа" value={query.platform} options={PRODUCT_PLATFORMS} empty="Любая платформа" />
+          <FilterSelect name="license" label="Лицензия" value={query.license} options={{ personal: "Личная", commercial: "Коммерческая", other: "Другая / уточняется" }} empty="Любая лицензия" />
+          <label htmlFor="catalog-compatibility" className="min-w-0 text-xs text-muted-foreground">Совместимость<input id="catalog-compatibility" name="compatibility" defaultValue={query.compatibility ?? ""} maxLength={200} placeholder="Например, Excel 2021" className={cn(fieldClass, "text-foreground")} /></label>
         </div>
-      </div>
-
-      {/* Category pills */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => selectCategory(null)}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-sm transition-colors",
-            !active
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Все
-        </button>
-        {ALL_CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => selectCategory(cat)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors",
-              active === cat
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <span>{CATEGORY_ICONS[cat]}</span>
-            {CATEGORY_LABELS[cat]}
-          </button>
-        ))}
-      </div>
-    </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <fieldset className="min-w-0 max-w-full"><legend className="mb-1.5 text-xs text-muted-foreground">Цена, ₽</legend><div className="flex gap-2"><label htmlFor="catalog-min" className="min-w-0"><span className="sr-only">Цена от</span><input id="catalog-min" name="minPrice" inputMode="decimal" defaultValue={query.minPrice ?? ""} placeholder="От" maxLength={11} className={cn(fieldClass, "mt-0 w-28 max-w-full")} /></label><label htmlFor="catalog-max" className="min-w-0"><span className="sr-only">Цена до</span><input id="catalog-max" name="maxPrice" inputMode="decimal" defaultValue={query.maxPrice ?? ""} placeholder="До" maxLength={11} className={cn(fieldClass, "mt-0 w-28 max-w-full")} /></label></div></fieldset>
+          <Button type="submit" className="min-h-11">Применить фильтры</Button><Link href="/catalog" className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground">Сбросить всё</Link>
+        </div>
+        {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+      </form>
+      <p className="text-xs leading-relaxed text-muted-foreground">Характеристики указаны авторами. Товары без этих сведений остаются в общем каталоге.</p>
+    </section>
   )
+}
+
+function FilterSelect({ name, label, value, options, empty }: { name: string; label: string; value?: string; options: Record<string, string>; empty: string }) {
+  return <div className="min-w-0 text-xs text-muted-foreground"><label htmlFor={`catalog-${name}`}>{label}</label><select id={`catalog-${name}`} name={name} defaultValue={value ?? ""} className={cn(fieldClass, "text-foreground")}><option value="">{empty}</option>{Object.entries(options).map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select></div>
+}
+function CategoryLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return <Link href={href} aria-current={active ? "page" : undefined} className={cn("rounded-full border px-3 py-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan", active ? "border-cyan/40 bg-cyan/10 text-cyan" : "border-border text-muted-foreground hover:text-foreground")}>{children}</Link>
 }

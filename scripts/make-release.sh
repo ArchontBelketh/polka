@@ -19,6 +19,7 @@ rm -f "$OUT"
 EXCLUDES=(
   ".git/*"  "node_modules/*"  ".next/*"  "out/*"  "build/*"
   ".env"  ".env.local"  ".env.*.local"
+  ".secrets/*"
   "test-screenshots/*"  "playwright-report/*"  "test-results/*"  "coverage/*"
   ".deploy-admin-created"  "polka-deploy.zip"  "*.log"
 )

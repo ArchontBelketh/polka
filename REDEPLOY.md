@@ -63,14 +63,15 @@ nano /opt/polka/.env
 
 ## 5. Сборка → схема → запуск
 
-Порядок важен: сначала образ, потом схема (`db push`), потом старт.
+Порядок важен: сначала образы, потом миграции, потом старт. Для существующей БД
+перед первым обновлением проверить [baseline](docs/DATABASE_MIGRATIONS.md).
 ```bash
 cd /opt/polka
-$DC build                    # собирает образ app
-$DC run --rm migrate         # применяет схему БД (prisma db push) — лёгкий образ migrator
+$DC build app migrate        # обновляет приложение и миграции
+$DC run --rm migrate         # prisma migrate deploy
 $DC up -d                    # (пере)запускает app + db
 ```
-> `migrate` собирается из лёгкой стадии `migrator` (только prisma CLI + схема),
+> `migrate` собирается из лёгкой стадии `migrator` (Prisma CLI и инструменты администратора),
 > а не из полного `builder` — поэтому не упирается в диск.
 
 ## 6. Внешние настройки (разово / при изменениях)
@@ -161,7 +162,8 @@ curl -s https://cyberpolka.store/api/health
 
 ```bash
 cd /opt/polka
-$DC run --rm migrate                   # prisma db push
+$DC build migrate
+$DC run --rm migrate                   # prisma migrate deploy
 $DC up -d --force-recreate app         # чтобы клиент Prisma перечитал схему
 ```
 
@@ -198,7 +200,7 @@ curl -s https://cyberpolka.store/api/health
 | `Export X doesn't exist` при сборке | Осиротевший старый файл в `src`. Сделать `rm -rf src` перед `unzip`. |
 | `no space left on device` | Диск полный. `docker system prune -af && docker builder prune -af`; проверить `df -h /`. Сборка `migrate` больше не дублирует образ, но место всё равно нужно. |
 | Сборка виснет >700с | Нет swap → OOM. Проверить `free -h`, вернуть 4 ГБ swap (шаг 2). |
-| `unknown option --skip-generate` | В Prisma 7 флага нет. Команда — просто `npx prisma db push` (уже поправлено в compose). |
-| `prisma:warn ... openssl` | Предупреждение, не ошибка — push проходит. |
+| `unknown option --skip-generate` | Удалить устаревший флаг; штатная команда — `$DC run --rm migrate` (`prisma migrate deploy`). |
+| `prisma:warn ... openssl` | Проверить наличие openssl в образе migrator и результат миграции. |
 | 500 на кабинете/продуктах после деплоя | Не применилась схема. Выполнить `$DC run --rm migrate`. |
-| `create-admin` через migrate не работает | Слим-`migrator` умеет только `db push`. Реальный админ создаётся на первичной установке (`server-setup.sh`); дополнительный — отдельной задачей. |
+| `create-admin` через migrate не работает | Пересобрать `$DC build migrate`; образ включает `scripts/create-admin.ts` и зависимости. |

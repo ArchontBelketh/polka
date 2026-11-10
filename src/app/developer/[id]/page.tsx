@@ -1,11 +1,17 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { db } from "@/lib/db"
+import { getPublicDeveloper } from "@/lib/public-developer"
+import { InviteDeveloper } from "@/components/developers/InviteDeveloper"
+import { ExposureTracker } from "@/components/developers/ExposureTracker"
+import { exposureToken } from "@/lib/developers/metrics"
+import { SPECIALIZATIONS, AVAILABILITY_LABELS, type Specialization } from "@/lib/developer-profile"
 import { auth } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/catalog/ProductCard"
+import { JobReviews } from "@/components/jobs/JobReviews"
 import { CATEGORY_LABELS } from "@/types"
-import { Star, Package, ShoppingCart, Pencil, ShieldCheck, Trophy, Flame } from "lucide-react"
+import { Star, Package, ShoppingCart, Pencil, ShieldCheck, Trophy, Flame, ExternalLink } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { plural, FORMS, monthYearGenitive } from "@/lib/plural"
 import type { Metadata } from "next"
@@ -16,9 +22,9 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params
-  const user = await db.user.findUnique({ where: { id }, select: { name: true } })
-  if (!user) return {}
-  return { title: `${user.name ?? "Разработчик"} — продукты на ПОЛКЕ` }
+  const user = await getPublicDeveloper(id)
+  if (!user) return { title: "Профиль недоступен", robots: { index: false, follow: false } }
+  return { title: `${user.name ?? "Разработчик"} — профиль на ПОЛКЕ`, description: user.headline || "Навыки, проекты и готовый код разработчика на CYBERПОЛКЕ." }
 }
 
 interface Achievement {
@@ -33,16 +39,7 @@ export default async function DeveloperPage({ params }: PageProps) {
 
   const [session, developer] = await Promise.all([
     auth(),
-    db.user.findUnique({
-      where: { id, role: { in: ["DEVELOPER", "ADMIN"] } },
-      select: {
-        id:             true,
-        name:           true,
-        telegramHandle: true,
-        bio:            true,
-        createdAt:      true,
-      },
-    }),
+    getPublicDeveloper(id),
   ])
 
   const isOwn = session?.user?.id === id
@@ -66,7 +63,6 @@ export default async function DeveloperPage({ params }: PageProps) {
       techStack: true,
       status: true,
       manuallyVerified: true,
-      author: { select: { id: true, name: true, telegramHandle: true } },
     },
   })
 
@@ -111,6 +107,7 @@ export default async function DeveloperPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <ExposureTracker token={exposureToken("PROFILE_OPEN", [id])} profileId={id} />
       {/* Profile header */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         {/* Banner */}
@@ -120,28 +117,30 @@ export default async function DeveloperPage({ params }: PageProps) {
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-card bg-muted text-3xl font-bold text-foreground shadow-lg">
               {initial}
             </div>
-            <div className="flex-1 space-y-1 pb-1">
+            <div className="min-w-0 flex-1 space-y-1 pb-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
+                <h1 className="max-w-full break-words text-2xl font-bold">{developer.name ?? "Разработчик"}</h1>
                 {isOwn && (
                   <Link
-                    href="/settings"
+                    href="/dashboard/profile"
                     className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <Pencil className="h-3 w-3" /> Редактировать
                   </Link>
                 )}
               </div>
-              {developer.telegramHandle && (
-                <p className="text-sm text-muted-foreground">@{developer.telegramHandle}</p>
-              )}
+              {developer.headline && <p className="text-sm text-foreground break-words">{developer.headline}</p>}
+              <p className={`inline-flex items-center gap-2 text-xs ${developer.availability === "AVAILABLE" ? "text-cyan" : "text-muted-foreground"}`}><span aria-hidden="true" className={`h-2 w-2 rounded-full ${developer.availability === "AVAILABLE" ? "bg-cyan" : developer.availability === "LIMITED" ? "bg-amber-400" : "bg-muted-foreground"}`} />{AVAILABILITY_LABELS[developer.availability]}</p>
               <p className="text-xs text-muted-foreground">На ПОЛКЕ с {memberSince}</p>
             </div>
           </div>
 
           {developer.bio && (
-            <p className="mt-4 max-w-2xl whitespace-pre-line text-sm text-muted-foreground">{developer.bio}</p>
+            <p className="mt-4 max-w-2xl whitespace-pre-line break-words text-sm text-muted-foreground">{developer.bio}</p>
           )}
+
+          {developer.specializations.length > 0 && <div className="mt-5 flex flex-wrap gap-2" aria-label="Направления работы">{developer.specializations.filter((item) => item in SPECIALIZATIONS).map((item) => <Badge key={item} variant="secondary">{SPECIALIZATIONS[item as Specialization]}</Badge>)}</div>}
+          {developer.skills.length > 0 && <div className="mt-4"><h2 className="text-sm font-medium">Навыки</h2><ul className="mt-2 flex flex-wrap gap-2">{developer.skills.map((skill) => <li key={skill} className="max-w-full break-words rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground">{skill}</li>)}</ul></div>}
 
           {/* Achievements */}
           {achievements.length > 0 && (
@@ -161,6 +160,10 @@ export default async function DeveloperPage({ params }: PageProps) {
         </div>
       </div>
 
+      {developer.portfolio.length > 0 && <section aria-labelledby="public-portfolio" className="space-y-4"><div><h2 id="public-portfolio" className="text-xl font-semibold">Портфолио</h2><p className="mt-1 text-xs text-muted-foreground">Проекты и описание вклада добавлены разработчиком.</p></div><div className="grid gap-4 sm:grid-cols-2">{developer.portfolio.map((item, index) => <article key={index} className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-5"><h3 className="font-medium break-words">{item.title}</h3>{item.description && <p className="whitespace-pre-line break-words text-sm leading-relaxed text-muted-foreground">{item.description}</p>}{item.url && <a href={item.url} target="_blank" rel="noopener noreferrer nofollow ugc" className="inline-flex items-center gap-2 text-sm text-cyan underline-offset-4 hover:underline">Посмотреть проект <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" /></a>}</article>)}</div></section>}
+
+      <section aria-labelledby="code-heading" className="space-y-4">
+        <div><h2 id="code-heading" className="text-xl font-semibold">Готовый код</h2><p className="mt-1 text-xs text-muted-foreground">Продажи и оценки ниже относятся к товарам магазина. История заказной разработки учитывается отдельно.</p></div>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border border-border bg-card p-4 text-center">
@@ -200,7 +203,7 @@ export default async function DeveloperPage({ params }: PageProps) {
         </p>
       ) : (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Продукты</h2>
+          <h3 className="text-lg font-semibold">Опубликованные продукты</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
               <ProductCard key={p.id} product={p} />
@@ -208,9 +211,12 @@ export default async function DeveloperPage({ params }: PageProps) {
           </div>
         </section>
       )}
+      </section>
 
+      <JobReviews userId={id} />
+      {!isOwn && developer.listed && developer.availability !== "UNAVAILABLE" && <InviteDeveloper developerId={id} signedIn={!!session?.user} />}
       <p className="text-xs text-muted-foreground">
-        <Link href="/catalog" className="hover:underline">← Вернуться в каталог</Link>
+        <Link href="/developers" className="hover:underline">← Каталог разработчиков</Link>
       </p>
     </div>
   )

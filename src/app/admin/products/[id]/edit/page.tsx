@@ -36,6 +36,7 @@ export default async function AdminProductEditPage({ params }: RouteParams) {
       videoUrl: true,
       exampleInput: true,
       exampleOutput: true,
+      specification: true,
     },
   })
 

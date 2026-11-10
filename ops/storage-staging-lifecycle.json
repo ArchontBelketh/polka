@@ -1,0 +1,12 @@
+{
+  "Rules": [
+    {
+      "ID": "CyberPolkaTemporaryUploads",
+      "Status": "Disabled",
+      "Filter": { "Prefix": "staging/" },
+      "Expiration": { "Days": 2 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 2 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 2 }
+    }
+  ]
+}

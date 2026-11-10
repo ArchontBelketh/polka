@@ -38,6 +38,7 @@ export async function PATCH(
       where: { id },
       data: {
         isBanned: true,
+        sessionVersion: { increment: 1 },
         bannedAt: new Date(),
         banReason: parsed.data.reason ?? null,
       },

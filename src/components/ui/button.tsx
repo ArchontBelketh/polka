@@ -9,9 +9,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // фирменная: глубокий фиолет с лёгким свечением, ховер → violet
+        // Keep white text readable in the hover state as well.
         default:
-          "bg-primary text-primary-foreground shadow-[0_0_14px_-2px_rgba(108,75,245,0.5)] hover:bg-violet hover:shadow-[0_0_22px_-4px_rgba(108,75,245,0.8)]",
+          "bg-primary text-primary-foreground shadow-[0_0_14px_-2px_rgba(108,75,245,0.5)] hover:bg-[#7654ed] hover:shadow-[0_0_22px_-4px_rgba(108,75,245,0.8)]",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:

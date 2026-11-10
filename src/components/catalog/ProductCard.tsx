@@ -4,12 +4,13 @@ import { formatPrice } from "@/lib/utils"
 import { CATEGORY_LABELS, type Category, type Product } from "@/types"
 import { WishlistButton } from "@/components/catalog/WishlistButton"
 import { VerifiedBadge } from "@/components/product/VerifiedBadge"
+import { PRODUCT_LANGUAGES, PRODUCT_PLATFORMS } from "@/lib/product-specification"
 
 interface ProductCardProps {
   product: Pick<
     Product,
     "id" | "slug" | "title" | "shortDesc" | "category" | "price" | "rating" | "reviewCount" | "salesCount" | "screenshots" | "techStack"
-  > & { manuallyVerified?: boolean }
+  > & { manuallyVerified?: boolean; specification?: { languages: string[]; platforms: string[] } | null }
   isWishlisted?: boolean
 }
 
@@ -74,6 +75,7 @@ export function ProductCard({ product, isWishlisted = false }: ProductCardProps)
           {product.manuallyVerified && <VerifiedBadge compact />}
 
           <p className="mb-3.5 line-clamp-2 min-h-10 text-[13.5px] leading-relaxed text-muted-foreground">{product.shortDesc}</p>
+          {product.specification && (product.specification.languages.length > 0 || product.specification.platforms.length > 0) && <p className="mb-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{[product.specification.languages.map((key) => PRODUCT_LANGUAGES[key as keyof typeof PRODUCT_LANGUAGES]).filter(Boolean).join(", "), product.specification.platforms.map((key) => PRODUCT_PLATFORMS[key as keyof typeof PRODUCT_PLATFORMS]).filter(Boolean).join(", ")].filter(Boolean).join(" · ")}</p>}
 
           {product.techStack.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-1.5">

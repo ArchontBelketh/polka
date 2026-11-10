@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto"
 import { Prisma } from "@/generated/prisma/client"
-import { db } from "@/lib/db"
+import { db, databaseProvider } from "@/lib/db"
 import { createPayment, type TBankReceipt } from "@/lib/tbank"
 import { developerPayout } from "@/lib/earnings"
 import { payoutHoldThresholdKopecks } from "@/lib/tariffs"
@@ -144,7 +144,7 @@ export async function initPayment(params: {
     }
   } catch (err) {
     await db.paymentIntent
-      .update({ where: { id: intent.id }, data: { status: "FAILED" } })
+      .updateMany({ where: { id: intent.id, status: "PENDING" }, data: { status: "FAILED" } })
       .catch(() => {})
     throw err
   }
@@ -155,18 +155,12 @@ export async function initPayment(params: {
 // (Чек уже пробит кассой при оплате — здесь только выдача услуги.)
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface Intent {
-  type: string
-  payload: unknown
-  amount: number
-}
-interface Ctx {
-  paymentId: string
-}
-
 type Payload = Record<string, string | undefined>
+type Tx = Prisma.TransactionClient
+type AfterCommit = () => Promise<unknown>
+type Handler = (tx: Tx, payload: Payload, paymentId: string) => Promise<AfterCommit[]>
 
-const CONFIRM_HANDLERS: Record<string, (p: Payload, ctx: Ctx) => Promise<void>> = {
+const CONFIRM_HANDLERS: Record<string, Handler> = {
   purchase: fulfillPurchase,
   slots: fulfillSlots,
   pro: fulfillPro,
@@ -175,38 +169,64 @@ const CONFIRM_HANDLERS: Record<string, (p: Payload, ctx: Ctx) => Promise<void>> 
   service_order: fulfillServiceOrder,
 }
 
-const FAIL_HANDLERS: Record<string, (p: Payload) => Promise<void>> = {
+const FAIL_HANDLERS: Record<string, Handler> = {
   purchase: failPurchase,
   ai_review: failAiReview,
   service_order: failServiceOrder,
 }
 
-/** Выдать услугу по подтверждённому платежу. */
-export async function fulfillPayment(intent: Intent, ctx: Ctx): Promise<void> {
-  const handler = CONFIRM_HANDLERS[intent.type]
-  if (!handler) {
-    console.warn("fulfillPayment: неизвестный тип платежа", intent.type)
-    return
-  }
-  await handler((intent.payload ?? {}) as Payload, ctx)
-}
+/**
+ * Единая точка применения проверенного результата Т-Банка (webhook и recheck).
+ * Блокировка строки сериализует конкурирующие события, а выдача услуги и статус
+ * фиксируются одной транзакцией. При ошибке обработчика откатывается всё.
+ */
+export async function applyPaymentOutcome(
+  intentId: string,
+  paymentId: string,
+  outcome: "CONFIRMED" | "FAILED",
+): Promise<{ applied: boolean }> {
+  const result = await db.$transaction(async (tx) => {
+    // PostgreSQL locks the row. YDB uses serializable OCC and retries the whole
+    // transaction after ABORTED; reading and updating the intent is the guard.
+    if (databaseProvider !== "ydb") {
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "PaymentIntent" WHERE "id" = ${intentId} FOR UPDATE
+      `
+      if (locked.length === 0) throw new Error("Payment intent not found")
+    }
+    const intent = await tx.paymentIntent.findUniqueOrThrow({ where: { id: intentId } })
+    if (intent.paymentId && intent.paymentId !== paymentId) {
+      throw new Error("Payment does not match intent")
+    }
+    // Финальный успешный результат не откатывается запоздалым отказом.
+    if (intent.status === "CONFIRMED" || intent.status === outcome) {
+      return { applied: false, effects: [] as AfterCommit[] }
+    }
 
-/** Откатить незавершённые записи по неуспешному платежу. */
-export async function failPayment(intent: Intent): Promise<void> {
-  const handler = FAIL_HANDLERS[intent.type]
-  if (handler) await handler((intent.payload ?? {}) as Payload)
+    const handler = (outcome === "CONFIRMED" ? CONFIRM_HANDLERS : FAIL_HANDLERS)[intent.type]
+    if (outcome === "CONFIRMED" && !handler) throw new Error("Unknown payment type")
+    const effects = handler ? await handler(tx, (intent.payload ?? {}) as Payload, paymentId) : []
+    await tx.paymentIntent.update({
+      where: { id: intentId },
+      data: { status: outcome, paymentId },
+    })
+    return { applied: true, effects }
+  })
+
+  // Сеть и best-effort очистка S3 не держат блокировку и не откатывают оплату.
+  await Promise.allSettled(result.effects.map((effect) => effect()))
+  return { applied: result.applied }
 }
 
 // ── Обработчики ───────────────────────────────────────────────────────────────
 
-async function fulfillPurchase(p: Payload, ctx: Ctx): Promise<void> {
+async function fulfillPurchase(tx: Tx, p: Payload, paymentId: string): Promise<AfterCommit[]> {
   const purchaseId = p.purchaseId
   if (!purchaseId) {
-    console.error("fulfillPurchase: нет purchaseId в payload")
-    return
+    throw new Error("Purchase ID missing from payment")
   }
 
-  const purchase = await db.purchase.findUnique({
+  const purchase = await tx.purchase.findUnique({
     where: { id: purchaseId },
     include: {
       product: { select: { authorId: true, title: true } },
@@ -214,12 +234,12 @@ async function fulfillPurchase(p: Payload, ctx: Ctx): Promise<void> {
     },
   })
   if (!purchase) {
-    console.error("fulfillPurchase: покупка не найдена", purchaseId)
-    return
+    throw new Error("Purchase not found")
   }
-  if (purchase.status !== "PENDING") return // идемпотентность
+  if (purchase.status === "PAID" || purchase.status === "DELIVERED") return []
+  if (purchase.status !== "PENDING") throw new Error("Purchase cannot be fulfilled in its current state")
 
-  const devPlan = await db.developerPlan.findUnique({
+  const devPlan = await tx.developerPlan.findUnique({
     where: { userId: purchase.product.authorId },
     select: { plan: true, proUntil: true },
   })
@@ -230,125 +250,131 @@ async function fulfillPurchase(p: Payload, ctx: Ctx): Promise<void> {
   const hold = purchase.amount >= payoutHoldThresholdKopecks
   const holdUntil = hold ? new Date(now.getTime() + CLAIM_WINDOW_DAYS * 24 * 60 * 60 * 1000) : null
 
-  await db.$transaction(async (tx) => {
-    await tx.purchase.update({
-      where: { id: purchaseId },
-      data: {
-        status: "PAID",
-        paymentId: ctx.paymentId,
-        paidAt: now,
-        developerAmount,
-        holdUntil,
-        creditedAt: hold ? null : now,
-      },
-    })
-    await tx.product.update({
-      where: { id: purchase.productId },
-      data: { salesCount: { increment: 1 } },
-    })
-    if (!hold) {
-      await tx.user.update({
-        where: { id: purchase.product.authorId },
-        data: { balance: { increment: developerAmount } },
-      })
-    }
+  const claimed = await tx.purchase.updateMany({
+    where: { id: purchaseId, status: "PENDING" },
+    data: {
+      status: "PAID",
+      paymentId,
+      paidAt: now,
+      developerAmount,
+      holdUntil,
+      creditedAt: hold ? null : now,
+    },
   })
+  if (claimed.count === 0) return []
+  await tx.product.update({
+    where: { id: purchase.productId },
+    data: { salesCount: { increment: 1 } },
+  })
+  if (!hold) {
+    await tx.user.update({
+      where: { id: purchase.product.authorId },
+      data: { balance: { increment: developerAmount } },
+    })
+  }
 
-  const developer = await db.user.findUnique({
+  const developer = await tx.user.findUnique({
     where: { id: purchase.product.authorId },
     select: { telegramId: true },
   })
-  void notifyNewSale({
+  return [() => notifyNewSale({
     developerTelegramId: developer?.telegramId ?? null,
     productTitle: purchase.product.title,
     amountKopecks: purchase.amount,
     buyerEmail: purchase.buyer.email,
-  })
+  })]
 }
 
-async function fulfillSlots(p: Payload): Promise<void> {
+async function fulfillSlots(tx: Tx, p: Payload): Promise<AfterCommit[]> {
   const { userId, slotsAdded } = p
-  if (!userId || !slotsAdded) return
+  if (!userId || !slotsAdded) throw new Error("Slot payment payload is incomplete")
   const slots = parseInt(slotsAdded, 10)
-  if (isNaN(slots) || slots <= 0) return
+  if (!/^[1-9]\d*$/.test(slotsAdded) || !Number.isSafeInteger(slots) || slots <= 0) throw new Error("Invalid slot count")
 
-  await db.developerPlan.upsert({
+  await tx.developerPlan.upsert({
     where: { userId },
     create: { userId, totalSlots: 2 + slots },
     update: { totalSlots: { increment: slots } },
   })
+  return []
 }
 
-async function fulfillPro(p: Payload): Promise<void> {
+async function fulfillPro(tx: Tx, p: Payload): Promise<AfterCommit[]> {
   const { userId } = p
-  if (!userId) return
+  if (!userId) throw new Error("Pro payment user is missing")
   const proUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  await db.developerPlan.upsert({
+  await tx.developerPlan.upsert({
     where: { userId },
     create: { userId, plan: "PRO", proUntil },
     update: { plan: "PRO", proUntil },
   })
+  return []
 }
 
-async function fulfillAiReview(p: Payload, ctx: Ctx): Promise<void> {
+async function fulfillAiReview(tx: Tx, p: Payload, paymentId: string): Promise<AfterCommit[]> {
   const { aiReviewId } = p
-  if (!aiReviewId) return
-  await db.aiReview.updateMany({
+  if (!aiReviewId) throw new Error("AI review payment ID is missing")
+  await tx.aiReview.updateMany({
     where: { id: aiReviewId, status: "PENDING" },
-    data: { status: "PROCESSING", paymentId: ctx.paymentId },
+    data: { status: "PROCESSING", paymentId },
   })
+  return []
 }
 
-async function fulfillListingFee(p: Payload): Promise<void> {
+async function fulfillListingFee(tx: Tx, p: Payload): Promise<AfterCommit[]> {
   const { productId } = p
-  if (!productId) return
-  await db.product.updateMany({
+  if (!productId) throw new Error("Listing payment product is missing")
+  await tx.product.updateMany({
     where: { id: productId, listingFeePaidAt: null },
     data: { listingFeePaidAt: new Date() },
   })
+  return []
 }
 
-async function failPurchase(p: Payload): Promise<void> {
-  if (!p.purchaseId) return
-  await db.purchase.updateMany({
+async function failPurchase(tx: Tx, p: Payload): Promise<AfterCommit[]> {
+  if (!p.purchaseId) throw new Error("Purchase ID missing from payment")
+  await tx.purchase.updateMany({
     where: { id: p.purchaseId, status: "PENDING" },
     data: { status: "REFUNDED" },
   })
+  return []
 }
 
-async function failAiReview(p: Payload): Promise<void> {
-  if (!p.aiReviewId) return
-  await db.aiReview.updateMany({
+async function failAiReview(tx: Tx, p: Payload): Promise<AfterCommit[]> {
+  if (!p.aiReviewId) throw new Error("AI review payment ID is missing")
+  await tx.aiReview.updateMany({
     where: { id: p.aiReviewId, status: "PENDING" },
     data: { status: "FAILED" },
   })
+  return []
 }
 
 // Платные услуги ПОЛКИ (раздел 11): оплата переводит заказ в «Оплачен».
 // AI_AUDIT далее подхватит крон и выполнит аудит; экспертные услуги ведёт оператор.
-async function fulfillServiceOrder(p: Payload, ctx: Ctx): Promise<void> {
+async function fulfillServiceOrder(tx: Tx, p: Payload, paymentId: string): Promise<AfterCommit[]> {
   const { serviceOrderId } = p
-  if (!serviceOrderId) return
-  const res = await db.serviceOrder.updateMany({
+  if (!serviceOrderId) throw new Error("Service order payment ID is missing")
+  const res = await tx.serviceOrder.updateMany({
     where: { id: serviceOrderId, status: "AWAITING_PAYMENT" },
-    data: { status: "PAID", paymentId: ctx.paymentId, paidAt: new Date() },
+    data: { status: "PAID", paymentId, paidAt: new Date() },
   })
-  if (res.count === 0) return // идемпотентность
-  const order = await db.serviceOrder.findUnique({
+  if (res.count === 0) return []
+  const order = await tx.serviceOrder.findUnique({
     where: { id: serviceOrderId },
     select: { id: true, kind: true },
   })
-  if (order) void notifyServiceOrderPaid({ orderId: order.id, kind: order.kind })
+  return order ? [() => notifyServiceOrderPaid({ orderId: order.id, kind: order.kind })] : []
 }
 
-async function failServiceOrder(p: Payload): Promise<void> {
-  if (!p.serviceOrderId) return
+async function failServiceOrder(tx: Tx, p: Payload): Promise<AfterCommit[]> {
+  if (!p.serviceOrderId) throw new Error("Service order payment ID is missing")
   // Неоплаченный заказ не занимает место — удаляем вместе с прикреплённым кодом.
-  const order = await db.serviceOrder.findFirst({
+  const order = await tx.serviceOrder.findFirst({
     where: { id: p.serviceOrderId, status: "AWAITING_PAYMENT" },
     select: { id: true, codeS3Key: true },
   })
-  if (!order) return
-  if (order.codeS3Key) await deleteObject(order.codeS3Key).catch(() => {})
-  await db.serviceOrder.delete({ where: { id: order.id } }).catch(() => {})
+  if (!order) return []
+  await tx.serviceOrder.delete({ where: { id: order.id } })
+  const key = order.codeS3Key
+  return key ? [() => deleteObject(key)] : []
 }

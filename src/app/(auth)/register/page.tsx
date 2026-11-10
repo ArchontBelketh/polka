@@ -65,6 +65,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-semibold">Регистрация</h1>
+          <p className="pt-2 text-sm leading-relaxed text-muted-foreground">Один аккаунт для покупок, заявок на разработку и продажи своего кода.</p>
           <p className="text-sm text-muted-foreground">
             Уже есть аккаунт?{" "}
             <Link href="/login" className="text-primary underline-offset-4 hover:underline">

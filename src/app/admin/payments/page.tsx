@@ -65,6 +65,9 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
     ? await db.user.findMany({ where: { id: { in: userIds } }, select: { id: true, email: true } })
     : []
   const emailById = new Map(users.map((u) => [u.id, u.email]))
+  const refundIds = intents.filter((intent) => intent.type === "purchase").map((intent) => (intent.payload as Record<string, string> | null)?.purchaseId).filter((id): id is string => !!id)
+  const refunds = refundIds.length ? await db.financialOperation.findMany({ where: { kind: "REFUND", referenceId: { in: refundIds } }, select: { referenceId: true, status: true } }) : []
+  const refundStates = new Map(refunds.map((operation) => [operation.referenceId, operation.status]))
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
@@ -137,6 +140,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
                   status={it.status}
                   hasPaymentId={!!it.paymentId}
                   refundablePurchaseId={refundablePurchaseId}
+                  refundState={refundablePurchaseId ? refundStates.get(refundablePurchaseId) : undefined}
                 />
               </div>
             )

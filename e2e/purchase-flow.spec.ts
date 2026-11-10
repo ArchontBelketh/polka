@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test"
 
 const DEV_EMAIL   = process.env.E2E_DEV_EMAIL   ?? "dev@polka.test"
-const DEV_PASS    = process.env.E2E_DEV_PASS    ?? "devpassword123"
+const DEV_PASS    = process.env.E2E_DEV_PASS    ?? "password123"
 const BUYER_EMAIL = process.env.E2E_BUYER_EMAIL ?? "buyer@polka.test"
-const BUYER_PASS  = process.env.E2E_BUYER_PASS  ?? "buyerpassword123"
+const BUYER_PASS  = process.env.E2E_BUYER_PASS  ?? "password123"
 
 // ─── Developer flow ──────────────────────────────────────────────────────────
 
@@ -108,49 +108,40 @@ test.describe("Панель администратора", () => {
 // ─── Payment API ──────────────────────────────────────────────────────────────
 
 test.describe("Платёжный API", () => {
-  test("POST /api/payment/create без авторизации → 401", async ({ request }) => {
+  test("POST /api/payment/create отклоняет гостя или сообщает об отключённом эквайринге", async ({ request }) => {
     const res = await request.post("/api/payment/create", {
       data: { productId: "test" },
     })
-    expect(res.status()).toBe(401)
+    expect([401, 410]).toContain(res.status())
   })
 })
 
 // ─── Full login + dashboard smoke test (if test accounts exist) ───────────────
 
 test.describe("Авторизация разработчика", () => {
-  test("вход разработчика — ожидает кабинет или страницу входа", async ({ page }) => {
+  test("вход разработчика открывает кабинет и создаёт сессию", async ({ page }) => {
     await page.goto("/login")
     await page.getByLabel(/email/i).fill(DEV_EMAIL)
     await page.getByLabel(/пароль/i).first().fill(DEV_PASS)
     await page.getByRole("button", { name: /войти/i }).click()
 
-    // Either lands on dashboard (success) or stays on login (wrong credentials)
-    await page.waitForURL(
-      (url) => url.pathname.includes("/dashboard") || url.pathname.includes("/login"),
-      { timeout: 5000 },
-    ).catch(() => {})
-
-    // As long as the page loaded, we're good
-    await expect(page.locator("body")).toBeVisible()
+    await expect(page).toHaveURL(/\/dashboard/)
+    const session = await (await page.request.get("/api/auth/session")).json()
+    expect(session.user?.id).toBeTruthy()
+    expect(session.user?.role).toBe("DEVELOPER")
   })
 })
 
 test.describe("Авторизация покупателя", () => {
-  test("вход покупателя — ожидает кабинет или страницу входа", async ({ page }) => {
+  test("вход покупателя открывает покупки и создаёт сессию", async ({ page }) => {
     await page.goto("/login")
     await page.getByLabel(/email/i).fill(BUYER_EMAIL)
     await page.getByLabel(/пароль/i).first().fill(BUYER_PASS)
     await page.getByRole("button", { name: /войти/i }).click()
 
-    await page.waitForURL(
-      (url) =>
-        url.pathname.includes("/dashboard") ||
-        url.pathname.includes("/purchases") ||
-        url.pathname.includes("/login"),
-      { timeout: 5000 },
-    ).catch(() => {})
-
-    await expect(page.locator("body")).toBeVisible()
+    await expect(page).toHaveURL(/\/purchases/)
+    const session = await (await page.request.get("/api/auth/session")).json()
+    expect(session.user?.id).toBeTruthy()
+    expect(session.user?.email).toBe(BUYER_EMAIL.toLowerCase())
   })
 })

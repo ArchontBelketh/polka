@@ -1,16 +1,11 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 
-async function requireAdmin() {
-  const session = await auth()
-  if (!session?.user?.id) return null
-  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true } })
-  if (!user || user.role !== "ADMIN") return null
-  return session
-}
-
 export async function GET(req: Request) {
-  if (!await requireAdmin()) {
+  const session = await auth()
+  if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true } })
+  if (user?.role !== "ADMIN") {
     return Response.json({ error: "Forbidden" }, { status: 403 })
   }
 

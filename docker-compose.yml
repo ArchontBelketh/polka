@@ -48,7 +48,7 @@ services:
       retries: 3
       start_period: 30s
 
-  # One-off schema tasks (prisma db push). Built from the lightweight `migrator`
+  # One-off migrations (prisma migrate deploy). Built from the lightweight `migrator`
   # stage (prisma CLI + schema only) — a fraction of the `builder` image, so the
   # deploy doesn't run out of disk building a second full image. Never starts on
   # `up` (profile "tools"); invoked via `docker compose run --rm migrate`.
@@ -61,7 +61,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["npx", "prisma", "db", "push"]
+    command: ["npx", "tsx", "scripts/migrate-database.ts"]
 
 volumes:
   pgdata:

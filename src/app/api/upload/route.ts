@@ -1,134 +1,56 @@
 import { NextRequest } from "next/server"
+import { randomUUID } from "node:crypto"
 import { z } from "zod"
-import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { getPresignedUploadUrl, productSourceKey, screenshotKey, sanitizeFileName } from "@/lib/s3"
+import { getCurrentUser } from "@/lib/current-user"
+import { canManageCode } from "@/lib/permissions"
+import { getPresignedUploadUrl, productVersionUploadKey, sanitizeFileName, MAX_SCREENSHOT_BYTES } from "@/lib/s3"
+import { prepareProductUpload } from "@/lib/product-uploads"
+import { isUploadEditable, ProductUploadError } from "@/lib/product-upload-policy"
 import { limits } from "@/lib/ratelimit"
-
-const ALLOWED_SOURCE_TYPES = new Set([
-  "application/zip", "application/x-zip-compressed",
-  "text/x-python", "application/octet-stream",
-  "application/vnd.ms-excel.sheet.macroenabled.12",
-  "application/x-xlsm",
-])
-
-const ALLOWED_SCREENSHOT_TYPES = new Set([
-  "image/jpeg", "image/png", "image/webp",
-])
+import { clientIp } from "@/lib/ip"
 
 const uploadSchema = z.object({
-  productId: z.string(),
-  type: z.enum(["source", "screenshot", "version"]),
-  fileName: z.string().min(1).max(200),
-  fileSize: z.number().int().positive().max(100 * 1024 * 1024), // 100 MB max
-  contentType: z.string(),
+  uploadId: z.string().uuid().optional(), productId: z.string().min(1).max(200),
+  type: z.enum(["source", "screenshot", "version"]), fileName: z.string().min(1).max(200),
+  fileSize: z.number().int().positive().max(100 * 1024 * 1024), contentType: z.string().max(150),
   screenshotIndex: z.number().int().min(0).max(4).optional(),
-})
-
-const s3Configured =
-  !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
+}).strict()
+const sourceTypes = new Set(["application/zip", "application/x-zip-compressed", "text/x-python", "application/octet-stream", "application/vnd.ms-excel.sheet.macroenabled.12", "application/x-xlsm"])
+const imageTypes = new Set(["image/jpeg", "image/png", "image/webp"])
+const s3Configured = !!process.env.YANDEX_S3_ACCESS_KEY && !!process.env.YANDEX_S3_SECRET_KEY
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
-  if (!limits.upload(ip)) {
-    return Response.json({ error: "Слишком много запросов" }, { status: 429 })
+  if (!limits.upload(clientIp(req) || "anonymous")) return Response.json({ error: "Слишком много запросов" }, { status: 429 })
+  const user = await getCurrentUser()
+  if (!user) return Response.json({ error: "Необходима авторизация" }, { status: 401 })
+  if (!canManageCode(user.role)) return Response.json({ error: "Недостаточно прав" }, { status: 403 })
+  const parsed = uploadSchema.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) return Response.json({ error: "Проверьте тип, имя и размер файла" }, { status: 422 })
+  const input = parsed.data
+  const fileName = sanitizeFileName(input.fileName)
+  if (!fileName || /^[.\s]+$/.test(fileName)) return Response.json({ error: "Укажите корректное имя файла" }, { status: 422 })
+  const product = await db.product.findUnique({ where: { id: input.productId }, select: { id: true, authorId: true, status: true, publishedAt: true } })
+  if (!product) return Response.json({ error: "Продукт не найден" }, { status: 404 })
+  if (product.authorId !== user.id) return Response.json({ error: "Нет доступа" }, { status: 403 })
+  if (input.uploadId && input.type !== "version") {
+    const completed = await db.productUpload.findUnique({ where: { id: input.uploadId } })
+    if (completed?.status === "COMPLETED" && completed.productId === product.id && completed.type === input.type && completed.slot === (input.type === "source" ? 0 : input.screenshotIndex ?? 0) && completed.fileName === fileName && completed.fileSize === input.fileSize && completed.contentType === input.contentType) return Response.json({ uploadId: completed.id, completed: true })
   }
-
-  const session = await auth()
-  if (!session?.user?.id) {
-    return Response.json({ error: "Необходима авторизация" }, { status: 401 })
+  if ((input.type === "version" && product.status !== "APPROVED") || (input.type !== "version" && !isUploadEditable(product))) return Response.json({ error: "Файлы опубликованного или проверяемого товара менять нельзя. Используйте новую версию." }, { status: 409 })
+  if (input.type === "screenshot" && (!imageTypes.has(input.contentType) || input.fileSize > MAX_SCREENSHOT_BYTES)) return Response.json({ error: "Скриншот должен быть JPEG/PNG/WebP до 5 МБ" }, { status: 422 })
+  if (input.type !== "screenshot" && !sourceTypes.has(input.contentType) && ![".zip", ".py", ".js", ".ts", ".epf", ".erf", ".xlsm", ".xls"].some((ext) => fileName.toLowerCase().endsWith(ext))) return Response.json({ error: "Недопустимый тип файла" }, { status: 422 })
+  if (!s3Configured) return Response.json({ error: "Хранилище файлов временно недоступно. Файл не зарегистрирован." }, { status: 503 })
+  if (input.type === "version") {
+    const key = productVersionUploadKey(input.productId, fileName)
+    return Response.json({ key, url: await getPresignedUploadUrl(key, input.contentType) })
   }
-
-  const body = await req.json()
-  const parsed = uploadSchema.safeParse(body)
-  if (!parsed.success) {
-    return Response.json({ error: parsed.error.flatten() }, { status: 422 })
+  try {
+    const upload = await prepareProductUpload(user.id, { id: input.uploadId ?? randomUUID(), productId: input.productId, type: input.type, slot: input.type === "source" ? 0 : input.screenshotIndex ?? 0, fileName, fileSize: input.fileSize, contentType: input.contentType })
+    if (upload.status === "COMPLETED") return Response.json({ uploadId: upload.id, completed: true })
+    return Response.json({ uploadId: upload.id, key: upload.stagingKey, url: await getPresignedUploadUrl(upload.stagingKey, input.contentType) })
+  } catch (error) {
+    if (error instanceof ProductUploadError) return Response.json({ error: error.message }, { status: error.status })
+    return Response.json({ error: "Не удалось подготовить загрузку. Повторите попытку." }, { status: 503 })
   }
-
-  const { productId, type, fileName: rawFileName, fileSize, contentType, screenshotIndex } = parsed.data
-  // Чистим имя от задвоенного расширения и разделителей пути для всех типов загрузок.
-  const fileName = sanitizeFileName(rawFileName)
-
-  // Verify ownership
-  const product = await db.product.findUnique({ where: { id: productId } })
-  if (!product) {
-    return Response.json({ error: "Продукт не найден" }, { status: 404 })
-  }
-  if (product.authorId !== session.user.id) {
-    return Response.json({ error: "Нет доступа" }, { status: 403 })
-  }
-
-  // S3 not configured in local dev — skip upload, return no URL
-  if (!s3Configured) {
-    if (type === "source") {
-      const ext = fileName.split(".").pop() ?? ""
-      await db.productFile.create({
-        data: {
-          productId,
-          s3Key: `local/${productId}/source/${fileName}`,
-          fileName,
-          fileSize,
-          fileType: "SOURCE",
-          format: `.${ext}`,
-        },
-      })
-    }
-    return Response.json({ url: null })
-  }
-
-  if (type === "source") {
-    if (!ALLOWED_SOURCE_TYPES.has(contentType) && !isAllowedByExtension(fileName)) {
-      return Response.json({ error: "Недопустимый тип файла" }, { status: 422 })
-    }
-    const key = productSourceKey(productId, fileName)
-    const url = await getPresignedUploadUrl(key, contentType)
-
-    const ext = fileName.split(".").pop() ?? ""
-    await db.productFile.create({
-      data: {
-        productId,
-        s3Key: key,
-        fileName,
-        fileSize,
-        fileType: "SOURCE",
-        format: `.${ext}`,
-      },
-    })
-
-    return Response.json({ url, key })
-  }
-
-  if (type === "version") {
-    if (!ALLOWED_SOURCE_TYPES.has(contentType) && !isAllowedByExtension(fileName)) {
-      return Response.json({ error: "Недопустимый тип файла" }, { status: 422 })
-    }
-    if (!s3Configured) {
-      return Response.json({ url: null, key: `local/${productId}/versions/${fileName}` })
-    }
-    const key = `products/${productId}/versions/${Date.now()}_${fileName}`
-    const url = await getPresignedUploadUrl(key, contentType)
-    return Response.json({ url, key })
-  }
-
-  if (type === "screenshot") {
-    if (!ALLOWED_SCREENSHOT_TYPES.has(contentType)) {
-      return Response.json({ error: "Скриншоты должны быть JPEG/PNG/WebP" }, { status: 422 })
-    }
-    const idx = screenshotIndex ?? 0
-    const ext = contentType.split("/")[1]
-    const key = screenshotKey(productId, idx, ext)
-    const url = await getPresignedUploadUrl(key, contentType)
-
-    const screenshots = [...product.screenshots, key]
-    await db.product.update({ where: { id: productId }, data: { screenshots } })
-
-    return Response.json({ url, key })
-  }
-
-  return Response.json({ error: "Неизвестный тип" }, { status: 400 })
-}
-
-function isAllowedByExtension(name: string): boolean {
-  const allowed = [".zip", ".py", ".js", ".ts", ".epf", ".erf", ".xlsm", ".xls"]
-  return allowed.some((ext) => name.toLowerCase().endsWith(ext))
 }

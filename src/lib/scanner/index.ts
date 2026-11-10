@@ -1,9 +1,8 @@
 import fs from "fs"
 import path from "path"
 import os from "os"
-import { createHash } from "crypto"
 import { db } from "@/lib/db"
-import { getObjectBuffer } from "@/lib/s3"
+import { getObjectBuffer, sealProductSource, sanitizeFileName } from "@/lib/s3"
 import { runBandit } from "./python"
 import { runSemgrep } from "./semgrep"
 import { scanEpf } from "./epf"
@@ -41,9 +40,9 @@ export async function runScan(productId: string): Promise<void> {
   if (!product || product.files.length === 0) {
     await db.scanResult.update({
       where: { productId },
-      data: { status: "CLEAN", scannedAt: new Date(), toolsRun: ["no-files"] },
+      data: { status: "BLOCKED", scannedAt: new Date(), toolsRun: ["no-files"] },
     })
-    await runAutoModeration(productId)
+    if (product) await db.product.update({ where: { id: productId }, data: { status: "SCAN_FAILED" } })
     return
   }
 
@@ -51,9 +50,9 @@ export async function runScan(productId: string): Promise<void> {
   if (!s3Configured) {
     await db.scanResult.update({
       where: { productId },
-      data: { status: "CLEAN", scannedAt: new Date(), toolsRun: ["skipped-no-s3"] },
+      data: { status: "WARNING", scannedAt: new Date(), toolsRun: ["skipped-no-s3"] },
     })
-    await runAutoModeration(productId)
+    await db.product.update({ where: { id: productId }, data: { status: "PENDING" } })
     return
   }
 
@@ -66,7 +65,13 @@ export async function runScan(productId: string): Promise<void> {
       if (file.s3Key.startsWith("local/")) continue
 
       const buffer = await getObjectBuffer(file.s3Key)
-      const localPath = path.join(tmpDir, file.fileName)
+      if (buffer.length !== file.fileSize) throw new Error("Uploaded file size does not match metadata")
+      const snapshot = await sealProductSource(productId, file, buffer)
+      if (file.s3Key !== snapshot.key || file.sha256 !== snapshot.sha256) await db.productFile.update({
+        where: { id: file.id },
+        data: { s3Key: snapshot.key, sha256: snapshot.sha256, fileSize: snapshot.fileSize },
+      })
+      const localPath = path.join(tmpDir, sanitizeFileName(file.fileName))
       fs.writeFileSync(localPath, buffer)
 
       const ext = path.extname(file.fileName).toLowerCase()
@@ -83,15 +88,12 @@ export async function runScan(productId: string): Promise<void> {
       }
 
       // ── Duplicate detection (SHA-256) ─────────────────────────────────────
-      const sha256 = createHash("sha256").update(buffer).digest("hex")
+      const sha256 = snapshot.sha256
       const dupeFindings = await checkDuplicateHash(sha256, productId, product.authorId, file.fileName)
       if (dupeFindings.length > 0) {
         allFindings.push(...dupeFindings)
         toolsRan.add("duplicate-check")
       }
-      // Persist the hash so future uploads can be matched against this file
-      await db.productFile.update({ where: { id: file.id }, data: { sha256 } }).catch(() => {})
-
       // ── ZIP: safe streaming extraction with multi-layer bomb protection ──
       let workDir = tmpDir
       if (ext === ".zip") {

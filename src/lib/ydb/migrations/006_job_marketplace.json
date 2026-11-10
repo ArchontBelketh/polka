@@ -1,0 +1,1301 @@
+{
+  "sourceHash": "0549777b8a7fa3f828280e80f0b7c2344e7f96939094c26f8ef87c0afe82341a",
+  "models": {
+    "Job": {
+      "name": "Job",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "customerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "submissionHash": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "title": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "description": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "outcome": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "specialization": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "budgetMin": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "budgetMax": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "deadline": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "publicationStatus": {
+          "type": "JobPublicationStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "DRAFT"
+        },
+        "status": {
+          "type": "JobStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "OPEN"
+        },
+        "revision": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "moderationReason": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "cancellationRequestedBy": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "cancellationReason": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "publishedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "completedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "customer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "customerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobCustomer"
+        },
+        "proposals": {
+          "model": "JobProposal",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "contract": {
+          "model": "JobContract",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "messages": {
+          "model": "JobMessage",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "attachments": {
+          "model": "JobAttachment",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "deliveries": {
+          "model": "JobDelivery",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "reviews": {
+          "model": "JobReview",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "events": {
+          "model": "JobStatusLog",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "dispute": {
+          "model": "JobDispute",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "notifications": {
+          "model": "JobNotification",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "customerId",
+          "createdAt"
+        ],
+        [
+          "publicationStatus",
+          "status",
+          "publishedAt"
+        ],
+        [
+          "specialization"
+        ],
+        [
+          "customerId"
+        ]
+      ]
+    },
+    "JobProposal": {
+      "name": "JobProposal",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "durationDays": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "approach": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "JobProposalStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "ACTIVE"
+        },
+        "revision": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 1
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "contract": {
+          "model": "JobContract",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "proposalId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "events": {
+          "model": "JobStatusLog",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "proposalId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "jobId",
+          "developerId"
+        ]
+      ],
+      "indexes": [
+        [
+          "developerId",
+          "updatedAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "developerId"
+        ]
+      ]
+    },
+    "JobContract": {
+      "name": "JobContract",
+      "fields": {
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "customerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "proposalId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "title": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "description": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "outcome": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "specialization": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "durationDays": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "approach": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "dueAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "agreedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "customer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "customerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "ContractCustomer"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "ContractDeveloper"
+        },
+        "proposal": {
+          "model": "JobProposal",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "proposalId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "jobId"
+      ],
+      "unique": [
+        [
+          "proposalId"
+        ]
+      ],
+      "indexes": [
+        [
+          "developerId"
+        ],
+        [
+          "customerId"
+        ]
+      ]
+    },
+    "JobMessage": {
+      "name": "JobMessage",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "senderId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "sender": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "senderId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "senderId"
+        ]
+      ]
+    },
+    "JobAttachment": {
+      "name": "JobAttachment",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileName": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileSize": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "s3Key": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "sha256": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "s3Key"
+        ]
+      ],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "JobDelivery": {
+      "name": "JobDelivery",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "attachmentIds": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "status": {
+          "type": "JobDeliveryStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "customerFeedback": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "reviewedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "developerId"
+        ]
+      ]
+    },
+    "JobReview": {
+      "name": "JobReview",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "recipientId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "rating": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobReviewAuthor"
+        },
+        "recipient": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "recipientId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobReviewRecipient"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "jobId",
+          "authorId"
+        ]
+      ],
+      "indexes": [
+        [
+          "recipientId"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "JobStatusLog": {
+      "name": "JobStatusLog",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "actorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "action": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fromStatus": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "toStatus": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "reason": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "data": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "proposalId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "actor": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "actorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "proposal": {
+          "model": "JobProposal",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "proposalId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "proposalId"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "actorId"
+        ]
+      ]
+    },
+    "JobDispute": {
+      "name": "JobDispute",
+      "fields": {
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "ticketId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "previousStatus": {
+          "type": "JobStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "openedById": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "reason": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "resolution": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "resolvedById": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "resolvedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "ticket": {
+          "model": "SupportTicket",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "ticketId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "jobId"
+      ],
+      "unique": [
+        [
+          "ticketId"
+        ]
+      ],
+      "indexes": []
+    },
+    "JobNotification": {
+      "name": "JobNotification",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "userId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "userId"
+        ]
+      ]
+    }
+  }
+}

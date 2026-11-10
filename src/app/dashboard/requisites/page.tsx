@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/current-user"
+import { canManageCode } from "@/lib/permissions"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { RequisitesForm } from "./RequisitesForm"
@@ -7,13 +8,11 @@ import { canPublish } from "@/lib/payout-profile"
 export const metadata = { title: "Реквизиты" }
 
 export default async function RequisitesPage() {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
+  if (!canManageCode(user.role)) redirect("/dashboard/profile")
 
-  const user = await db.user.findUnique({ where: { id: session.user.id } })
-  if (!user || !["DEVELOPER", "ADMIN"].includes(user.role)) redirect("/dashboard")
-
-  const profile = await db.payoutProfile.findUnique({ where: { userId: session.user.id } })
+  const profile = await db.payoutProfile.findUnique({ where: { userId: user.id } })
   const complete = canPublish(profile)
 
   return (

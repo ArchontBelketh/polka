@@ -21,6 +21,7 @@ function readConsent(): Choice | null {
 function writeConsent(c: Choice) {
   document.cookie = `${COOKIE}=${c}; path=/; max-age=${MAX_AGE}; samesite=lax`
   window.dispatchEvent(new Event("cp:consent-changed"))
+  if (c === "necessary") void fetch("/api/developers/events", { method: "DELETE", credentials: "same-origin" }).catch(() => {})
 }
 
 // Внешний стор — кука согласия. useSyncExternalStore корректно разводит
@@ -96,7 +97,7 @@ export function CookieConsent() {
                     сохранение выбора. Всегда включены, без них сайт не работает.
                   </li>
                   <li>
-                    <span className="font-medium text-foreground">Аналитические</span> — Яндекс Метрика:
+                    <span className="font-medium text-foreground">Аналитические</span> — Яндекс Метрика и обезличенный учёт показов и открытий профилей:
                     какие страницы полезны. Включаются только с вашего согласия.
                   </li>
                 </ul>

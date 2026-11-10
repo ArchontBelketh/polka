@@ -101,7 +101,7 @@ export default async function AdminPayoutsPage() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <Badge variant={STATUS_VARIANTS[p.status]}>{STATUS_LABELS[p.status]}</Badge>
-                  <PayoutActions payoutId={p.id} status={p.status} />
+                  <PayoutActions payoutId={p.id} status={p.status} receiptSent={p.receiptSent} />
                 </div>
               </div>
             ))}
@@ -114,7 +114,7 @@ export default async function AdminPayoutsPage() {
           <h2 className="font-semibold text-muted-foreground text-sm uppercase tracking-wide">История</h2>
           <div className="rounded-lg border border-border divide-y divide-border">
             {closed.map((p) => (
-              <div key={p.id} className="px-4 py-3 flex items-center justify-between">
+              <div key={p.id} className="px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">{formatPrice(p.amount)}</p>
                   <p className="text-xs text-muted-foreground">
@@ -123,7 +123,10 @@ export default async function AdminPayoutsPage() {
                     {p.paidAt && <> → {new Date(p.paidAt).toLocaleDateString("ru-RU")}</>}
                   </p>
                 </div>
-                <Badge variant={STATUS_VARIANTS[p.status]}>{STATUS_LABELS[p.status]}</Badge>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge variant={STATUS_VARIANTS[p.status]}>{STATUS_LABELS[p.status]}</Badge>
+                  <PayoutActions payoutId={p.id} status={p.status} receiptSent={p.receiptSent} />
+                </div>
               </div>
             ))}
           </div>

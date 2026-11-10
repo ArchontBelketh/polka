@@ -1,0 +1,88 @@
+{
+  "sourceHash": "50db13dde73b18dd6f2a5d5283c9c749458c8c494d72f2d8dbd3713a3fdb50c3",
+  "models": {
+    "ProductSpecification": {
+      "name": "ProductSpecification",
+      "fields": {
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "languages": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "platforms": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "compatibility": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "outcome": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "supportTerms": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "updateTerms": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "productId"
+      ],
+      "unique": [],
+      "indexes": []
+    }
+  }
+}

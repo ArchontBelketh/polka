@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Category } from "@/types"
 import { LICENSE_OPTIONS as LICENSES } from "@/lib/licenses"
+import { priceInKopecks } from "@/lib/catalog-query"
 import {
   PRICE_THRESHOLD_RUB,
   COMMISSION_RATE,
@@ -32,7 +33,8 @@ export function PricingStep({ value, category, onChange }: PricingStepProps) {
     onChange({ ...value, [key]: v })
   }
 
-  const priceNum = parseFloat(value.price)
+  const priceKopecks = priceInKopecks(value.price)
+  const priceNum = priceKopecks === null ? NaN : priceKopecks / 100
   const validPrice = !isNaN(priceNum) && priceNum > 0
   const model = validPrice ? saleModelForRub(priceNum) : null
   const commission = validPrice ? Math.round(priceNum * COMMISSION_RATE) : 0
@@ -55,10 +57,8 @@ export function PricingStep({ value, category, onChange }: PricingStepProps) {
         <div className="relative">
           <Input
             id="price"
-            type="number"
-            min="100"
-            max="999999"
-            step="100"
+            inputMode="decimal"
+            maxLength={11}
             placeholder="4900"
             value={value.price}
             onChange={(e) => set("price", e.target.value)}
@@ -166,8 +166,8 @@ export function PricingStep({ value, category, onChange }: PricingStepProps) {
       <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm">
         <p className="font-medium text-yellow-400">После отправки</p>
         <p className="text-muted-foreground mt-1">
-          Файл будет автоматически проверен на безопасность. Затем модератор рассмотрит продукт
-          (обычно 1–2 рабочих дня) и опубликует его в каталоге.
+          Файл пройдёт базовые проверки, затем модератор рассмотрит карточку и материалы.
+          После одобрения продукт появится в каталоге. Проверки не гарантируют отсутствия всех ошибок в коде.
         </p>
       </div>
     </div>

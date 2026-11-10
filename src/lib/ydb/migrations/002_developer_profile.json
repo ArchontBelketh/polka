@@ -1,0 +1,84 @@
+{
+  "sourceHash": "6a8b8c43a6514a6ec46f3690b3cdc481023df071c58d75d65f355ef8ad84945a",
+  "models": {
+    "DeveloperProfile": {
+      "name": "DeveloperProfile",
+      "fields": {
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "headline": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "skills": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "specializations": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "availability": {
+          "type": "DeveloperAvailability",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "UNAVAILABLE"
+        },
+        "portfolio": {
+          "type": "Json",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": []
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "userId"
+      ],
+      "unique": [],
+      "indexes": []
+    }
+  }
+}

@@ -105,20 +105,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (dbUser?.isBanned) return false
       return true
     },
-    async jwt({ token, user, trigger }) {
-      if (user) {
-        token.id = user.id
-        // @ts-expect-error role is added in authorize
-        token.role = user.role
-      } else if (trigger === "update" && token.id) {
-        // Роль могла измениться (например, апгрейд покупателя до разработчика) —
-        // перечитываем из БД при вызове session.update() на клиенте.
-        const fresh = await db.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true },
-        })
-        if (fresh) token.role = fresh.role
-      }
+    async jwt({ token, user }) {
+      const id = user?.id ?? token.id
+      if (typeof id !== "string") return null
+
+      // Проверяем каждый серверный доступ: одного signIn недостаточно для
+      // блокировки уже вошедшего пользователя и отзыва сессий после смены пароля.
+      const fresh = await db.user.findUnique({
+        where: { id },
+        select: { role: true, isBanned: true, sessionVersion: true },
+      })
+      if (!fresh || fresh.isBanned) return null
+      // JWT до введения версии соответствуют версии 0, поэтому обычный деплой
+      // сохраняет сессии. После отзыва такой JWT больше не принимается.
+      if (!user && (token.sessionVersion ?? 0) !== fresh.sessionVersion) return null
+
+      token.id = id
+      token.role = fresh.role
+      token.sessionVersion = fresh.sessionVersion
       return token
     },
     session({ session, token }) {

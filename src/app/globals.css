@@ -141,25 +141,6 @@ body {
   animation: node-pulse 2.8s ease-in-out infinite;
 }
 .amb { animation: amb-breathe 5.5s ease-in-out infinite; }
-.header-btn:hover {
-  box-shadow: 0 0 22px rgba(124, 93, 255, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  transform: translate(-50%, -50%) scale(1.04);
-}
-
-/* Переключение интерактивного слоя шапки: десктоп ↔ мобайл.
-   Декоративный SVG-слой (трассы/чипы) показывается всегда и обрезается по краям. */
-.cyber-ui-mobile { display: none; }
-/* Основное меню-полоса под шапкой (десктоп). */
-.hdr-nav a:hover { color: #FFFFFF; background: rgba(157,140,255,.12); }
-.hdr-nav a.hdr-nav-cta:hover { background: rgba(52,230,224,.16); }
-@media (max-width: 900px) {
-  .cyber-ui-desktop { display: none !important; }
-  .cyber-ui-mobile { display: flex !important; }
-  /* Декор выровнен под десктопную сетку 2899px — на мобиле он «съезжает»
-     (кривые чипы у бургера). Скрываем: остаётся чистый бар лого + бургер. */
-  .cyber-decor { display: none !important; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hot, .amb { animation: none; }
 }

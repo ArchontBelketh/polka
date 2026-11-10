@@ -90,6 +90,8 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <Link href="/admin/orders" className="inline-flex text-sm text-cyan hover:underline">Заказы и споры биржи</Link>
+      <Link href="/admin/exposure" className="ml-4 inline-flex text-sm text-cyan hover:underline">Видимость разработчиков</Link>
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Рабочий стол</h1>
         <div className="flex items-center gap-2">

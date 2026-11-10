@@ -17,14 +17,16 @@ export interface KktItem {
   additionalPositionInfo?: string
 }
 
-export async function sendKktReceipt(params: {
+export interface KktReceiptInput {
   type: "Income" | "Expense" | "IncomeReturn" | "ExpenseReturn"
   email?: string
   items: KktItem[]
-  taxationSystem: number // 1 = УСН доход
-  amountRub: number // общая сумма, рубли
+  taxationSystem: number
+  amountRub: number
   invoiceId?: string
-}): Promise<{ ok: boolean; message?: string }> {
+}
+
+export async function sendKktReceipt(params: KktReceiptInput, requestId: string): Promise<{ ok: boolean; message?: string; receiptId?: string }> {
   const publicId = process.env.CLOUDKASSIR_PUBLIC_ID
   const apiSecret = process.env.CLOUDKASSIR_API_SECRET
   if (!publicId || !apiSecret) {
@@ -50,18 +52,29 @@ export async function sendKktReceipt(params: {
   try {
     const resp = await fetch(RECEIPT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Basic ${auth}` },
+      headers: { "Content-Type": "application/json", Authorization: `Basic ${auth}`, "X-Request-ID": requestId },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(20000),
     })
-    const data = (await resp.json().catch(() => ({}))) as { Success?: boolean; Message?: string }
-    if (!resp.ok || data.Success === false) {
-      console.error("[cloudkassir] чек не принят:", resp.status, data.Message)
-      return { ok: false, message: data.Message ?? `Ошибка кассы (HTTP ${resp.status})` }
+    const data = (await resp.json().catch(() => ({}))) as { Success?: boolean; Model?: { Id?: string; ErrorCode?: number } }
+    if (!resp.ok || data.Success !== true || !data.Model?.Id || data.Model.ErrorCode !== 0) {
+      return { ok: false, message: "Приём чека не подтверждён. Проверьте его в кассе перед повторной отправкой." }
     }
-    return { ok: true, message: data.Message }
-  } catch (err) {
-    console.error("[cloudkassir] ошибка отправки чека:", err)
-    return { ok: false, message: "Касса недоступна, попробуйте позже" }
+    return { ok: true, receiptId: data.Model.Id }
+  } catch {
+    return { ok: false, message: "Ответ кассы не получен. Нужна сверка перед повторной отправкой." }
   }
+}
+
+export async function getKktReceiptStatus(receiptId: string): Promise<string> {
+  const publicId = process.env.CLOUDKASSIR_PUBLIC_ID
+  const secret = process.env.CLOUDKASSIR_API_SECRET
+  if (!publicId || !secret) throw new Error("Receipt service is not configured")
+  const response = await fetch(`${RECEIPT_URL}/status/get`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Basic ${Buffer.from(`${publicId}:${secret}`).toString("base64")}` },
+    body: JSON.stringify({ Id: receiptId }), signal: AbortSignal.timeout(20000),
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok || result.Success !== true || !["Queued", "Processed", "Error"].includes(result.Model)) throw new Error("Receipt status is unknown")
+  return result.Model
 }

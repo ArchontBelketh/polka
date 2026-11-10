@@ -2,16 +2,14 @@
  * Dev-only demo data: a demo developer + sample approved products.
  * Run: npm run db:seed:demo   (blocked in production — see scripts/guard.ts)
  */
-import { PrismaClient } from "../src/generated/prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { createDatabase } from "../src/lib/database-factory"
 import * as dotenv from "dotenv"
 import { assertNotProduction } from "./guard"
 
 dotenv.config({ path: ".env.local" })
 dotenv.config({ path: ".env" })
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-const db = new PrismaClient({ adapter })
+const db = createDatabase()
 
 const products = [
   {

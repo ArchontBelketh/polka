@@ -28,33 +28,40 @@ export function ProfileForm({ name, telegramHandle, phone, bio, isDeveloper }: P
     e.preventDefault()
     setStatus("idle")
     startTransition(async () => {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name:           nameVal.trim()  || null,
-          telegramHandle: tgVal.trim().replace(/^@/, "") || null,
-          phone:          phoneVal.trim() || null,
-          bio:            isDeveloper ? (bioVal.trim() || null) : undefined,
-        }),
-      })
-      if (res.ok) {
-        setStatus("ok")
-        router.refresh()
-      } else {
-        const data = await res.json()
-        setErrorMsg(typeof data.error === "string" ? data.error : "Ошибка сохранения")
+      try {
+        const res = await fetch("/api/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name:           nameVal.trim()  || null,
+            telegramHandle: tgVal.trim().replace(/^@/, "") || null,
+            phone:          phoneVal.trim() || null,
+            bio:            isDeveloper ? (bioVal.trim() || null) : undefined,
+          }),
+        })
+        if (res.ok) {
+          setStatus("ok")
+          router.refresh()
+        } else {
+          const data = await res.json().catch(() => ({}))
+          setErrorMsg(typeof data.error === "string" ? data.error : "Ошибка сохранения")
+          setStatus("error")
+        }
+      } catch {
+        setErrorMsg("Ошибка сети. Попробуйте сохранить ещё раз.")
         setStatus("error")
       }
     })
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} onChange={() => setStatus("idle")} className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Имя</label>
+          <label htmlFor="account-name" className="text-sm font-medium">Имя</label>
           <Input
+            id="account-name"
+            autoComplete="name"
             value={nameVal}
             onChange={(e) => setNameVal(e.target.value)}
             placeholder="Ваше имя"
@@ -62,10 +69,11 @@ export function ProfileForm({ name, telegramHandle, phone, bio, isDeveloper }: P
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Telegram</label>
+          <label htmlFor="account-telegram" className="text-sm font-medium">Telegram</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
             <Input
+              id="account-telegram"
               value={tgVal.replace(/^@/, "")}
               onChange={(e) => setTgVal(e.target.value.replace(/^@/, ""))}
               placeholder="username"
@@ -75,8 +83,10 @@ export function ProfileForm({ name, telegramHandle, phone, bio, isDeveloper }: P
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Телефон</label>
+          <label htmlFor="account-phone" className="text-sm font-medium">Телефон</label>
           <Input
+            id="account-phone"
+            autoComplete="tel"
             value={phoneVal}
             onChange={(e) => setPhoneVal(e.target.value)}
             placeholder="+7 999 000 00 00"
@@ -88,8 +98,9 @@ export function ProfileForm({ name, telegramHandle, phone, bio, isDeveloper }: P
 
       {isDeveloper && (
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">О себе</label>
+          <label htmlFor="account-bio" className="text-sm font-medium">О себе</label>
           <textarea
+            id="account-bio"
             value={bioVal}
             onChange={(e) => setBioVal(e.target.value)}
             placeholder="Коротко о себе, своих навыках и проектах…"
@@ -97,15 +108,15 @@ export function ProfileForm({ name, telegramHandle, phone, bio, isDeveloper }: P
             rows={4}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
-          <p className="text-xs text-muted-foreground text-right">{bioVal.length}/1000</p>
+          <p className="text-xs text-muted-foreground">Описание и имя видны в публичном профиле разработчика. {bioVal.length}/1000</p>
         </div>
       )}
 
       {status === "ok" && (
-        <p className="text-sm text-green-400">Сохранено</p>
+        <p role="status" className="text-sm text-green-400">Сохранено</p>
       )}
       {status === "error" && (
-        <p className="text-sm text-red-400">{errorMsg}</p>
+        <p role="alert" className="text-sm text-red-400">{errorMsg}</p>
       )}
 
       <Button type="submit" disabled={isPending}>

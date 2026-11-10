@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/current-user"
+import { canManageCode } from "@/lib/permissions"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { db } from "@/lib/db"
@@ -9,11 +10,12 @@ import { Button } from "@/components/ui/button"
 export const metadata = { title: "Загрузить продукт" }
 
 export default async function SubmitPage() {
-  const session = await auth()
-  if (!session?.user) redirect("/login?callbackUrl=/submit")
+  const user = await getCurrentUser()
+  if (!user) redirect("/login?callbackUrl=/submit")
+  if (!canManageCode(user.role)) redirect("/dashboard/profile")
 
   // Лимит слотов отключён (программа слотов/Pro скрыта) — размещение не ограничено.
-  const profile = await db.payoutProfile.findUnique({ where: { userId: session.user.id } })
+  const profile = await db.payoutProfile.findUnique({ where: { userId: user.id } })
   const requisitesComplete = isProfileComplete(profile)
 
   return (

@@ -1,26 +1,29 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/current-user"
 import { db } from "@/lib/db"
 import { z } from "zod"
 
 const schema = z.object({
-  name:           z.string().min(1).max(100).optional(),
-  telegramHandle: z.string().max(64).optional().nullable(),
-  phone:          z.string().max(32).optional().nullable(),
-  bio:            z.string().max(1000).optional().nullable(),
-})
+  name:           z.string().trim().min(1).max(100).optional().nullable(),
+  telegramHandle: z.string().trim().max(64).optional().nullable(),
+  phone:          z.string().trim().max(32).optional().nullable(),
+  bio:            z.string().trim().max(1000).optional().nullable(),
+}).strict()
 
 export async function PATCH(req: Request) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getCurrentUser()
+  if (!user) return Response.json({ error: "Необходима авторизация" }, { status: 401 })
 
-  const body = await req.json()
+  let body: unknown
+  try { body = await req.json() } catch {
+    return Response.json({ error: "Не удалось прочитать данные формы" }, { status: 400 })
+  }
   const parsed = schema.safeParse(body)
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 422 })
 
   const data = parsed.data
 
   await db.user.update({
-    where: { id: session.user.id },
+    where: { id: user.id },
     data: {
       ...(data.name           !== undefined ? { name:           data.name           } : {}),
       ...(data.telegramHandle !== undefined ? { telegramHandle: data.telegramHandle } : {}),

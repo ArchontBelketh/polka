@@ -97,6 +97,7 @@ export interface TBankState {
   id: string
   /** Сырой статус Т-Банка: NEW | AUTHORIZED | CONFIRMED | REJECTED | REFUNDED | CANCELED | ... */
   status: string
+  amount?: number
 }
 
 export async function getPayment(paymentId: string): Promise<TBankState> {
@@ -106,19 +107,19 @@ export async function getPayment(paymentId: string): Promise<TBankState> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(20000),
   })
-  const data = (await resp.json().catch(() => ({}))) as { Success?: boolean; Status?: string; Message?: string }
-  if (!resp.ok || !data.Success) {
+  const data = (await resp.json().catch(() => ({}))) as { Success?: boolean; Status?: string; Message?: string; PaymentId?: string | number; Amount?: number }
+  if (!resp.ok || data.Success !== true || String(data.PaymentId) !== paymentId || typeof data.Status !== "string") {
     throw new Error(`T-Bank GetState ${resp.status}: ${data.Message ?? "ошибка"}`)
   }
-  return { id: paymentId, status: data.Status ?? "UNKNOWN" }
+  return { id: String(data.PaymentId), status: data.Status, amount: data.Amount }
 }
 
 // Возврат средств покупателю (Cancel). Полный или частичный.
 export async function createRefund(
   paymentId: string,
   amountKopecks: number,
-  _idempotencyKey?: string,
 ): Promise<{ id: string; status: string }> {
   const root = { TerminalKey: terminalKey(), PaymentId: paymentId, Amount: amountKopecks }
   const body = { ...root, Token: genToken(root) }
@@ -126,14 +127,15 @@ export async function createRefund(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(20000),
   })
   const data = (await resp.json().catch(() => ({}))) as {
     Success?: boolean; PaymentId?: string | number; Status?: string; Message?: string
   }
-  if (!resp.ok || !data.Success) {
+  if (!resp.ok || data.Success !== true || String(data.PaymentId) !== paymentId || typeof data.Status !== "string") {
     throw new Error(`T-Bank Cancel ${resp.status}: ${data.Message ?? "ошибка"}`)
   }
-  return { id: String(data.PaymentId ?? paymentId), status: data.Status ?? "UNKNOWN" }
+  return { id: String(data.PaymentId), status: data.Status }
 }
 
 /**

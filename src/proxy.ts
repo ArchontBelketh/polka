@@ -102,7 +102,6 @@ export async function proxy(req: NextRequest) {
   // (from the session) — keeping an IP-keyed copy here would be a second,
   // inconsistent bucket, so it is intentionally omitted.
   const rateLimitedRoutes: Array<{ prefix: string; check: () => boolean }> = [
-    { prefix: "/api/upload",           check: () => limits.upload(ip) },
     { prefix: "/api/scan",             check: () => limits.scan(ip) },
     { prefix: "/api/reviews",          check: () => limits.reviews(ip) },
     { prefix: "/api/coupons/validate", check: () => limits.coupon(ip) },

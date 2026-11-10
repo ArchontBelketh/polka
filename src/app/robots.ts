@@ -10,6 +10,9 @@ export default function robots(): MetadataRoute.Robots {
       // Приватные и служебные разделы из индекса убираем.
       disallow: [
         "/api/",
+        "/orders/new",
+        "/orders/*/workspace",
+        "/orders/*/edit",
         "/admin",
         "/dashboard",
         "/purchases",

@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/current-user"
+import { canManageCode, isStaff } from "@/lib/permissions"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import Link from "next/link"
@@ -11,7 +12,7 @@ import { ExternalLink } from "lucide-react"
 export const metadata = { title: "Настройки" }
 
 const ROLE_LABELS: Record<string, string> = {
-  BUYER:     "Покупатель",
+  BUYER:     "Общий аккаунт",
   DEVELOPER: "Разработчик",
   MODERATOR: "Модератор",
   ADMIN:     "Администратор",
@@ -24,11 +25,11 @@ const ROLE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
 }
 
 export default async function SettingsPage() {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
+  const current = await getCurrentUser()
+  if (!current) redirect("/login?callbackUrl=/settings")
 
   const user = await db.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: current.id },
     select: {
       id:             true,
       name:           true,
@@ -53,8 +54,8 @@ export default async function SettingsPage() {
 
   if (!user) redirect("/login")
 
-  const isDeveloper = user.role === "DEVELOPER" || user.role === "ADMIN"
-  const isMod       = user.role === "MODERATOR"  || user.role === "ADMIN"
+  const isDeveloper = canManageCode(user.role)
+  const isMod = isStaff(user.role)
   const hasPassword = !!user.passwordHash
 
   // Extra stats for developers
@@ -94,6 +95,7 @@ export default async function SettingsPage() {
           <p className="text-xs text-muted-foreground">
             На платформе с {new Date(user.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
           </p>
+          <p className="text-xs text-muted-foreground">Покупки и заказ разработки доступны в этом же аккаунте.</p>
         </div>
       </div>
 
@@ -121,18 +123,15 @@ export default async function SettingsPage() {
             <p className="text-sm font-medium">Публичный профиль</p>
             <p className="text-xs text-muted-foreground mt-0.5">Виден всем пользователям платформы</p>
           </div>
-          <Link
-            href={`/developer/${user.id}`}
-            target="_blank"
-            className="flex items-center gap-1.5 text-sm text-primary hover:underline underline-offset-4"
-          >
-            Открыть <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
+          <div className="flex flex-wrap justify-end gap-3">
+            <Link href="/dashboard/profile" className="text-sm text-cyan hover:underline">Редактировать</Link>
+            <Link href={`/developer/${user.id}`} className="flex items-center gap-1.5 text-sm text-cyan hover:underline underline-offset-4">Открыть <ExternalLink className="h-3.5 w-3.5" /></Link>
+          </div>
         </div>
       )}
 
       {/* Personal info */}
-      <section className="space-y-4">
+      <section id="personal-info" className="space-y-4 scroll-mt-28">
         <div>
           <h2 className="font-semibold">Личные данные</h2>
           {user.email && (
@@ -167,19 +166,17 @@ export default async function SettingsPage() {
       <section className="space-y-2">
         <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Разделы</h2>
         <div className="flex flex-wrap gap-2">
+          <QuickLink href="/dashboard">Мой кабинет</QuickLink>
           {isDeveloper && (
             <>
-              <QuickLink href="/dashboard">Кабинет разработчика</QuickLink>
+              <QuickLink href="/dashboard/profile">Профиль разработчика</QuickLink>
               <QuickLink href="/dashboard/products">Мои продукты</QuickLink>
               <QuickLink href="/dashboard/payouts">Выплаты</QuickLink>
             </>
           )}
-          {!isMod && (
-            <>
-              <QuickLink href="/purchases">Мои покупки</QuickLink>
-              <QuickLink href="/purchases?tab=wishlist">Понравившееся</QuickLink>
-            </>
-          )}
+          <QuickLink href="/purchases">Мои покупки</QuickLink>
+          <QuickLink href="/purchases?tab=wishlist">Понравившееся</QuickLink>
+          {user.role === "BUYER" && <QuickLink href="/dashboard/profile">Стать разработчиком</QuickLink>}
           <QuickLink href="/support">Мои обращения</QuickLink>
           {isMod && <QuickLink href="/admin">Рабочий стол</QuickLink>}
         </div>

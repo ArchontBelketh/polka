@@ -10,9 +10,10 @@ interface Props {
   productTitle: string
   productStatus: string
   productSlug: string
+  canDelete?: boolean
 }
 
-export function ProductActions({ productId, productTitle, productStatus, productSlug }: Props) {
+export function ProductActions({ productId, productTitle, productStatus, productSlug, canDelete = true }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -136,7 +137,7 @@ export function ProductActions({ productId, productTitle, productStatus, product
               Обжаловать решение
             </Button>
 
-            {productStatus === "REJECTED" && (
+            {productStatus === "REJECTED" && canDelete && (
               !confirmDelete ? (
                 <Button
                   variant="outline"

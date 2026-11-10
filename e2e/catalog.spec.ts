@@ -3,8 +3,8 @@ import { test, expect } from "@playwright/test"
 test.describe("Каталог", () => {
   test("отображает список продуктов", async ({ page }) => {
     await page.goto("/catalog")
-    await expect(page).toHaveTitle(/Каталог/)
-    await expect(page.getByRole("heading", { name: "Каталог" })).toBeVisible()
+    await expect(page).toHaveTitle(/Готовый код/)
+    await expect(page.getByRole("heading", { name: "Готовый код", exact: true })).toBeVisible()
   })
 
   test("фильтр по категории работает", async ({ page }) => {

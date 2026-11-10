@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -17,8 +18,8 @@ export function PasswordForm() {
     e.preventDefault()
     setStatus("idle")
 
-    if (next.length < 6) {
-      setErrorMsg("Новый пароль должен быть не короче 6 символов")
+    if (next.length < 8) {
+      setErrorMsg("Новый пароль должен быть не короче 8 символов")
       setStatus("error")
       return
     }
@@ -39,6 +40,7 @@ export function PasswordForm() {
         setCurrent("")
         setNext("")
         setConfirm("")
+        await signOut({ callbackUrl: "/login?passwordChanged=1" })
       } else {
         const data = await res.json()
         setErrorMsg(typeof data.error === "string" ? data.error : "Ошибка смены пароля")
@@ -67,7 +69,7 @@ export function PasswordForm() {
             value={next}
             onChange={(e) => setNext(e.target.value)}
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             required
           />
         </div>

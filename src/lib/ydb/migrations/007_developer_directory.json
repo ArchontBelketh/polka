@@ -1,0 +1,211 @@
+{
+  "sourceHash": "f2156b391826c0014a4d5cc8da6a488ada77509a54c997929b9a687b87e222b2",
+  "models": {
+    "DeveloperListing": {
+      "name": "DeveloperListing",
+      "fields": {
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "sortKey": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "enabled": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": true
+        },
+        "listedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "userId"
+      ],
+      "unique": [
+        [
+          "sortKey"
+        ]
+      ],
+      "indexes": [
+        [
+          "enabled",
+          "sortKey"
+        ]
+      ]
+    },
+    "ExposureEvent": {
+      "name": "ExposureEvent",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "day": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "kind": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "cohort": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "day",
+          "kind",
+          "cohort"
+        ],
+        [
+          "createdAt"
+        ]
+      ]
+    },
+    "JobInvitation": {
+      "name": "JobInvitation",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "jobId",
+          "developerId"
+        ]
+      ],
+      "indexes": [
+        [
+          "developerId",
+          "createdAt"
+        ],
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "developerId"
+        ]
+      ]
+    }
+  }
+}

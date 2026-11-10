@@ -1,5 +1,6 @@
 import { signOut } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export const metadata = { title: "Аккаунт заблокирован" }
 
@@ -17,7 +18,7 @@ export default function BannedPage() {
         </div>
         <div className="flex flex-col gap-2">
           <Button asChild variant="outline" size="sm">
-            <a href="/support">Написать в поддержку</a>
+            <Link href="/support">Написать в поддержку</Link>
           </Button>
           <form
             action={async () => {

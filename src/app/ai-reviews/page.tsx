@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { CATEGORY_LABELS } from "@/types"
@@ -36,7 +37,7 @@ export default async function AiReviewsPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mb-1">
-          <a href="/purchases" className="hover:underline">← Мои покупки</a>
+          <Link href="/purchases" className="hover:underline">← Мои покупки</Link>
         </p>
         <h1 className="text-2xl font-semibold">Мои AI-ревью</h1>
         <p className="text-sm text-muted-foreground mt-1">

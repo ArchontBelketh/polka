@@ -37,7 +37,7 @@ npm install
 docker compose up -d db
 
 # 3. Накатить схему и сгенерировать Prisma-клиент
-npm run db:push
+npm run db:deploy
 npm run db:generate
 
 # 4. Демо-данные и тестовые аккаунты (ТОЛЬКО для разработки)
@@ -48,10 +48,18 @@ npx tsx scripts/seed-test-users.ts      # тестовые учётки *@polka.
 npm run dev                             # http://localhost:3000
 ```
 
-Скопируйте `.env.example` → `.env.local` и заполните переменные. Схема управляется
-через **`prisma db push`** — каталога миграций (`prisma/migrations`) в проекте нет.
+Скопируйте `.env.example` → `.env.local` и заполните переменные. Штатные изменения
+схемы выполняются через **Prisma Migrate**. Для существующей базы, созданной через
+`db push`, сначала выполните проверку и baseline по [инструкции](docs/DATABASE_MIGRATIONS.md).
 
 > Полный гайд по локальной работе и ручному тестированию — в [TESTING.md](TESTING.md).
+
+Подготовка перехода на YDB и проверка облачного подключения: [docs/YDB_SETUP.md](docs/YDB_SETUP.md).
+Приложение пока работает с PostgreSQL; проверка `npm run ydb:check` выполняется отдельно.
+В YDB создана исходная схема из 33 таблиц; миграции 002–007 ещё ожидают применения.
+`DB_PROVIDER=ydb` выбирает подготовленный нативный слой. 11 ноября базовые проверки
+SQL, записи и транзакций прошли, но полный цикл приложения ещё предстоит проверить.
+Переключения не было. [Отчёт проверки](docs/YDB_VERIFICATION_2026_11_11.md).
 
 ---
 
@@ -94,7 +102,10 @@ scp polka-deploy.zip USER@IP:/root/
 ssh USER@IP "unzip -o /root/polka-deploy.zip -d /opt/polka"
 # на сервере:
 cd /opt/polka
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build app migrate
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d db
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm migrate
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d app
 ```
 
 ---

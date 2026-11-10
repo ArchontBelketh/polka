@@ -1,15 +1,16 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/current-user"
 import { db } from "@/lib/db"
 import { createPayoutForDeveloper } from "@/lib/payouts"
+import { FinancialError } from "@/lib/financial-lock"
 
 export async function GET() {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const user = await getCurrentUser()
+  if (!user) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
   const payouts = await db.payout.findMany({
-    where: { developerId: session.user.id },
+    where: { developerId: user.id },
     orderBy: { requestedAt: "desc" },
     take: 50,
   })
@@ -20,22 +21,20 @@ export async function GET() {
 // Вывод «всё или ничего»: суммы не выбираем — выводится весь доступный баланс
 // (все зачисленные, ещё не выплаченные продажи).
 export async function POST() {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const user = await getCurrentUser()
+  if (!user) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const user = await db.user.findUnique({ where: { id: session.user.id } })
-  if (!user || !["DEVELOPER", "ADMIN"].includes(user.role)) {
+  if (!["DEVELOPER", "ADMIN"].includes(user.role)) {
     return Response.json({ error: "Только разработчики могут запрашивать вывод" }, { status: 403 })
   }
-  if (user.payoutsFrozen) {
-    return Response.json({ error: "Выплаты по вашему аккаунту приостановлены. Обратитесь в поддержку." }, { status: 403 })
+  try {
+    const result = await createPayoutForDeveloper(user.id)
+    if ("error" in result) return Response.json({ error: result.error }, { status: 400 })
+    return Response.json(result, { status: 201 })
+  } catch (error) {
+    if (error instanceof FinancialError) return Response.json({ error: error.message }, { status: error.status })
+    return Response.json({ error: "Ответ не получен. Проверьте список выплат перед повторным запросом." }, { status: 503 })
   }
-
-  const result = await createPayoutForDeveloper(session.user.id)
-  if ("error" in result) {
-    return Response.json({ error: result.error }, { status: 400 })
-  }
-  return Response.json(result, { status: 201 })
 }

@@ -1,36 +1,35 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/current-user"
 import { db } from "@/lib/db"
-import { ensurePlanRecord } from "@/lib/developer-plan"
 import { claimEarlySellerSpot } from "@/lib/early-seller"
+import { canManageCode } from "@/lib/permissions"
 
 // Самостоятельный апгрейд покупателя до разработчика.
 export async function POST() {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const user = await getCurrentUser()
+  if (!user) {
     return Response.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true },
-  })
-  if (!user) {
-    return Response.json({ error: "Пользователь не найден" }, { status: 404 })
-  }
-  if (user.role === "DEVELOPER") {
-    return Response.json({ ok: true, already: true })
-  }
-  if (user.role !== "BUYER") {
+  if (user.role !== "BUYER" && !canManageCode(user.role)) {
     return Response.json({ error: "Недоступно для вашей роли" }, { status: 403 })
   }
+  if (canManageCode(user.role)) return Response.json({ ok: true, already: true })
 
-  await db.user.update({
-    where: { id: session.user.id },
-    data: { role: "DEVELOPER" },
+  const enabled = await db.$transaction(async (tx) => {
+    // Conditional update preserves a staff role assigned concurrently and
+    // prevents enabling a banned account with a previously issued session.
+    await tx.user.updateMany({
+      where: { id: user.id, role: "BUYER", isBanned: false }, data: { role: "DEVELOPER" },
+    })
+    const fresh = await tx.user.findUnique({ where: { id: user.id }, select: { role: true, isBanned: true } })
+    if (!fresh || fresh.isBanned || !canManageCode(fresh.role)) return false
+    await tx.developerPlan.upsert({ where: { userId: user.id }, create: { userId: user.id }, update: {} })
+    await tx.developerProfile.upsert({ where: { userId: user.id }, create: { userId: user.id }, update: {} })
+    return true
   })
-  await ensurePlanRecord(session.user.id) // создаём тарифный план (FREE, слоты по умолчанию)
+  if (!enabled) return Response.json({ error: "Права аккаунта изменились. Обновите страницу." }, { status: 403 })
   // Выдаём место и перки программы «первых продавцов» (если есть свободные).
-  await claimEarlySellerSpot(session.user.id)
+  await claimEarlySellerSpot(user.id)
 
-  return Response.json({ ok: true })
+  return Response.json({ ok: true, already: canManageCode(user.role) })
 }

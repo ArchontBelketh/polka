@@ -46,15 +46,31 @@ export async function POST(req: NextRequest) {
   }
 
   // Снапшот модели продажи на момент публикации (по цене и порогу).
-  await db.product.update({
-    where: { id: productId },
-    data: { saleModel: saleModelForKopecks(product.price) },
+  const started = await db.$transaction(async (tx) => {
+    const started = await tx.product.updateMany({ where: {
+      id: productId,
+      status: { in: isAdmin ? ["DRAFT", "REJECTED", "SCAN_FAILED", "APPROVED"] : ["DRAFT", "REJECTED", "SCAN_FAILED"] },
+    },
+    data: { updatedAt: new Date() },
+    })
+    if (!started.count) return "ALREADY_SUBMITTED" as const
+    const source = await tx.productFile.findFirst({ where: { productId, fileType: "SOURCE", sha256: { not: null }, s3Key: { startsWith: `products/${productId}/artifacts/` } }, select: { id: true } })
+    if (!source) return "SOURCE_REQUIRED" as const
+    const fresh = await tx.product.findUnique({ where: { id: productId }, select: { price: true } })
+    if (!fresh) return "ALREADY_SUBMITTED" as const
+    await tx.product.update({ where: { id: productId }, data: { saleModel: saleModelForKopecks(fresh.price), status: "PENDING" } })
+    return "STARTED" as const
   })
+  if (started !== "STARTED") {
+    return Response.json({ error: started === "SOURCE_REQUIRED" ? "Сначала завершите загрузку исходного файла в черновике" : "Продукт уже на проверке или опубликован", code: started }, { status: started === "SOURCE_REQUIRED" ? 422 : 409 })
+  }
 
   // Fire and forget — response returns immediately
-  runScan(productId).catch((err) =>
-    console.error(`[scanner] productId=${productId}`, err),
-  )
+  runScan(productId).catch(async (err) => {
+    console.error(`[scanner] productId=${productId}`, err)
+    await db.product.updateMany({ where: { id: productId, status: "PENDING" }, data: { status: "SCAN_FAILED" } })
+    await db.scanResult.updateMany({ where: { productId }, data: { status: "BLOCKED" } })
+  }).catch((err) => console.error("[scanner] failed to record failure", err))
 
   return Response.json({ message: "Сканирование запущено", productId }, { status: 202 })
 }

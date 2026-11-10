@@ -34,17 +34,28 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
 RUN npm run build
 
 # ── Migrator ──────────────────────────────────────────────────────────────────
-# Лёгкий образ ТОЛЬКО для одноразовых задач схемы (`prisma db push`). Содержит
-# лишь prisma CLI + dotenv + схему — на порядок меньше стадии builder, чтобы
+# Лёгкий образ для миграций и создания администратора. Содержит
+# Prisma CLI, его клиент и зависимости CLI-скрипта — меньше стадии builder, чтобы
 # сборка второго образа не упиралась в диск. Стоит ПЕРЕД runner, чтобы последней
 # стадией (сборка без target) оставался runner.
 FROM node:22-slim AS migrator
 WORKDIR /app
 RUN apt-get update && apt-get install -y openssl --no-install-recommends && rm -rf /var/lib/apt/lists/* && \
-    npm init -y >/dev/null 2>&1 && npm install --no-audit --no-fund prisma@7 dotenv@17
+    npm init -y >/dev/null 2>&1 && npm install --no-audit --no-fund \
+    prisma@7.8.0 @prisma/client@7.8.0 @prisma/adapter-pg@7.8.0 dotenv@17.4.2 bcryptjs@3.0.3 tsx@4.21.0 \
+    ydb-sdk@5.11.1 @paralleldrive/cuid2@3.3.0 @aws-sdk/client-s3@3.1063.0 @aws-sdk/s3-request-presigner@3.1063.0
+COPY tsconfig.json ./tsconfig.json
 COPY prisma.config.ts ./prisma.config.ts
 COPY prisma ./prisma
-CMD ["npx", "prisma", "db", "push"]
+COPY scripts/create-admin.ts ./scripts/create-admin.ts
+COPY scripts/migrate-database.ts ./scripts/migrate-database.ts
+COPY scripts/cleanup-product-uploads.ts ./scripts/cleanup-product-uploads.ts
+COPY scripts/ydb ./scripts/ydb
+COPY src/lib/database-factory.ts ./src/lib/database-factory.ts
+COPY src/lib/db.ts src/lib/s3.ts src/lib/product-upload-cleanup.ts ./src/lib/
+COPY src/lib/ydb ./src/lib/ydb
+RUN npx prisma generate
+CMD ["npx", "tsx", "scripts/migrate-database.ts"]
 
 # ── Runner ────────────────────────────────────────────────────────────────────
 FROM node:22-slim AS runner
@@ -80,8 +91,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/prisma ./prisma
-# X-Ray: Python-анализатор запускается из /app/xray_analyze.py (см. resolveScript)
-COPY --from=builder /app/src/lib/xray/xray_analyze.py ./xray_analyze.py
+# X-Ray: одинаковое расположение ресурса в dev и standalone.
+COPY --from=builder /app/src/lib/xray/xray_analyze.py ./src/lib/xray/xray_analyze.py
 
 EXPOSE 3000
 ENV PORT=3000

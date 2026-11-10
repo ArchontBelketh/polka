@@ -6,7 +6,8 @@
 # Prerequisites:
 #   - SSH key auth configured (no password prompt)
 #   - Docker + Docker Compose installed on server
-#   - /opt/polka directory with .env.local on server
+#   - /opt/polka directory with .env on server
+#   - existing databases baselined as documented in docs/DATABASE_MIGRATIONS.md
 
 set -euo pipefail
 
@@ -23,27 +24,32 @@ rsync -az --delete \
   --exclude='.git' \
   --exclude='node_modules' \
   --exclude='.next' \
-  --exclude='.env.local' \
+  --exclude='.env*' \
+  --exclude='.secrets' \
+  --exclude='docs/index.bleve' \
+  --exclude='test-results' \
   --exclude='prisma/migrations/*.db' \
   ./ "${REMOTE}:${APP_DIR}/"
 
 # ── 2. Build & restart on server ────────────────────────────────────────────
 echo "▶ Building image and restarting..."
-ssh "${REMOTE}" bash <<EOF
+ssh "${REMOTE}" bash -s -- "${APP_DIR}" <<'EOF'
   set -euo pipefail
-  cd ${APP_DIR}
+  cd "$1"
+  deploy_compose=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
 
   # Pull latest base images
-  docker compose pull --quiet db 2>/dev/null || true
+  "${deploy_compose[@]}" pull --quiet db 2>/dev/null || true
 
   # Build app image
-  docker compose build --no-cache app
+  "${deploy_compose[@]}" build app migrate
 
   # Run migrations
-  docker compose run --rm app npx prisma migrate deploy
+  "${deploy_compose[@]}" up -d db
+  "${deploy_compose[@]}" run --rm migrate
 
-  # Zero-downtime restart: start new container before stopping old
-  docker compose up -d --remove-orphans
+  # Only restart the application after migrations have succeeded.
+  "${deploy_compose[@]}" up -d app
 
   # Clean up dangling images
   docker image prune -f

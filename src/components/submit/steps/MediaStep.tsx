@@ -54,15 +54,21 @@ export function MediaStep({ value, onChange }: MediaStepProps) {
 
       {/* Product file */}
       <div className="space-y-2">
-        <Label>
+        <Label htmlFor="product-source-file">
           Файл продукта *{" "}
           <span className="font-normal text-muted-foreground">
             ({ALLOWED_SOURCE.join(", ")} — до 100 МБ)
           </span>
         </Label>
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Выбрать файл продукта"
           className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border p-8 hover:border-primary/50 transition-colors"
           onClick={() => fileRef.current?.click()}
+          onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); fileRef.current?.click() } }}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => { event.preventDefault(); if (!event.currentTarget.closest("fieldset")?.disabled) set("productFile", event.dataTransfer.files?.[0] ?? null) }}
         >
           {value.productFile ? (
             <p className="text-sm font-medium text-primary">{value.productFile.name}</p>
@@ -74,6 +80,7 @@ export function MediaStep({ value, onChange }: MediaStepProps) {
           )}
         </div>
         <input
+          id="product-source-file"
           ref={fileRef}
           type="file"
           accept={ALLOWED_SOURCE.join(",")}

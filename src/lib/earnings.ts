@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { commissionRate } from "@/lib/tariffs"
+import { lockDeveloper, refundOperationId } from "@/lib/financial-lock"
 
 /** Сумма к зачислению разработчику: цена минус комиссия площадки (с учётом Pro). */
 export function developerPayout(priceKopecks: number, isPro = false): number {
@@ -28,19 +29,18 @@ export async function releaseExpiredHolds(): Promise<number> {
 
   let released = 0
   for (const p of held) {
-    // Не зачисляем, пока по покупке открыта претензия
-    const openClaim = await db.supportTicket.findFirst({
-      where: { purchaseId: p.id, category: "CLAIM", status: { in: ["OPEN", "IN_PROGRESS"] } },
-      select: { id: true },
+    const applied = await db.$transaction(async (tx) => {
+      await lockDeveloper(tx, p.product.authorId)
+      const purchase = await tx.purchase.findUnique({ where: { id: p.id } })
+      if (!purchase || !["PAID", "DELIVERED"].includes(purchase.status) || purchase.creditedAt || !purchase.holdUntil || purchase.holdUntil > now || !purchase.developerAmount || purchase.developerAmount < 0) return false
+      const openClaim = await tx.supportTicket.findFirst({ where: { purchaseId: p.id, category: "CLAIM", status: { in: ["OPEN", "IN_PROGRESS"] } }, select: { id: true } })
+      if (openClaim || await tx.financialOperation.findUnique({ where: { id: refundOperationId(p.id) } })) return false
+      const changed = await tx.purchase.updateMany({ where: { id: p.id, creditedAt: null, status: { in: ["PAID", "DELIVERED"] }, holdUntil: { lte: now } }, data: { creditedAt: now } })
+      if (!changed.count) return false
+      await tx.user.update({ where: { id: p.product.authorId }, data: { balance: { increment: purchase.developerAmount } } })
+      return true
     })
-    if (openClaim) continue
-
-    const amount = p.developerAmount ?? 0
-    await db.$transaction([
-      db.purchase.update({ where: { id: p.id }, data: { creditedAt: now } }),
-      db.user.update({ where: { id: p.product.authorId }, data: { balance: { increment: amount } } }),
-    ])
-    released++
+    if (applied) released++
   }
   return released
 }

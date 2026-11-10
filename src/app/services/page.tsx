@@ -71,7 +71,7 @@ export default async function ServicesPage() {
       </p>
 
       {myOrders.length > 0 && (
-        <section className="space-y-3">
+        <section id="my-orders" className="scroll-mt-28 space-y-3">
           <h2 className="text-xl font-semibold text-foreground">Мои заказы</h2>
           <ul className="divide-y divide-border rounded-lg border border-border bg-card">
             {myOrders.map((o) => (

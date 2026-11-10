@@ -6,6 +6,15 @@ import type { ServiceKind } from "@/generated/prisma/client"
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
+export async function notifyJobEvent(params: { email: string | null; telegramId: string | null; jobId: string; text: string }) {
+  const href = `${APP_URL}/orders/${encodeURIComponent(params.jobId)}`
+  const text = escapeHtml(params.text)
+  await Promise.allSettled([
+    params.email ? sendEmail(params.email, "Событие по заказу — CYBERПОЛКА", `<p>${text}</p><p><a href="${escapeHtml(href)}">Открыть заказ</a></p>`) : Promise.resolve(),
+    params.telegramId ? sendTelegram(params.telegramId, `${text}\n${href}`) : Promise.resolve(),
+  ])
+}
+
 // ── Email transport ────────────────────────────────────────────────────────
 function getMailTransport() {
   const host = process.env.SMTP_HOST

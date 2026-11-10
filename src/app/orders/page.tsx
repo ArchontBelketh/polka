@@ -1,0 +1,26 @@
+import Link from "next/link"
+import { db } from "@/lib/db"
+import type { Prisma } from "@/generated/prisma/client"
+import { Button } from "@/components/ui/button"
+import { JobCard } from "@/components/jobs/JobCard"
+import { SPECIALIZATIONS, JOB_STATUS_LABELS } from "@/lib/jobs/policy"
+import { jobCatalogWhere, parseJobQuery, publicJobSelect } from "@/lib/jobs/query"
+
+export const metadata = { title: "Заказы на разработку", description: "Задачи по 1С, ботам, интеграциям, скриптам и веб-разработке. Бесплатные отклики и работа в одном аккаунте." }
+export default async function OrdersPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const raw = await searchParams, parsed = parseJobQuery(raw)
+  let data: { orders: Prisma.JobGetPayload<{ select: typeof publicJobSelect }>[]; total: number } | null = null
+  if (parsed.success) try {
+    const where = jobCatalogWhere(parsed.value)
+    const [orders, total] = await Promise.all([db.job.findMany({ where, select: publicJobSelect, orderBy: [{ publishedAt: "desc" }, { id: "desc" }], take: 20, skip: (parsed.value.page - 1) * 20 }), db.job.count({ where })])
+    data = { orders, total }
+  } catch { /* Render an honest unavailable state. */ }
+  const value = (key: string) => typeof raw[key] === "string" ? raw[key] as string : ""
+  function pageLink(page: number) { const params = new URLSearchParams(); for (const [key, entry] of Object.entries(raw)) if (typeof entry === "string" && key !== "page") params.set(key, entry); params.set("page", String(page)); return `/orders?${params}` }
+  const input = "w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+  return <div className="mx-auto max-w-6xl px-4 py-8 space-y-8"><div className="flex flex-wrap items-start justify-between gap-4"><div className="space-y-2"><p className="text-xs uppercase tracking-widest text-cyan">IT-биржа</p><h1 className="text-3xl font-semibold">Заказы на разработку</h1><p className="text-sm text-muted-foreground">Найдите задачу по своим навыкам. Отклики бесплатны.</p></div><div className="flex flex-wrap gap-3"><Button asChild variant="outline"><Link href="/dashboard/orders">Мои заказы и отклики</Link></Button><Button asChild><Link href="/orders/new">Разместить заказ</Link></Button></div></div>
+    <form action="/orders" className="rounded-2xl border border-border bg-card p-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><div><label htmlFor="jobs-query" className="block text-sm mb-2">Поиск по задаче</label><input id="jobs-query" name="q" className={input} defaultValue={value("q")} maxLength={140} /></div><div><label htmlFor="jobs-specialization" className="block text-sm mb-2">Специализация</label><select id="jobs-specialization" name="specialization" className={input} defaultValue={value("specialization")}><option value="">Все специализации</option>{Object.entries(SPECIALIZATIONS).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></div><div><label htmlFor="jobs-status" className="block text-sm mb-2">Состояние заказа</label><select id="jobs-status" name="status" className={input} defaultValue={value("status") || "OPEN"}>{Object.entries(JOB_STATUS_LABELS).map(([id, name]) => <option key={id} value={id}>{name}</option>)}<option value="ALL">Все состояния</option></select></div><div><label htmlFor="jobs-min" className="block text-sm mb-2">Бюджет от, ₽</label><input id="jobs-min" name="minBudget" className={input} inputMode="decimal" defaultValue={value("minBudget")} /></div><div><label htmlFor="jobs-max" className="block text-sm mb-2">Бюджет до, ₽</label><input id="jobs-max" name="maxBudget" className={input} inputMode="decimal" defaultValue={value("maxBudget")} /></div><div><label htmlFor="jobs-deadline" className="block text-sm mb-2">Желаемый срок до</label><input id="jobs-deadline" name="deadlineBefore" type="date" className={input} defaultValue={value("deadlineBefore")} /></div><div className="flex flex-wrap items-end gap-3"><Button type="submit">Применить</Button><Button asChild variant="outline"><Link href="/orders">Сбросить</Link></Button></div></form>
+    {!parsed.success ? <p role="alert" className="rounded-xl border border-red-400/30 p-5 text-sm">{parsed.error}</p> : !data ? <p role="status" className="rounded-xl border border-border p-5 text-sm text-muted-foreground">Не удалось загрузить заказы. Попробуйте обновить страницу позже.</p> : <><p className="text-sm text-muted-foreground">Найдено заказов: {data.total}</p><div className="grid gap-4 md:grid-cols-2">{data.orders.map(job => <JobCard key={job.id} job={job} />)}</div>{!data.total && <p className="py-10 text-center text-muted-foreground">По этим условиям опубликованных заказов пока нет.</p>}<nav aria-label="Страницы заказов" className="flex gap-3">{parsed.value.page > 1 && <Button asChild variant="outline"><Link href={pageLink(parsed.value.page - 1)}>Назад</Link></Button>}{parsed.value.page * 20 < data.total && <Button asChild variant="outline"><Link href={pageLink(parsed.value.page + 1)}>Дальше</Link></Button>}</nav></>}
+    <p className="text-xs text-muted-foreground">Нужна помощь с формулировкой? <Link href="/request" className="text-cyan hover:underline">Оставить приватное обращение команде</Link>.</p>
+  </div>
+}

@@ -8,17 +8,14 @@
  * Payments and S3 aren't available in dev, so the PAID purchase, files and
  * messages are inserted directly to make every dashboard meaningful.
  */
-import { PrismaClient } from "../src/generated/prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { createDatabase } from "../src/lib/database-factory"
 import * as dotenv from "dotenv"
 import { assertNotProduction } from "./guard"
 
 dotenv.config({ path: ".env.local" })
 dotenv.config({ path: ".env" })
 
-const db = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
-})
+const db = createDatabase()
 
 const APPROVED_ID = "e2eapproved"
 const APPROVED_SLUG = "e2e-approved-product"

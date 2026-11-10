@@ -1,0 +1,727 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  BUYER
+  DEVELOPER
+  MODERATOR
+  ADMIN
+}
+
+enum Category {
+  TELEGRAM
+  PARSER
+  EXCEL
+  AUTOMATION
+  WEB
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING
+  SCAN_FAILED
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  WARNING
+  BLOCKED
+}
+
+enum PurchaseStatus {
+  PENDING
+  AWAITING   // покупатель оформил заявку («Я оплатил»), ждём подтверждения оплаты автором
+  PAID
+  DELIVERED
+  REFUNDED
+  DISPUTED
+  DECLINED   // автор не нашёл оплату («Оплаты нет»)
+  EXPIRED    // автор не ответил 72 часа
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  REJECTED
+}
+
+enum TicketCategory {
+  APPEAL
+  PURCHASE
+  BUG
+  OTHER
+  CLAIM
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum FileType {
+  SOURCE
+  BINARY
+  DECOMPILED
+}
+
+enum ProductVersionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum PayerKind {
+  SELF_EMPLOYED // самозанятый (НПД)
+  ENTREPRENEUR  // ИП
+  COMPANY       // ООО / юрлицо
+}
+
+// Модель продажи по ценовому порогу (Приложение №1):
+//  COMMISSION   — дешевле порога: оплата через оператора-агента, комиссия;
+//  LISTING_FEE  — от порога: прямая оплата разработчику, единоразовый тариф за размещение.
+enum SaleModel {
+  COMMISSION
+  LISTING_FEE
+}
+
+model User {
+  id             String     @id @default(cuid())
+  email          String?    @unique
+  emailVerified  DateTime?
+  name           String?
+  telegramId     String?    @unique
+  telegramHandle String?
+  phone          String?
+  role           Role       @default(BUYER)
+  inn            String?
+  passwordHash   String?
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
+  emailVerifyTokenHash String?
+  agreedToTerms  Boolean    @default(false)
+  agreedAt       DateTime?
+  balance        Int        @default(0)
+  payoutsFrozen  Boolean    @default(false)
+  isEarlySeller  Boolean    @default(false)   // участник программы «первых продавцов»
+  earlySellerNo  Int?                          // порядковый номер в программе (1..N)
+  bio            String?    @db.Text
+  isBanned       Boolean    @default(false)
+  bannedAt       DateTime?
+  banReason      String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  products        Product[]
+  purchases       Purchase[]
+  reviews         Review[]
+  payouts         Payout[]
+  accounts        Account[]
+  sessions        Session[]
+  wishlists       Wishlist[]
+  supportTickets  SupportTicket[]
+  ticketMessages  TicketMessage[]
+  developerPlan   DeveloperPlan?
+  payoutProfile   PayoutProfile?
+  slotPurchases   SlotPurchase[]
+  aiReviews       AiReview[]
+  questions       ProductQuestion[]
+  purchaseMessages PurchaseMessage[]
+  requests        Request[]
+  serviceOrders   ServiceOrder[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  access_token      String? @db.Text
+  refresh_token     String? @db.Text
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Product {
+  id                  String          @id @default(cuid())
+  title               String
+  slug                String          @unique
+  shortDesc           String
+  fullDesc            String          @db.Text
+  category            Category
+  price               Int
+  status              ProductStatus   @default(DRAFT)
+  saleModel           SaleModel?      // снапшот модели на момент публикации (по цене и порогу)
+  authorId            String
+  features            String[]
+  screenshots         String[]
+  demoUrl             String?
+  videoUrl            String?
+  targetAudience      String?
+  techStack           String[]        @default([])
+  license             String          @default("personal")
+  telegramBotUsername String?
+  developerPaymentInfo String?        @db.Text // реквизиты/инструкция оплаты напрямую (LISTING_FEE)
+  listingFeePaidAt    DateTime?               // когда оплачен тариф за размещение (LISTING_FEE)
+  installGuide        String?         @db.Text
+  requirements        String[]        @default([])
+  exampleInput        String?         @db.Text  // «Пример до и после»: входные данные
+  exampleOutput       String?         @db.Text  // «Пример до и после»: результат
+  xrayPassport        Json?                     // X-Ray-паспорт: что делает код (без кода/строк)
+  xrayDeclInternet    Boolean?                  // автор заявил: нужен интернет
+  xrayDeclFiles       Boolean?                  // автор заявил: пишет файлы
+  xrayDeclCommands    Boolean?                  // автор заявил: запускает команды
+  xrayMismatch        Boolean         @default(false) // расхождение деклараций с X-Ray
+  manuallyVerified    Boolean         @default(false)
+  verifiedAt          DateTime?
+  rating              Float           @default(0)
+  reviewCount         Int             @default(0)
+  salesCount          Int             @default(0)
+  riskScore           Int?
+  autoDecision        String?
+  aiReviewFlags       Json?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  publishedAt         DateTime?
+  author              User            @relation(fields: [authorId], references: [id])
+  files               ProductFile[]
+  purchases           Purchase[]
+  reviews             Review[]
+  scanResult          ScanResult?
+  moderationLogs      ModerationLog[]
+  wishlists           Wishlist[]
+  supportTickets      SupportTicket[]
+  versions            ProductVersion[]
+  aiReviews           AiReview[]
+  questions           ProductQuestion[]
+  rightsComplaints    RightsComplaint[]
+
+  @@index([status])
+  @@index([category])
+  @@index([authorId])
+}
+
+model ProductQuestion {
+  id         String    @id @default(cuid())
+  productId  String
+  authorId   String
+  question   String    @db.Text
+  answer     String?   @db.Text
+  answeredAt DateTime?
+  isHidden   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id])
+
+  @@index([productId])
+  @@index([authorId])
+}
+
+model ProductFile {
+  id        String   @id @default(cuid())
+  productId String
+  s3Key     String
+  fileName  String
+  fileSize  Int
+  fileType  FileType
+  format    String
+  version   String   @default("1.0.0")
+  sha256    String?  @db.VarChar(64)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([sha256])
+}
+
+model ScanResult {
+  id        String     @id @default(cuid())
+  productId String     @unique
+  status    ScanStatus @default(PENDING)
+  findings  Json       @default("[]")
+  scannedAt DateTime?
+  toolsRun  String[]
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ModerationLog {
+  id          String   @id @default(cuid())
+  productId   String
+  moderatorId String?
+  action      String
+  comment     String?
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Purchase {
+  id            String         @id @default(cuid())
+  buyerId       String
+  productId     String
+  amount        Int
+  status        PurchaseStatus @default(PENDING)
+  paymentId     String?
+  escrowUntil   DateTime?
+  developerAmount Int?                    // сумма к зачислению разработчику (цена − комиссия), «Комиссия»
+  holdUntil     DateTime?                 // удержание ≥ порога до конца окна претензии (8.5)
+  creditedAt    DateTime?                 // когда сумма зачислена на баланс разработчика
+  payoutId      String?                   // выплата, закрывшая эту продажу (null = ещё не выплачено)
+  downloadCount Int            @default(0)
+  lastMessageAt DateTime?
+  reminderSentAt DateTime?                // напоминание автору о неподтверждённой заявке (24ч)
+  createdAt     DateTime       @default(now())
+  paidAt        DateTime?
+  buyer         User           @relation(fields: [buyerId], references: [id])
+  product       Product        @relation(fields: [productId], references: [id])
+  payout        Payout?        @relation(fields: [payoutId], references: [id])
+  messages      PurchaseMessage[]
+
+  @@index([buyerId])
+  @@index([productId])
+  @@index([escrowUntil])
+  @@index([payoutId])
+}
+
+model PurchaseMessage {
+  id         String   @id @default(cuid())
+  purchaseId String
+  senderId   String
+  text       String   @db.Text
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  sender     User     @relation(fields: [senderId], references: [id])
+
+  @@index([purchaseId])
+  @@index([senderId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  authorId  String
+  rating    Int
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@unique([productId, authorId])
+}
+
+model Payout {
+  id          String       @id @default(cuid())
+  developerId String
+  amount      Int
+  status      PayoutStatus @default(PENDING)
+  requestedAt DateTime     @default(now())
+  paidAt      DateTime?
+  receiptSent Boolean      @default(false)  // пробит ли расходный чек в кассе
+  developer   User         @relation(fields: [developerId], references: [id])
+  purchases   Purchase[]                     // продажи, вошедшие в эту выплату (позиции чека)
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model SupportTicket {
+  id        String         @id @default(cuid())
+  authorId  String
+  subject   String
+  category  TicketCategory
+  productId String?
+  purchaseId String?       // для претензий (category CLAIM) — привязка к покупке
+  status    TicketStatus   @default(OPEN)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  author    User           @relation(fields: [authorId], references: [id])
+  product   Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  messages  TicketMessage[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([purchaseId])
+}
+
+model TicketMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  authorId  String
+  text      String        @db.Text
+  isStaff   Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User          @relation(fields: [authorId], references: [id])
+}
+
+model ProductVersion {
+  id               String               @id @default(cuid())
+  productId        String
+  version          String
+  changelog        String?              @db.Text
+  s3Key            String               @default("")
+  fileName         String               @default("")
+  fileSize         Int                  @default(0)
+  status           ProductVersionStatus @default(PENDING)
+  moderatorComment String?
+  autoApproved     Boolean              @default(false)
+  riskScore        Int?
+  createdAt        DateTime             @default(now())
+  product          Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([status])
+}
+
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  discountPct Int       // 1–100
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  @@index([code])
+}
+
+model DeveloperPlan {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  plan       String    @default("FREE")  // FREE | PRO
+  totalSlots Int       @default(2)
+  proUntil   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Правовой статус и платёжные/учётные данные Разработчика (оферта, п. 6).
+// Сырые реквизиты карты/счёта НЕ храним — получателя онбордит платёжный сервис,
+// а мы держим только ссылку на него (providerRecipientId) при подключении сплита.
+model PayoutProfile {
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  kind               PayerKind
+  displayName        String    // ФИО (самозанятый/ИП) или наименование (ООО)
+  inn                String    // 12 цифр (самозанятый/ИП) или 10 (ООО)
+  phone              String?   // телефон поставщика для агентского чека (SupplierInfo), формат +7…
+  paymentLink        String?   // ссылка/реквизиты для прямой оплаты покупателем (ЮKassa, Robokassa, банк)
+  phoneVerified      Boolean   @default(false)  // подтверждён по СМС (Фаза СМС; пока не используется)
+  attestedAt         DateTime  // момент принятия заверений п. 6 оферты
+  attestVersion      String    @default("v1")
+  providerRecipientId String?  // id получателя у платёжного сервиса (заполнится со сплитом)
+  verified           Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SlotPurchase {
+  id         String   @id @default(cuid())
+  userId     String
+  slotsAdded Int
+  amount     Int
+  paymentId  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CronHeartbeat {
+  job   String   @id
+  ranAt DateTime
+}
+
+// Реквизиты Оператора площадки (единственная строка). Подставляются в оферту,
+// политику, соглашение и футер вместо хардкод-плейсхолдеров.
+model OperatorSettings {
+  id           String   @id @default("singleton")
+  name         String?  // ИП «…» / ООО «…»
+  inn          String?
+  ogrn         String?  // ОГРН / ОГРНИП
+  bankAccount  String?  // расчётный счёт
+  address      String?
+  email        String?
+  phone        String?
+  revisionDate String?  // дата редакции документов (напр. «1 сентября 2026 г.»)
+  updatedAt    DateTime @updatedAt
+}
+
+// Настройки ИИ-ревью (singleton). Провайдер и ключ задаются в админке, а не в env.
+// apiKey — секрет, поэтому в отдельной модели (не в OperatorSettings, которая
+// частично публичная). provider="disabled" или пустой ключ = услуга выключена.
+model AiSettings {
+  id        String   @id @default("singleton")
+  provider  String   @default("disabled")  // disabled | gemini | yandexgpt
+  apiKey    String?                         // ключ провайдера
+  model     String?                         // модель (gemini-2.5-flash / yandexgpt-lite / …)
+  folderId  String?                         // Folder ID (только для YandexGPT)
+  updatedAt DateTime @updatedAt
+}
+
+model AiReview {
+  id          String    @id @default(cuid())
+  productId   String
+  requestedBy String
+  paymentId   String?
+  status      String    @default("PENDING")  // PENDING | PROCESSING | DONE | FAILED
+  result      Json?
+  amount      Int       @default(39000)
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [requestedBy], references: [id], onDelete: Cascade)
+
+  @@index([requestedBy])
+  @@index([status])
+}
+
+// Намерение платежа: что именно оплачивается. Создаётся ДО обращения к Т-Банку и
+// привязывается к OrderId (Т-Банк всегда возвращает его в нотификации). Вебхук по
+// нему понимает, за что платёж, — не полагаясь на DATA, которую Т-Банк не эхонит.
+// Добавление новой платной услуги = новый `type` + обработчик, без правки вебхука.
+model PaymentIntent {
+  id         String   @id @default(cuid())
+  orderId    String   @unique                // = OrderId в T-Bank Init
+  paymentId  String?                         // = T-Bank PaymentId (после Init)
+  type       String                          // purchase | slots | pro | ai_review | listing_fee | …
+  payload    Json                            // данные для выдачи услуги при подтверждении
+  status     String   @default("PENDING")    // PENDING | CONFIRMED | FAILED
+  amount     Int                             // копейки
+  userId     String?                         // инициатор платежа (для журнала)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ── Заявки на разработку (Фаза 3) ────────────────────────────────────────────
+enum RequestStatus {
+  NEW                 // Новая
+  CLARIFYING          // Уточняется
+  TO_CATALOG          // Ушла в каталог
+  SERVICE_RECOMMENDED // Рекомендован сервис
+  SPEC_READY          // ТЗ готово
+  PROPOSALS_SENT      // Предложения отправлены
+  IN_PROGRESS         // В работе
+  RELAY               // Эстафета
+  ACCEPTANCE          // Приёмка
+  AWAITING_PASSPORT   // Ждём паспорт
+  CLOSED              // Закрыта
+  KWORK               // Передана на Kwork
+  CANCELLED           // Отменена
+}
+
+model Request {
+  id              String        @id @default(cuid())
+  task            String        @db.Text          // что нужно сделать
+  platform        String                          // где должно работать
+  deadline        String?                         // срок (дата или «не срочно»)
+  budget          String?                         // бюджет (диапазон)
+  contact         String                          // телефон или email
+  messenger       String?                         // удобный мессенджер
+  consentPd       Boolean       @default(false)   // согласие на обработку ПДн
+  consentContacts Boolean       @default(false)   // согласие на передачу контактов исполнителям
+  status          RequestStatus @default(NEW)
+  notes           String?       @db.Text          // заметки владельца
+  spec            String?       @db.Text          // техническое задание (ТЗ)
+  codeS3Key       String?                         // прикреплённый код (до закрытия заявки)
+  codeFileName    String?
+  xrayReport      Json?                           // отчёт X-Ray по прикреплённому коду
+  kworkUrl        String?                         // ссылка Kwork (для статуса KWORK)
+  // Фаза 5: паспорт проекта (12.2) и рентген приёмки (12.3)
+  projectPassport      String?  @db.Text          // паспорт проекта (шаблон Прил. B)
+  deliveredCodeS3Key   String?                    // сданная исполнителем работа
+  deliveredCodeFileName String?
+  deliveryXrayReport   Json?                       // X-Ray по сданной работе
+  userId          String?                         // если заказчик залогинен
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User?         @relation(fields: [userId], references: [id])
+  statusLogs      RequestStatusLog[]
+  assignments     RequestAssignment[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Настройки сайта (синглтон). Напр. «Срок замены на сайте» для Эстафеты (ТЗ 12.1):
+// пока в пуле мало дежурных — выключено, на сайте только «подберём замену».
+model SiteSetting {
+  id              String   @id @default("singleton")
+  relaySlaEnabled Boolean  @default(false) // показывать срок замены на сайте
+  relaySlaDays    Int      @default(7)     // обещанный срок подбора замены, дней
+  updatedAt       DateTime @updatedAt
+}
+
+model RequestStatusLog {
+  id        String   @id @default(cuid())
+  requestId String
+  status    String
+  comment   String?
+  createdAt DateTime @default(now())
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+// ── Жалобы правообладателей (Фаза 3, раздел 16 оферты) ───────────────────────
+enum ComplaintStatus {
+  NEW        // Новая
+  REVIEWING  // На рассмотрении (товар скрыт)
+  REMOVED    // Удалён (нарушение подтверждено)
+  RESTORED   // Восстановлен (жалоба отклонена)
+  REJECTED   // Отклонена (без рассмотрения)
+}
+
+model RightsComplaint {
+  id           String          @id @default(cuid())
+  claimant     String                            // ФИО/наименование заявителя
+  contact      String                            // email/контакт для ответа
+  productId    String?                           // товар (если найден по ссылке)
+  productUrl   String?                           // ссылка/идентификатор товара от заявителя
+  protectedObj String          @db.Text          // охраняемый объект
+  rightsProof  String          @db.Text          // подтверждение прав
+  description  String          @db.Text          // описание нарушения
+  consentPd    Boolean         @default(false)
+  status       ComplaintStatus @default(NEW)
+  decision     String?         @db.Text          // решение/заметки оператора
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  product      Product?        @relation(fields: [productId], references: [id])
+
+  @@index([status])
+}
+
+// ── Пул дежурных исполнителей (Фаза 3, раздел 12) ────────────────────────────
+model Executor {
+  id            String   @id @default(cuid())
+  name          String                            // имя
+  contact       String                            // email / telegram
+  stack         String?                           // стек
+  active        Boolean  @default(true)           // дежурный (true) / пауза (false)
+  inn           String?                           // ИНН для проверки ФНС
+  taxStatus     String?                           // самозанятый / ИП / ООО
+  taxVerified   Boolean  @default(false)          // статус подтверждён
+  taxCheckedAt  DateTime?
+  xrayReportUrl String?                           // отчёт X-Ray по примеру кода
+  freeRequestsLeft Int   @default(10)             // остаток бесплатных заявок
+  requestsSent  Int      @default(0)              // отправлено заявок
+  ordersTaken   Int      @default(0)              // взято заказов
+  relayCount    Int      @default(0)              // участие в «Эстафете»
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  assignments   RequestAssignment[]
+  serviceOrders ServiceOrder[]
+
+  @@index([active])
+}
+
+// ── Платные услуги ПОЛКИ (Фаза 4, ТЗ раздел 11) ──────────────────────────────
+// Собственные услуги оператора: оплата через эквайринг + чек CloudKassir
+// («service», без агентского признака). AI_AUDIT выполняется автоматически
+// (нейросеть + факты X-Ray), экспертные услуги ведёт оператор вручную.
+enum ServiceKind {
+  AI_AUDIT        // Глубокий AI-аудит (авто)
+  EXPERT_REVIEW   // Расширенная приёмка кода (эксперт)
+  PROJECT_RESCUE  // «Спасение проекта» (эксперт)
+}
+
+enum ServiceOrderStatus {
+  NEW              // Заявка принята (без оплаты — напр. «Спасение проекта»)
+  AWAITING_PAYMENT // ждёт оплаты
+  PAID             // Оплачен
+  IN_PROGRESS      // В работе
+  REPORT_READY     // Отчёт готов
+  CLOSED           // Закрыт
+  REFUNDED         // Возврат
+}
+
+model ServiceOrder {
+  id            String             @id @default(cuid())
+  kind          ServiceKind
+  status        ServiceOrderStatus @default(AWAITING_PAYMENT)
+  amount        Int                                 // копейки
+  userId        String
+  email         String                              // для чека и отчёта
+  contact       String?                             // мессенджер/телефон для связи
+  brief         String             @db.Text         // задача / критерии приёмки / описание ситуации
+  codeS3Key     String?
+  codeFileName  String?
+  xrayReport    Json?                               // факты X-Ray по прикреплённому коду
+  aiResult      Json?                               // результат AI-аудита (AI_AUDIT)
+  report        String?            @db.Text         // отчёт эксперта (EXPERT_REVIEW/PROJECT_RESCUE)
+  expertId      String?                             // назначенный эксперт из пула
+  paymentId     String?
+  codeDeletedAt DateTime?                           // код удалён после сдачи отчёта (11.4)
+  createdAt     DateTime           @default(now())
+  paidAt        DateTime?
+  reportReadyAt DateTime?
+  closedAt      DateTime?
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expert        Executor?          @relation(fields: [expertId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([kind])
+}
+
+// Отправка заявки исполнителю (ТЗ 11.4): до 3 на заявку + отметка, кто ответил.
+model RequestAssignment {
+  id          String    @id @default(cuid())
+  requestId   String
+  executorId  String
+  responded   Boolean   @default(false)
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+  request     Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  executor    Executor  @relation(fields: [executorId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, executorId])
+  @@index([requestId])
+}

@@ -29,8 +29,11 @@ export async function POST(req: NextRequest) {
       buyer: { select: { telegramId: true, email: true } },
     },
   })
+  let expiredCount = 0
   for (const p of expired) {
-    await db.purchase.update({ where: { id: p.id }, data: { status: "EXPIRED" } })
+    const result = await db.purchase.updateMany({ where: { id: p.id, status: "AWAITING" }, data: { status: "EXPIRED" } })
+    if (result.count === 0) continue
+    expiredCount++
     void notifyPurchaseExpired({
       buyerTelegramId: p.buyer.telegramId,
       buyerEmail: p.buyer.email,
@@ -46,8 +49,11 @@ export async function POST(req: NextRequest) {
       product: { select: { title: true, author: { select: { telegramId: true, email: true } } } },
     },
   })
+  let remindedCount = 0
   for (const p of toRemind) {
-    await db.purchase.update({ where: { id: p.id }, data: { reminderSentAt: new Date() } })
+    const result = await db.purchase.updateMany({ where: { id: p.id, status: "AWAITING", reminderSentAt: null }, data: { reminderSentAt: new Date() } })
+    if (result.count === 0) continue
+    remindedCount++
     void notifyPurchaseReminder({
       developerTelegramId: p.product.author.telegramId,
       developerEmail: p.product.author.email,
@@ -57,5 +63,5 @@ export async function POST(req: NextRequest) {
   }
 
   await recordCronRun("purchase-overdue")
-  return Response.json({ expired: expired.length, reminded: toRemind.length })
+  return Response.json({ expired: expiredCount, reminded: remindedCount })
 }

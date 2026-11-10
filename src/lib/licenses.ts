@@ -29,7 +29,7 @@ export function licenseLabel(license: string): string {
 }
 
 export function licenseText(license: string): string {
-  return LICENSE_TEXT[license] ?? LICENSE_TEXT.personal
+  return LICENSE_TEXT[license === "team" ? "commercial" : license] ?? "Уточните условия использования у автора до покупки."
 }
 
 // Открытые лицензии. Если упомянуты в описании/файлах, а продаётся по «Личной» —

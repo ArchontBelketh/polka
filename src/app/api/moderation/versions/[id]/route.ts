@@ -53,21 +53,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   const { action, comment } = parsed.data
 
-  await db.productVersion.update({
-    where: { id: versionId },
-    data: {
-      status: action,
-      moderatorComment: comment ?? null,
-    },
-  })
-
-  // A new approved version replaces the verified file — drop the manual badge
-  if (action === "APPROVED") {
-    await db.product.update({
-      where: { id: version.productId },
-      data: { manuallyVerified: false, verifiedAt: null },
+  const applied = await db.$transaction(async (tx) => {
+    const result = await tx.productVersion.updateMany({
+      where: { id: versionId, status: "PENDING" },
+      data: { status: action, moderatorComment: comment ?? null },
     })
-  }
+    if (result.count === 0) return false
+    // Бейдж старого файла снимается вместе с одобрением нового содержимого.
+    if (action === "APPROVED" && version.s3Key) {
+      await tx.product.update({ where: { id: version.productId }, data: { manuallyVerified: false, verifiedAt: null } })
+    }
+    return true
+  })
+  if (!applied) return Response.json({ error: "Версия уже рассмотрена" }, { status: 409 })
 
   const { product } = version
 

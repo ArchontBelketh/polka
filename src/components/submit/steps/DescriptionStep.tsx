@@ -26,7 +26,7 @@ export function DescriptionStep({ value, onChange }: DescriptionStepProps) {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Описание продукта</h2>
         <p className="text-sm text-muted-foreground">
-          Расскажите, что делает ваш продукт. Подробное описание увеличивает конверсию.
+          Опишите задачу, результат и ограничения продукта, чтобы покупатель мог оценить, подходит ли решение.
         </p>
       </div>
 

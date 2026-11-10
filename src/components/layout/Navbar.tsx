@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import CyberHeader from "@/components/header/CyberHeader"
+import { canManageCode } from "@/lib/permissions"
 
 // Серверная обёртка: получает сессию и счётчик непрочитанных, отдаёт их в
 // клиентскую кибер-шапку пропсами (анимация/вёрстка — в CyberHeader).
@@ -19,7 +20,7 @@ export async function Navbar() {
       },
     })
   }
-  const messagesHref = role === "DEVELOPER" ? "/dashboard/messages" : "/purchases"
+  const messagesHref = canManageCode(role) ? "/dashboard/messages" : "/purchases"
 
   return (
     <CyberHeader

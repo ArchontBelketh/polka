@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { runVersionAutoModeration } from "@/lib/auto-moderation"
+import { getObjectBuffer, isProductVersionUploadKey, snapshotProductFile, sanitizeFileName, deleteObject } from "@/lib/s3"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -10,8 +10,8 @@ const bodySchema = z.object({
   version:   z.string().min(1).max(20),
   changelog: z.string().max(2000).optional(),
   s3Key:     z.string().default(""),
-  fileName:  z.string().default(""),
-  fileSize:  z.number().int().default(0),
+  fileName:  z.string().max(200).default(""),
+  fileSize:  z.number().int().min(0).max(100 * 1024 * 1024).default(0),
 })
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: "Версии можно загружать только для опубликованных продуктов" }, { status: 422 })
   }
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = bodySchema.safeParse(body)
   if (!parsed.success) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 })
@@ -54,20 +54,48 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: `Версия ${version} уже существует` }, { status: 422 })
   }
 
-  const productVersion = await db.productVersion.create({
-    data: {
-      productId: id,
-      version,
-      changelog,
-      s3Key,
-      fileName,
-      fileSize,
-      status: "PENDING",
-    },
-  })
+  let artifactKey = ""
+  let actualSize = 0
+  if (s3Key) {
+    if (!fileName || !isProductVersionUploadKey(s3Key, id, fileName)) {
+      return Response.json({ error: "Файл версии не принадлежит этой загрузке продукта" }, { status: 422 })
+    }
+    try {
+      const buffer = await getObjectBuffer(s3Key)
+      if (buffer.length !== fileSize) {
+        return Response.json({ error: "Размер загруженного файла не совпадает" }, { status: 422 })
+      }
+      const artifact = await snapshotProductFile(id, buffer, fileName)
+      artifactKey = artifact.key
+      actualSize = artifact.fileSize
+    } catch (err) {
+      console.error("[versions] failed to snapshot upload", err)
+      return Response.json({ error: "Не удалось проверить загруженный файл. Повторите загрузку." }, { status: 422 })
+    }
+  } else if (fileName || fileSize) {
+    return Response.json({ error: "Файл версии не загружен" }, { status: 422 })
+  }
 
-  // Try auto-approval for verified developers; falls back silently to manual queue
-  void runVersionAutoModeration(productVersion.id)
+  let productVersion
+  try {
+    productVersion = await db.productVersion.create({
+      data: {
+        productId: id,
+        version,
+        changelog,
+        s3Key: artifactKey,
+        fileName: sanitizeFileName(fileName),
+        fileSize: actualSize,
+        status: "PENDING",
+      },
+    })
+  } catch (err) {
+    if (artifactKey) await deleteObject(artifactKey).catch(() => {})
+    throw err
+  }
+
+  // Изменения кода всегда идут в ручную очередь. Репутация и текст changelog
+  // не заменяют проверку новой последовательности байтов.
 
   return Response.json(
     { id: productVersion.id, version: productVersion.version, status: productVersion.status },

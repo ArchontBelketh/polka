@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CYBERПОЛКА — маркетплейс готовых программ",
+    name: "CYBERПОЛКА — готовый код и разработка",
     short_name: "CYBERПОЛКА",
-    description: "Готовые программы для бизнеса с проверкой кода, эскроу и возвратами.",
+    description: "Готовые боты, скрипты и интеграции. Найдите подходящий код или опишите задачу на разработку.",
     start_url: "/",
     display: "standalone",
     background_color: "#0a0912",

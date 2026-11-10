@@ -1,0 +1,28 @@
+import Link from "next/link"
+import { redirect } from "next/navigation"
+import { db } from "@/lib/db"
+import { getCurrentUser } from "@/lib/current-user"
+import { JobCard } from "@/components/jobs/JobCard"
+import { Button } from "@/components/ui/button"
+import { JOB_STATUS_LABELS, PUBLICATION_LABELS } from "@/lib/jobs/policy"
+import { formatPrice } from "@/lib/utils"
+
+export const metadata = { title: "Мои заказы и отклики", robots: { index: false, follow: false } }
+export default async function MyOrdersPage() {
+  const actor = await getCurrentUser(); if (!actor) redirect("/login?callbackUrl=/dashboard/orders")
+  const [jobs, proposals, contracts, events, invitations] = await Promise.all([
+    db.job.findMany({ where: { customerId: actor.id }, orderBy: { createdAt: "desc" }, take: 100, select: { id: true, title: true, outcome: true, specialization: true, budgetMin: true, budgetMax: true, deadline: true, status: true, publicationStatus: true, contract: { select: { jobId: true } } } }),
+    db.jobProposal.findMany({ where: { developerId: actor.id }, orderBy: { updatedAt: "desc" }, take: 100, select: { id: true, jobId: true, amount: true, status: true, job: { select: { title: true } } } }),
+    db.jobContract.findMany({ where: { developerId: actor.id }, orderBy: { agreedAt: "desc" }, take: 100, select: { jobId: true, title: true, amount: true, job: { select: { status: true } } } }),
+    db.jobNotification.findMany({ where: { userId: actor.id }, orderBy: { createdAt: "desc" }, take: 20, select: { id: true, jobId: true, text: true, createdAt: true } }),
+    db.jobInvitation.findMany({ where: { developerId: actor.id, job: { publicationStatus: "APPROVED", customer: { isBanned: false } } }, orderBy: { createdAt: "desc" }, take: 100, select: { id: true, jobId: true, job: { select: { title: true, status: true, deadline: true } } } }),
+  ])
+  return <div className="mx-auto max-w-5xl px-4 py-8 space-y-8"><div className="flex flex-wrap justify-between gap-4"><h1 className="text-3xl font-semibold">Мои заказы и отклики</h1><div className="flex flex-wrap gap-3"><Button asChild variant="outline"><Link href="/orders">Найти заказ</Link></Button><Button asChild><Link href="/orders/new">Разместить заказ</Link></Button></div></div>
+    {events.length > 0 && <section className="rounded-xl border border-border bg-card p-5 space-y-3"><h2 className="text-xl font-semibold">Последние события</h2><ul className="space-y-3">{events.map(event => <li key={event.id} className="text-sm"><Link href={`/orders/${event.jobId}`} className="text-cyan hover:underline">{event.text}</Link><span className="block text-xs text-muted-foreground">{new Date(event.createdAt).toLocaleString("ru-RU")}</span></li>)}</ul></section>}
+    <section className="space-y-4"><h2 className="text-xl font-semibold">Я заказчик</h2>{!jobs.length && <p className="text-sm text-muted-foreground">Создайте первый черновик задачи.</p>}<div className="grid gap-4 md:grid-cols-2">{jobs.map(job => <div key={job.id} className="space-y-2"><JobCard job={job} /><div className="flex flex-wrap justify-between gap-2 px-2 text-xs text-muted-foreground"><span>{PUBLICATION_LABELS[job.publicationStatus]}</span>{job.contract && <Link className="text-cyan hover:underline" href={`/orders/${job.id}/workspace`}>Рабочая область</Link>}</div></div>)}</div></section>
+    <section className="space-y-4"><h2 className="text-xl font-semibold">Я исполнитель</h2>{!contracts.length && <p className="text-sm text-muted-foreground">Выбранные заказы появятся здесь.</p>}<ul className="space-y-3">{contracts.map(contract => <li key={contract.jobId} className="rounded-xl border border-border p-4"><Link href={`/orders/${contract.jobId}/workspace`} className="font-semibold text-cyan hover:underline">{contract.title}</Link><p className="mt-2 text-sm text-muted-foreground">{JOB_STATUS_LABELS[contract.job.status]} · {formatPrice(contract.amount)}</p></li>)}</ul></section>
+    <section className="space-y-4"><h2 className="text-xl font-semibold">Мои отклики</h2>{!proposals.length && <p className="text-sm text-muted-foreground">Бесплатно откликнитесь на подходящий заказ.</p>}<ul className="space-y-3">{proposals.map(proposal => <li key={proposal.id} className="rounded-xl border border-border p-4"><Link href={`/orders/${proposal.jobId}`} className="font-semibold text-cyan hover:underline">{proposal.job.title}</Link><p className="mt-2 text-sm text-muted-foreground">{formatPrice(proposal.amount)} · {({ ACTIVE: "Активен", WITHDRAWN: "Отозван", SELECTED: "Выбрано ваше предложение", DECLINED: "Выбран другой исполнитель" })[proposal.status]}</p></li>)}</ul></section>
+    <section className="space-y-4"><h2 className="text-xl font-semibold">Приглашения откликнуться</h2>{!invitations.length && <p className="text-sm text-muted-foreground">Здесь появятся приглашения заказчиков. Участие в каталоге включается в <Link href="/dashboard/profile" className="text-cyan hover:underline">профиле разработчика</Link>.</p>}<ul className="space-y-3">{invitations.map(invitation => <li key={invitation.id} className="rounded-xl border border-border p-4"><Link href={`/orders/${invitation.jobId}`} className="font-semibold text-cyan hover:underline">{invitation.job.title}</Link><p className="mt-2 text-sm text-muted-foreground">{invitation.job.status === "OPEN" && invitation.job.deadline > new Date() ? "Можно подать бесплатный отклик" : "Приём откликов закрыт"}</p></li>)}</ul></section>
+    {(jobs.length === 100 || proposals.length === 100 || contracts.length === 100 || invitations.length === 100) && <p className="text-xs text-muted-foreground">Показаны последние 100 записей каждого списка.</p>}
+  </div>
+}

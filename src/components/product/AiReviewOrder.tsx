@@ -15,10 +15,11 @@ interface ExistingReview {
 interface Props {
   productId: string
   existingReview: ExistingReview | null
+  allowOrder?: boolean
 }
 
 
-export function AiReviewOrder({ productId, existingReview }: Props) {
+export function AiReviewOrder({ productId, existingReview, allowOrder = true }: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -59,6 +60,7 @@ export function AiReviewOrder({ productId, existingReview }: Props) {
   }
 
   // PENDING / FAILED / no review — show order form
+  if (!allowOrder) return existingReview ? <section className="rounded-lg border border-border bg-card p-5 text-sm"><h2 className="font-semibold">Ранее заказанное AI-ревью</h2><p className="mt-2 text-muted-foreground">{existingReview.status === "FAILED" ? "Анализ завершился с ошибкой. Обратитесь в поддержку по этому заказу." : "Состояние отчёта доступно в истории AI-ревью."}</p><a href="/ai-reviews" className="mt-3 inline-block text-cyan underline">Открыть историю отчётов</a></section> : null
   return (
     <section className="rounded-lg border border-border bg-card p-5 space-y-3">
       <div className="space-y-1">

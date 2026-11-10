@@ -1,0 +1,6125 @@
+{
+  "sourceHash": "c0e28c2214b58d76437f86211ade258d0b0026c93760ac256afb92d8eea8d02a",
+  "enums": {
+    "Role": [
+      "BUYER",
+      "DEVELOPER",
+      "MODERATOR",
+      "ADMIN"
+    ],
+    "DeveloperAvailability": [
+      "AVAILABLE",
+      "LIMITED",
+      "UNAVAILABLE"
+    ],
+    "ProductUploadStatus": [
+      "PENDING",
+      "COMPLETED",
+      "CANCELLED"
+    ],
+    "Category": [
+      "TELEGRAM",
+      "PARSER",
+      "EXCEL",
+      "AUTOMATION",
+      "WEB"
+    ],
+    "ProductStatus": [
+      "DRAFT",
+      "PENDING",
+      "SCAN_FAILED",
+      "APPROVED",
+      "REJECTED",
+      "SUSPENDED"
+    ],
+    "ScanStatus": [
+      "PENDING",
+      "CLEAN",
+      "WARNING",
+      "BLOCKED"
+    ],
+    "PurchaseStatus": [
+      "PENDING",
+      "AWAITING",
+      "PAID",
+      "DELIVERED",
+      "REFUNDED",
+      "DISPUTED",
+      "DECLINED",
+      "EXPIRED"
+    ],
+    "PayoutStatus": [
+      "PENDING",
+      "PROCESSING",
+      "PAID",
+      "REJECTED"
+    ],
+    "FinancialOperationStatus": [
+      "PREPARED",
+      "IN_FLIGHT",
+      "UNKNOWN",
+      "CONFIRMED",
+      "APPLIED"
+    ],
+    "TicketCategory": [
+      "APPEAL",
+      "PURCHASE",
+      "BUG",
+      "OTHER",
+      "CLAIM"
+    ],
+    "TicketStatus": [
+      "OPEN",
+      "IN_PROGRESS",
+      "RESOLVED",
+      "CLOSED"
+    ],
+    "FileType": [
+      "SOURCE",
+      "BINARY",
+      "DECOMPILED"
+    ],
+    "ProductVersionStatus": [
+      "PENDING",
+      "APPROVED",
+      "REJECTED",
+      "SUSPENDED"
+    ],
+    "PayerKind": [
+      "SELF_EMPLOYED",
+      "ENTREPRENEUR",
+      "COMPANY"
+    ],
+    "SaleModel": [
+      "COMMISSION",
+      "LISTING_FEE"
+    ],
+    "JobPublicationStatus": [
+      "DRAFT",
+      "PENDING",
+      "APPROVED",
+      "REJECTED",
+      "SUSPENDED"
+    ],
+    "JobStatus": [
+      "OPEN",
+      "EXECUTOR_SELECTED",
+      "IN_PROGRESS",
+      "ACCEPTANCE",
+      "COMPLETED",
+      "CANCELLED",
+      "DISPUTED"
+    ],
+    "JobProposalStatus": [
+      "ACTIVE",
+      "WITHDRAWN",
+      "SELECTED",
+      "DECLINED"
+    ],
+    "JobDeliveryStatus": [
+      "PENDING",
+      "ACCEPTED",
+      "CHANGES_REQUESTED"
+    ],
+    "RequestStatus": [
+      "NEW",
+      "CLARIFYING",
+      "TO_CATALOG",
+      "SERVICE_RECOMMENDED",
+      "SPEC_READY",
+      "PROPOSALS_SENT",
+      "IN_PROGRESS",
+      "RELAY",
+      "ACCEPTANCE",
+      "AWAITING_PASSPORT",
+      "CLOSED",
+      "KWORK",
+      "CANCELLED"
+    ],
+    "ComplaintStatus": [
+      "NEW",
+      "REVIEWING",
+      "REMOVED",
+      "RESTORED",
+      "REJECTED"
+    ],
+    "ServiceKind": [
+      "AI_AUDIT",
+      "EXPERT_REVIEW",
+      "PROJECT_RESCUE"
+    ],
+    "ServiceOrderStatus": [
+      "NEW",
+      "AWAITING_PAYMENT",
+      "PAID",
+      "IN_PROGRESS",
+      "REPORT_READY",
+      "CLOSED",
+      "REFUNDED"
+    ]
+  },
+  "models": {
+    "FinancialOperation": {
+      "name": "FinancialOperation",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "kind": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "referenceId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "FinancialOperationStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PREPARED"
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "actorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "providerId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "providerStatus": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "payload": {
+          "type": "Json",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        },
+        "appliedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "kind",
+          "referenceId"
+        ],
+        [
+          "status",
+          "updatedAt"
+        ]
+      ]
+    },
+    "User": {
+      "name": "User",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "email": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "emailVerified": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "name": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "telegramId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "telegramHandle": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "phone": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "role": {
+          "type": "Role",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "BUYER"
+        },
+        "inn": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "passwordHash": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "sessionVersion": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "resetTokenHash": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "resetTokenExpiresAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "emailVerifyTokenHash": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "agreedToTerms": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "agreedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "balance": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "payoutsFrozen": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "isEarlySeller": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "earlySellerNo": {
+          "type": "Int",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "bio": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "isBanned": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "bannedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "banReason": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "products": {
+          "model": "Product",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "authorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "purchases": {
+          "model": "Purchase",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "buyerId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "reviews": {
+          "model": "Review",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "authorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "payouts": {
+          "model": "Payout",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "developerId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "accounts": {
+          "model": "Account",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "sessions": {
+          "model": "Session",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "wishlists": {
+          "model": "Wishlist",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "supportTickets": {
+          "model": "SupportTicket",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "authorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "ticketMessages": {
+          "model": "TicketMessage",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "authorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "developerPlan": {
+          "model": "DeveloperPlan",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "developerProfile": {
+          "model": "DeveloperProfile",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "payoutProfile": {
+          "model": "PayoutProfile",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "slotPurchases": {
+          "model": "SlotPurchase",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "aiReviews": {
+          "model": "AiReview",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "requestedBy"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "questions": {
+          "model": "ProductQuestion",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "authorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "purchaseMessages": {
+          "model": "PurchaseMessage",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "senderId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "requests": {
+          "model": "Request",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "serviceOrders": {
+          "model": "ServiceOrder",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "productSubmissions": {
+          "model": "ProductSubmission",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "jobs": {
+          "model": "Job",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "customerId"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobCustomer",
+          "reverse": true
+        },
+        "jobProposals": {
+          "model": "JobProposal",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "developerId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "customerContracts": {
+          "model": "JobContract",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "customerId"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "ContractCustomer",
+          "reverse": true
+        },
+        "developerContracts": {
+          "model": "JobContract",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "developerId"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "ContractDeveloper",
+          "reverse": true
+        },
+        "jobMessages": {
+          "model": "JobMessage",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "senderId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "jobAttachments": {
+          "model": "JobAttachment",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "authorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "jobDeliveries": {
+          "model": "JobDelivery",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "developerId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "writtenJobReviews": {
+          "model": "JobReview",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "authorId"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobReviewAuthor",
+          "reverse": true
+        },
+        "receivedJobReviews": {
+          "model": "JobReview",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "recipientId"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobReviewRecipient",
+          "reverse": true
+        },
+        "jobEvents": {
+          "model": "JobStatusLog",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "actorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "jobNotifications": {
+          "model": "JobNotification",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "developerListing": {
+          "model": "DeveloperListing",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "userId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "jobInvitations": {
+          "model": "JobInvitation",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "developerId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "email"
+        ],
+        [
+          "telegramId"
+        ]
+      ],
+      "indexes": []
+    },
+    "DeveloperListing": {
+      "name": "DeveloperListing",
+      "fields": {
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "sortKey": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "enabled": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": true
+        },
+        "listedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "userId"
+      ],
+      "unique": [
+        [
+          "sortKey"
+        ]
+      ],
+      "indexes": [
+        [
+          "enabled",
+          "sortKey"
+        ]
+      ]
+    },
+    "ExposureEvent": {
+      "name": "ExposureEvent",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "day": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "kind": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "cohort": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "day",
+          "kind",
+          "cohort"
+        ],
+        [
+          "createdAt"
+        ]
+      ]
+    },
+    "JobInvitation": {
+      "name": "JobInvitation",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "jobId",
+          "developerId"
+        ]
+      ],
+      "indexes": [
+        [
+          "developerId",
+          "createdAt"
+        ],
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "developerId"
+        ]
+      ]
+    },
+    "Job": {
+      "name": "Job",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "customerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "submissionHash": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "title": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "description": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "outcome": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "specialization": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "budgetMin": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "budgetMax": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "deadline": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "publicationStatus": {
+          "type": "JobPublicationStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "DRAFT"
+        },
+        "status": {
+          "type": "JobStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "OPEN"
+        },
+        "revision": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "moderationReason": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "cancellationRequestedBy": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "cancellationReason": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "publishedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "completedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "invitations": {
+          "model": "JobInvitation",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "customer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "customerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobCustomer"
+        },
+        "proposals": {
+          "model": "JobProposal",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "contract": {
+          "model": "JobContract",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "messages": {
+          "model": "JobMessage",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "attachments": {
+          "model": "JobAttachment",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "deliveries": {
+          "model": "JobDelivery",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "reviews": {
+          "model": "JobReview",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "events": {
+          "model": "JobStatusLog",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "dispute": {
+          "model": "JobDispute",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "notifications": {
+          "model": "JobNotification",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "jobId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "customerId",
+          "createdAt"
+        ],
+        [
+          "publicationStatus",
+          "status",
+          "publishedAt"
+        ],
+        [
+          "specialization"
+        ],
+        [
+          "customerId"
+        ]
+      ]
+    },
+    "JobProposal": {
+      "name": "JobProposal",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "durationDays": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "approach": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "JobProposalStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "ACTIVE"
+        },
+        "revision": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 1
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "contract": {
+          "model": "JobContract",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "proposalId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "events": {
+          "model": "JobStatusLog",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "proposalId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "jobId",
+          "developerId"
+        ]
+      ],
+      "indexes": [
+        [
+          "developerId",
+          "updatedAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "developerId"
+        ]
+      ]
+    },
+    "JobContract": {
+      "name": "JobContract",
+      "fields": {
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "customerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "proposalId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "title": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "description": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "outcome": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "specialization": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "durationDays": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "approach": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "dueAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "agreedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "customer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "customerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "ContractCustomer"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "ContractDeveloper"
+        },
+        "proposal": {
+          "model": "JobProposal",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "proposalId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "jobId"
+      ],
+      "unique": [
+        [
+          "proposalId"
+        ]
+      ],
+      "indexes": [
+        [
+          "developerId"
+        ],
+        [
+          "customerId"
+        ]
+      ]
+    },
+    "JobMessage": {
+      "name": "JobMessage",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "senderId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "sender": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "senderId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "senderId"
+        ]
+      ]
+    },
+    "JobAttachment": {
+      "name": "JobAttachment",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileName": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileSize": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "s3Key": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "sha256": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "s3Key"
+        ]
+      ],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "JobDelivery": {
+      "name": "JobDelivery",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "attachmentIds": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "status": {
+          "type": "JobDeliveryStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "customerFeedback": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "reviewedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "developerId"
+        ]
+      ]
+    },
+    "JobReview": {
+      "name": "JobReview",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "recipientId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "rating": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobReviewAuthor"
+        },
+        "recipient": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "recipientId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict",
+          "relationName": "JobReviewRecipient"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "jobId",
+          "authorId"
+        ]
+      ],
+      "indexes": [
+        [
+          "recipientId"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "JobStatusLog": {
+      "name": "JobStatusLog",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "actorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "action": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fromStatus": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "toStatus": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "reason": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "data": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "proposalId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "actor": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "actorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "proposal": {
+          "model": "JobProposal",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "proposalId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "jobId",
+          "createdAt"
+        ],
+        [
+          "proposalId"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "actorId"
+        ]
+      ]
+    },
+    "JobDispute": {
+      "name": "JobDispute",
+      "fields": {
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "ticketId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "previousStatus": {
+          "type": "JobStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "openedById": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "reason": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "resolution": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "resolvedById": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "resolvedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "ticket": {
+          "model": "SupportTicket",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "ticketId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "jobId"
+      ],
+      "unique": [
+        [
+          "ticketId"
+        ]
+      ],
+      "indexes": []
+    },
+    "JobNotification": {
+      "name": "JobNotification",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "jobId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "job": {
+          "model": "Job",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "jobId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "userId",
+          "createdAt"
+        ],
+        [
+          "jobId"
+        ],
+        [
+          "userId"
+        ]
+      ]
+    },
+    "DeveloperProfile": {
+      "name": "DeveloperProfile",
+      "fields": {
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "headline": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "skills": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "specializations": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "availability": {
+          "type": "DeveloperAvailability",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "UNAVAILABLE"
+        },
+        "portfolio": {
+          "type": "Json",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": []
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "userId"
+      ],
+      "unique": [],
+      "indexes": []
+    },
+    "Account": {
+      "name": "Account",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "type": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "provider": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "providerAccountId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "access_token": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "refresh_token": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "provider",
+          "providerAccountId"
+        ]
+      ],
+      "indexes": [
+        [
+          "userId"
+        ]
+      ]
+    },
+    "Session": {
+      "name": "Session",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "sessionToken": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "expires": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "sessionToken"
+        ]
+      ],
+      "indexes": [
+        [
+          "userId"
+        ]
+      ]
+    },
+    "VerificationToken": {
+      "name": "VerificationToken",
+      "fields": {
+        "identifier": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "token": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "expires": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "token"
+      ],
+      "unique": [
+        [
+          "token"
+        ],
+        [
+          "identifier",
+          "token"
+        ]
+      ],
+      "indexes": []
+    },
+    "Product": {
+      "name": "Product",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "title": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "slug": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "shortDesc": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fullDesc": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "category": {
+          "type": "Category",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "price": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "ProductStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "DRAFT"
+        },
+        "saleModel": {
+          "type": "SaleModel",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "features": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "screenshots": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "demoUrl": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "videoUrl": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "targetAudience": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "techStack": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "license": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "personal"
+        },
+        "telegramBotUsername": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerPaymentInfo": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "listingFeePaidAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "installGuide": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "requirements": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "exampleInput": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "exampleOutput": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayPassport": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayDeclInternet": {
+          "type": "Boolean",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayDeclFiles": {
+          "type": "Boolean",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayDeclCommands": {
+          "type": "Boolean",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayMismatch": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "manuallyVerified": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "verifiedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "rating": {
+          "type": "Float",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "reviewCount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "salesCount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "riskScore": {
+          "type": "Int",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "autoDecision": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "aiReviewFlags": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        },
+        "publishedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "files": {
+          "model": "ProductFile",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "purchases": {
+          "model": "Purchase",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "reviews": {
+          "model": "Review",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "scanResult": {
+          "model": "ScanResult",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "moderationLogs": {
+          "model": "ModerationLog",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "wishlists": {
+          "model": "Wishlist",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "supportTickets": {
+          "model": "SupportTicket",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "versions": {
+          "model": "ProductVersion",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "aiReviews": {
+          "model": "AiReview",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "questions": {
+          "model": "ProductQuestion",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "specification": {
+          "model": "ProductSpecification",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "submission": {
+          "model": "ProductSubmission",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        },
+        "uploads": {
+          "model": "ProductUpload",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "rightsComplaints": {
+          "model": "RightsComplaint",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "productId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "slug"
+        ]
+      ],
+      "indexes": [
+        [
+          "status"
+        ],
+        [
+          "category"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "ProductSpecification": {
+      "name": "ProductSpecification",
+      "fields": {
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "languages": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "platforms": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        },
+        "compatibility": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "outcome": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "supportTerms": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "updateTerms": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "productId"
+      ],
+      "unique": [],
+      "indexes": []
+    },
+    "ProductSubmission": {
+      "name": "ProductSubmission",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fingerprint": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "productId"
+        ]
+      ],
+      "indexes": [
+        [
+          "userId"
+        ]
+      ]
+    },
+    "ProductUpload": {
+      "name": "ProductUpload",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "type": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "slot": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "fileName": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileSize": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "contentType": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "stagingKey": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "artifactKey": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "ProductUploadStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        },
+        "completedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "stagingDeletedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "stagingKey"
+        ]
+      ],
+      "indexes": [
+        [
+          "productId"
+        ],
+        [
+          "status",
+          "createdAt"
+        ]
+      ]
+    },
+    "ProductQuestion": {
+      "name": "ProductQuestion",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "question": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "answer": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "answeredAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "isHidden": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "productId"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "ProductFile": {
+      "name": "ProductFile",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "s3Key": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileName": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileSize": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileType": {
+          "type": "FileType",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "format": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "version": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "1.0.0"
+        },
+        "sha256": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "sha256"
+        ],
+        [
+          "productId"
+        ]
+      ]
+    },
+    "ScanResult": {
+      "name": "ScanResult",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "ScanStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "findings": {
+          "type": "Json",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": []
+        },
+        "scannedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "toolsRun": {
+          "type": "String",
+          "nullable": false,
+          "list": true,
+          "updatedAt": false,
+          "default": []
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "productId"
+        ]
+      ],
+      "indexes": []
+    },
+    "ModerationLog": {
+      "name": "ModerationLog",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "moderatorId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "action": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "comment": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "productId"
+        ]
+      ]
+    },
+    "Purchase": {
+      "name": "Purchase",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "buyerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "PurchaseStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "paymentId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "escrowUntil": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "developerAmount": {
+          "type": "Int",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "holdUntil": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "creditedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "payoutId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "downloadCount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "lastMessageAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "reminderSentAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "paidAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "buyer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "buyerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "payout": {
+          "model": "Payout",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "payoutId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        "messages": {
+          "model": "PurchaseMessage",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "purchaseId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "buyerId"
+        ],
+        [
+          "productId"
+        ],
+        [
+          "escrowUntil"
+        ],
+        [
+          "payoutId"
+        ]
+      ]
+    },
+    "PurchaseMessage": {
+      "name": "PurchaseMessage",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "purchaseId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "senderId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "isRead": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "purchase": {
+          "model": "Purchase",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "purchaseId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "sender": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "senderId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "purchaseId"
+        ],
+        [
+          "senderId"
+        ]
+      ]
+    },
+    "Review": {
+      "name": "Review",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "rating": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "productId",
+          "authorId"
+        ]
+      ],
+      "indexes": [
+        [
+          "productId"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "Payout": {
+      "name": "Payout",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "developerId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "PayoutStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "requestedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "paidAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "receiptSent": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        }
+      },
+      "relations": {
+        "developer": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "developerId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "purchases": {
+          "model": "Purchase",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "payoutId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "developerId"
+        ]
+      ]
+    },
+    "Wishlist": {
+      "name": "Wishlist",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "userId",
+          "productId"
+        ]
+      ],
+      "indexes": [
+        [
+          "userId"
+        ],
+        [
+          "productId"
+        ]
+      ]
+    },
+    "SupportTicket": {
+      "name": "SupportTicket",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "subject": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "category": {
+          "type": "TicketCategory",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "purchaseId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "TicketStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "OPEN"
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        "messages": {
+          "model": "TicketMessage",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "ticketId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "jobDispute": {
+          "model": "JobDispute",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "ticketId"
+          ],
+          "onDelete": "SetNull",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "authorId"
+        ],
+        [
+          "status"
+        ],
+        [
+          "purchaseId"
+        ],
+        [
+          "productId"
+        ]
+      ]
+    },
+    "TicketMessage": {
+      "name": "TicketMessage",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "ticketId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "authorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "text": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "isStaff": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "ticket": {
+          "model": "SupportTicket",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "ticketId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "author": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "authorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "ticketId"
+        ],
+        [
+          "authorId"
+        ]
+      ]
+    },
+    "ProductVersion": {
+      "name": "ProductVersion",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "version": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "changelog": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "s3Key": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": ""
+        },
+        "fileName": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": ""
+        },
+        "fileSize": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "status": {
+          "type": "ProductVersionStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "moderatorComment": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "autoApproved": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "riskScore": {
+          "type": "Int",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "productId"
+        ],
+        [
+          "status"
+        ]
+      ]
+    },
+    "Coupon": {
+      "name": "Coupon",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "code": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "discountPct": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "maxUses": {
+          "type": "Int",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "usedCount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "expiresAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdBy": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "code"
+        ]
+      ],
+      "indexes": []
+    },
+    "DeveloperPlan": {
+      "name": "DeveloperPlan",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "plan": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "FREE"
+        },
+        "totalSlots": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 2
+        },
+        "proUntil": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "userId"
+        ]
+      ],
+      "indexes": []
+    },
+    "PayoutProfile": {
+      "name": "PayoutProfile",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "kind": {
+          "type": "PayerKind",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "displayName": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "inn": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "phone": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "paymentLink": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "phoneVerified": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "attestedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "attestVersion": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "v1"
+        },
+        "providerRecipientId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "verified": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "userId"
+        ]
+      ],
+      "indexes": []
+    },
+    "SlotPurchase": {
+      "name": "SlotPurchase",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "slotsAdded": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "paymentId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "userId"
+        ]
+      ]
+    },
+    "CronHeartbeat": {
+      "name": "CronHeartbeat",
+      "fields": {
+        "job": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "ranAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "job"
+      ],
+      "unique": [],
+      "indexes": []
+    },
+    "OperatorSettings": {
+      "name": "OperatorSettings",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "singleton"
+        },
+        "name": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "inn": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "ogrn": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "bankAccount": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "address": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "email": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "phone": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "revisionDate": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": []
+    },
+    "AiSettings": {
+      "name": "AiSettings",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "singleton"
+        },
+        "provider": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "disabled"
+        },
+        "apiKey": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "model": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "folderId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": []
+    },
+    "AiReview": {
+      "name": "AiReview",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "requestedBy": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "paymentId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "result": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 39000
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "completedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "requestedBy"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "requestedBy"
+        ],
+        [
+          "status"
+        ],
+        [
+          "productId"
+        ]
+      ]
+    },
+    "PaymentIntent": {
+      "name": "PaymentIntent",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "orderId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "paymentId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "type": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "payload": {
+          "type": "Json",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "orderId"
+        ]
+      ],
+      "indexes": [
+        [
+          "paymentId"
+        ],
+        [
+          "status"
+        ],
+        [
+          "createdAt"
+        ]
+      ]
+    },
+    "Request": {
+      "name": "Request",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "task": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "platform": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "deadline": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "budget": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "contact": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "messenger": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "consentPd": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "consentContacts": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "status": {
+          "type": "RequestStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "NEW"
+        },
+        "notes": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "spec": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "codeS3Key": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "codeFileName": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayReport": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "kworkUrl": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "projectPassport": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "deliveredCodeS3Key": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "deliveredCodeFileName": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "deliveryXrayReport": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        "statusLogs": {
+          "model": "RequestStatusLog",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "requestId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "assignments": {
+          "model": "RequestAssignment",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "requestId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "status"
+        ],
+        [
+          "createdAt"
+        ],
+        [
+          "userId"
+        ]
+      ]
+    },
+    "SiteSetting": {
+      "name": "SiteSetting",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "singleton"
+        },
+        "relaySlaEnabled": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "relaySlaDays": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 7
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {},
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": []
+    },
+    "RequestStatusLog": {
+      "name": "RequestStatusLog",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "requestId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "comment": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "request": {
+          "model": "Request",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "requestId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "requestId"
+        ]
+      ]
+    },
+    "RightsComplaint": {
+      "name": "RightsComplaint",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "claimant": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "contact": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "productUrl": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "protectedObj": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "rightsProof": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "description": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "consentPd": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "status": {
+          "type": "ComplaintStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "NEW"
+        },
+        "decision": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "status"
+        ],
+        [
+          "productId"
+        ]
+      ]
+    },
+    "Executor": {
+      "name": "Executor",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "name": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "contact": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "stack": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "active": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": true
+        },
+        "inn": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "taxStatus": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "taxVerified": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "taxCheckedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayReportUrl": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "freeRequestsLeft": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 10
+        },
+        "requestsSent": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "ordersTaken": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "relayCount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "notes": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        }
+      },
+      "relations": {
+        "assignments": {
+          "model": "RequestAssignment",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "executorId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        },
+        "serviceOrders": {
+          "model": "ServiceOrder",
+          "many": true,
+          "nullable": false,
+          "from": [
+            "id"
+          ],
+          "to": [
+            "expertId"
+          ],
+          "onDelete": "Restrict",
+          "reverse": true
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "active"
+        ]
+      ]
+    },
+    "ServiceOrder": {
+      "name": "ServiceOrder",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "kind": {
+          "type": "ServiceKind",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "ServiceOrderStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "AWAITING_PAYMENT"
+        },
+        "amount": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "email": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "contact": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "brief": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "codeS3Key": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "codeFileName": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "xrayReport": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "aiResult": {
+          "type": "Json",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "report": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "expertId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "paymentId": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "codeDeletedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "paidAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "reportReadyAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "closedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "expert": {
+          "model": "Executor",
+          "many": false,
+          "nullable": true,
+          "from": [
+            "expertId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [],
+      "indexes": [
+        [
+          "userId"
+        ],
+        [
+          "status"
+        ],
+        [
+          "kind"
+        ],
+        [
+          "expertId"
+        ]
+      ]
+    },
+    "RequestAssignment": {
+      "name": "RequestAssignment",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "cuid"
+          }
+        },
+        "requestId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "executorId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "responded": {
+          "type": "Boolean",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": false
+        },
+        "respondedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "request": {
+          "model": "Request",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "requestId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "executor": {
+          "model": "Executor",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "executorId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "requestId",
+          "executorId"
+        ]
+      ],
+      "indexes": [
+        [
+          "requestId"
+        ],
+        [
+          "executorId"
+        ]
+      ]
+    }
+  }
+}

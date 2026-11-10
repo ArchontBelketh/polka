@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getPayment } from "@/lib/tbank"
-import { fulfillPayment, failPayment } from "@/lib/payments"
+import { applyPaymentOutcome } from "@/lib/payments"
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -36,19 +36,13 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   }
 
   if (state.status === "CONFIRMED") {
-    if (intent.status !== "CONFIRMED") {
-      await fulfillPayment(intent, { paymentId: intent.paymentId })
-      await db.paymentIntent.update({ where: { id }, data: { status: "CONFIRMED" } })
-    }
-    return Response.json({ ok: true, status: "CONFIRMED", applied: true })
+    const result = await applyPaymentOutcome(id, intent.paymentId, "CONFIRMED")
+    return Response.json({ ok: true, status: "CONFIRMED", ...result })
   }
 
   if (FAIL_STATUSES.has(state.status)) {
-    if (intent.status !== "FAILED") {
-      await failPayment(intent)
-      await db.paymentIntent.update({ where: { id }, data: { status: "FAILED" } })
-    }
-    return Response.json({ ok: true, status: state.status, applied: true })
+    const result = await applyPaymentOutcome(id, intent.paymentId, "FAILED")
+    return Response.json({ ok: true, status: state.status, ...result })
   }
 
   // NEW / AUTHORIZED / прочее — ещё не финализирован, статус не меняем.

@@ -30,10 +30,16 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: "Заявка не в статусе ожидания" }, { status: 400 })
   }
 
-  await db.$transaction([
-    db.purchase.update({ where: { id }, data: { status: "DELIVERED", paidAt: new Date() } }),
-    db.product.update({ where: { id: purchase.productId }, data: { salesCount: { increment: 1 } } }),
-  ])
+  const applied = await db.$transaction(async (tx) => {
+    const result = await tx.purchase.updateMany({
+      where: { id, status: "AWAITING" },
+      data: { status: "DELIVERED", paidAt: new Date() },
+    })
+    if (result.count === 0) return false
+    await tx.product.update({ where: { id: purchase.productId }, data: { salesCount: { increment: 1 } } })
+    return true
+  })
+  if (!applied) return Response.json({ error: "Статус заявки уже изменён" }, { status: 409 })
 
   void notifyListingPurchaseConfirmed({
     buyerTelegramId: purchase.buyer.telegramId,

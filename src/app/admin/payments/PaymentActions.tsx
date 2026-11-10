@@ -10,12 +10,14 @@ interface PaymentActionsProps {
   hasPaymentId: boolean
   /** purchaseId для возврата (только для type=purchase в статусе CONFIRMED) */
   refundablePurchaseId?: string
+  refundState?: string
 }
 
-export function PaymentActions({ intentId, status, hasPaymentId, refundablePurchaseId }: PaymentActionsProps) {
+export function PaymentActions({ intentId, status, hasPaymentId, refundablePurchaseId, refundState }: PaymentActionsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [refundPending, setRefundPending] = useState(false)
 
   async function recheck() {
     setLoading("recheck")
@@ -38,7 +40,7 @@ export function PaymentActions({ intentId, status, hasPaymentId, refundablePurch
 
   async function refund() {
     if (!refundablePurchaseId) return
-    if (!confirm("Оформить возврат покупателю? Действие необратимо.")) return
+    if (!refundState && !refundPending && !confirm("Оформить возврат покупателю? Действие необратимо.")) return
     setLoading("refund")
     setMsg(null)
     try {
@@ -48,7 +50,8 @@ export function PaymentActions({ intentId, status, hasPaymentId, refundablePurch
         setMsg(typeof data.error === "string" ? data.error : "Ошибка")
         return
       }
-      setMsg("Возврат оформлен")
+      setRefundPending(data.pending === true)
+      setMsg(data.pending ? data.message : "Возврат подтверждён банком и учтён")
       router.refresh()
     } catch {
       setMsg("Ошибка соединения")
@@ -65,12 +68,13 @@ export function PaymentActions({ intentId, status, hasPaymentId, refundablePurch
             {loading === "recheck" ? "…" : "Проверить"}
           </Button>
         )}
-        {refundablePurchaseId && status === "CONFIRMED" && (
-          <Button size="sm" variant="destructive" disabled={loading !== null} onClick={refund}>
-            {loading === "refund" ? "…" : "Вернуть"}
+        {refundablePurchaseId && status === "CONFIRMED" && refundState !== "APPLIED" && (
+          <Button size="sm" variant={refundState || refundPending ? "outline" : "destructive"} disabled={loading !== null} onClick={refund}>
+            {loading === "refund" ? "…" : refundState || refundPending ? "Проверить возврат" : "Вернуть"}
           </Button>
         )}
       </div>
+      {refundState === "APPLIED" && <p className="text-xs text-muted-foreground">Возврат учтён</p>}
       {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
     </div>
   )

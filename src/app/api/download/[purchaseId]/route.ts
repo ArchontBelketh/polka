@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       product: {
         include: {
           files: { where: { fileType: "SOURCE" }, orderBy: { createdAt: "asc" }, take: 1 },
-          versions: { where: { status: "APPROVED" }, orderBy: { createdAt: "desc" }, take: 1 },
+          versions: { where: { status: "APPROVED", s3Key: { not: "" } }, orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
     },
@@ -75,10 +75,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     s3Key.split("/").pop()
   const url = await getPresignedDownloadUrl(s3Key, 900, rawName ?? undefined)
 
-  await db.purchase.update({
-    where: { id: purchaseId },
+  const granted = await db.purchase.updateMany({
+    where: { id: purchaseId, status: { in: ["PAID", "DELIVERED"] }, ...(!isAdmin ? { buyerId: session.user.id } : {}) },
     data: { downloadCount: { increment: 1 } },
   })
-
-  return Response.redirect(url, 302)
+  if (!granted.count) return Response.json({ error: "Статус покупки изменился. Скачивание недоступно." }, { status: 403 })
+  return new Response(null, { status: 302, headers: { Location: url, "Cache-Control": "private, no-store" } })
 }

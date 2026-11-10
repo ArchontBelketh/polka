@@ -29,7 +29,8 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     return Response.json({ error: "Заявка не в статусе ожидания" }, { status: 400 })
   }
 
-  await db.purchase.update({ where: { id }, data: { status: "DECLINED" } })
+  const result = await db.purchase.updateMany({ where: { id, status: "AWAITING" }, data: { status: "DECLINED" } })
+  if (result.count === 0) return Response.json({ error: "Статус заявки уже изменён" }, { status: 409 })
 
   void notifyPurchaseDeclined({
     buyerTelegramId: purchase.buyer.telegramId,

@@ -25,7 +25,7 @@ function Inner() {
       }
       reachGoal("sell_become_developer")
       await update() // обновляем роль в сессии (jwt trigger:"update") без пере-логина
-      router.push("/dashboard")
+      router.push("/dashboard/profile")
       router.refresh()
     } catch {
       setError("Ошибка сети. Попробуйте ещё раз.")
@@ -36,12 +36,12 @@ function Inner() {
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <Button size="lg" onClick={handle} disabled={loading} className="flex items-center gap-2">
-        {loading ? "Оформляем…" : "Стать разработчиком"}
-        {!loading && <ArrowRight className="h-4 w-4" />}
+      <Button size="lg" onClick={handle} disabled={loading} className="flex h-auto min-h-11 max-w-full items-center gap-2 whitespace-normal py-3 text-center">
+        <span>{loading ? "Включаем…" : "Включить профиль разработчика"}</span>
+        {!loading && <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />}
       </Button>
-      <p className="text-xs text-muted-foreground">Бесплатно. Откроется кабинет разработчика.</p>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <p className="text-xs text-muted-foreground text-center">Бесплатно, в этом же аккаунте. Покупки сохраняются.</p>
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </div>
   )
 }

@@ -1,0 +1,207 @@
+{
+  "sourceHash": "a23fe86d34de08562f8404eff1dd5ba020c688fa6cded281354aa8c747f97e56",
+  "models": {
+    "ProductSubmission": {
+      "name": "ProductSubmission",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "userId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fingerprint": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        }
+      },
+      "relations": {
+        "user": {
+          "model": "User",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "userId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "productId"
+        ]
+      ],
+      "indexes": [
+        [
+          "userId"
+        ]
+      ]
+    },
+    "ProductUpload": {
+      "name": "ProductUpload",
+      "fields": {
+        "id": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "productId": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "type": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "slot": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": 0
+        },
+        "fileName": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "fileSize": {
+          "type": "Int",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "contentType": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "stagingKey": {
+          "type": "String",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false
+        },
+        "artifactKey": {
+          "type": "String",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "status": {
+          "type": "ProductUploadStatus",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": "PENDING"
+        },
+        "createdAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": false,
+          "default": {
+            "fn": "now"
+          }
+        },
+        "updatedAt": {
+          "type": "DateTime",
+          "nullable": false,
+          "list": false,
+          "updatedAt": true
+        },
+        "completedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        },
+        "stagingDeletedAt": {
+          "type": "DateTime",
+          "nullable": true,
+          "list": false,
+          "updatedAt": false
+        }
+      },
+      "relations": {
+        "product": {
+          "model": "Product",
+          "many": false,
+          "nullable": false,
+          "from": [
+            "productId"
+          ],
+          "to": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      },
+      "primaryKey": [
+        "id"
+      ],
+      "unique": [
+        [
+          "stagingKey"
+        ]
+      ],
+      "indexes": [
+        [
+          "productId"
+        ],
+        [
+          "status",
+          "createdAt"
+        ]
+      ]
+    }
+  }
+}

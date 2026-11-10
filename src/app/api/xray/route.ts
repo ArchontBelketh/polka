@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server"
 import { limits } from "@/lib/ratelimit"
 import { verifySmartCaptcha } from "@/lib/smartcaptcha"
-import { analyzeXray } from "@/lib/xray/analyze"
+import { analyzeXray, XrayAnalysisError } from "@/lib/xray/analyze"
+import { clientIp } from "@/lib/ip"
 
 // Анализ может идти до 30 секунд.
 export const maxDuration = 60
@@ -12,7 +13,7 @@ const MAX_FILE = 2 * 1024 * 1024 // 2 МБ для файла/архива
 // Публичная проверка X-Ray: без сессии, код не сохраняется и не логируется.
 // 10 проверок в сутки с одного IP, далее — SmartCaptcha.
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
+  const ip = clientIp(req) || "anonymous"
   const underLimit = limits.xray(ip)
   const ct = req.headers.get("content-type") ?? ""
 
@@ -68,6 +69,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Слишком большой код — загрузите архив (.zip)." }, { status: 413 })
   }
 
-  const report = await analyzeXray({ code, fileBuffer, fileName })
-  return Response.json({ ok: true, report })
+  try {
+    const report = await analyzeXray({ code, fileBuffer, fileName })
+    return Response.json({ ok: true, report })
+  } catch (err) {
+    if (err instanceof XrayAnalysisError) {
+      return Response.json({ ok: false, error: err.message }, { status: err.status })
+    }
+    return Response.json({ ok: false, error: "Проверка временно недоступна" }, { status: 503 })
+  }
 }

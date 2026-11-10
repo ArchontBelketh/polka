@@ -23,7 +23,8 @@ import { formatFileSize } from "@/lib/utils"
 import { TechBadge } from "@/components/catalog/TechBadge"
 import { VerifiedBadge } from "@/components/product/VerifiedBadge"
 import type { AiReviewResult } from "@/lib/ai-review/prompt"
-import { getAiSettings, isAiReviewEnabled } from "@/lib/ai-settings"
+import { ProductSpecifications } from "@/components/product/ProductSpecifications"
+import { PRODUCT_PLATFORMS } from "@/lib/product-specification"
 import type { Metadata } from "next"
 
 interface ProductPageProps {
@@ -69,9 +70,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = await db.product.findUnique({
     where: { slug },
     include: {
+      specification: true,
       author: {
         select: {
-          id: true, name: true, email: true,
+          id: true, name: true,
           payoutProfile: { select: { paymentLink: true, displayName: true, kind: true, inn: true } },
         },
       },
@@ -95,7 +97,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   const isOwnProduct = session?.user?.id === product.authorId
-  const authorName = product.author.name ?? product.author.email ?? "Разработчик"
+  const authorName = product.author.name ?? "Разработчик"
 
   // Check if current user has a purchase (to show review form + full install guide)
   const [purchaseRecord, existingAiReview] = await Promise.all([
@@ -121,9 +123,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const hasPurchase = Boolean(purchaseRecord)
   const purchaseId = purchaseRecord?.id ?? null
 
-  // Услуга ИИ-ревью показывается только если провайдер настроен в админке.
-  const aiReviewEnabled = isAiReviewEnabled(await getAiSettings())
-
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://cyberpolka.store"
 
   const jsonLdImage = product.screenshots[0]
@@ -138,7 +137,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     url: `${appUrl}/product/${product.slug}`,
     image: jsonLdImage,
     applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
+    operatingSystem: product.specification?.platforms.filter((key) => ["WINDOWS", "LINUX", "MACOS"].includes(key)).map((key) => PRODUCT_PLATFORMS[key as keyof typeof PRODUCT_PLATFORMS]).join(", ") || undefined,
     offers: {
       "@type": "Offer",
       price: (product.price / 100).toFixed(2),
@@ -165,14 +164,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <Badge variant="secondary">
                   {CATEGORY_LABELS[product.category as keyof typeof CATEGORY_LABELS]}
                 </Badge>
@@ -195,6 +194,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
 
             <ScreenshotSlider urls={screenshotUrls} title={product.title} />
+            <ProductSpecifications specification={product.specification} />
 
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-3">Описание</h2>
@@ -304,9 +304,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
 
-            {/* AI Review — только если провайдер ИИ настроен в админке */}
-            {session?.user && !isOwnProduct && aiReviewEnabled && (
+            {/* Preserve a user's previous report without promoting new audits. */}
+            {session?.user && !isOwnProduct && existingAiReview && (
               <AiReviewOrder
+                allowOrder={false}
                 productId={product.id}
                 existingReview={existingAiReview ? {
                   id: existingAiReview.id,

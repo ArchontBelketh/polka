@@ -9,8 +9,7 @@
  *   moderator@polka.test / password123  (MODERATOR)
  */
 
-import { PrismaClient } from "../src/generated/prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { createDatabase } from "../src/lib/database-factory"
 import bcrypt from "bcryptjs"
 import * as dotenv from "dotenv"
 import { assertNotProduction } from "./guard"
@@ -19,8 +18,7 @@ import { assertNotProduction } from "./guard"
 dotenv.config({ path: ".env.local" })
 dotenv.config({ path: ".env" })
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-const db = new PrismaClient({ adapter })
+const db = createDatabase()
 
 const USERS = [
   { email: "admin@polka.test",     name: "Тест Админ",      role: "ADMIN"     as const },

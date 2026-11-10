@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs"
 
 const schema = z.object({
   current: z.string().min(1),
-  next:    z.string().min(6).max(128),
+  next:    z.string().min(8).max(128),
 })
 
 export async function POST(req: Request) {
@@ -29,7 +29,18 @@ export async function POST(req: Request) {
   if (!valid) return Response.json({ error: "Неверный текущий пароль" }, { status: 400 })
 
   const hash = await bcrypt.hash(parsed.data.next, 12)
-  await db.user.update({ where: { id: session.user.id }, data: { passwordHash: hash } })
+  const changed = await db.user.updateMany({
+    where: { id: session.user.id, passwordHash: user.passwordHash },
+    data: {
+      passwordHash: hash,
+      sessionVersion: { increment: 1 },
+      resetTokenHash: null,
+      resetTokenExpiresAt: null,
+    },
+  })
+  if (changed.count === 0) {
+    return Response.json({ error: "Пароль уже изменён. Войдите снова." }, { status: 409 })
+  }
 
   return Response.json({ ok: true })
 }
